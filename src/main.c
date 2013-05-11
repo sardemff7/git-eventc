@@ -192,6 +192,10 @@ main(int argc, char *argv[])
     GError *error = NULL;
     GOptionContext *option_context = NULL;
 
+#if ! GLIB_CHECK_VERSION(2,35,1)
+    g_type_init();
+#endif /* ! GLIB_CHECK_VERSION(2,35,1) */
+
     GOptionEntry entries[] =
     {
         { "port",           'p', 0,                    G_OPTION_ARG_INT,      &port,                      "Port to listen to",                            "<port>" },
