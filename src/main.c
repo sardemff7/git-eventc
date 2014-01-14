@@ -198,14 +198,14 @@ main(int argc, char *argv[])
 
     GOptionEntry entries[] =
     {
-        { "port",           'p', 0,                    G_OPTION_ARG_INT,      &port,                      "Port to listen to",                            "<port>" },
-        { "token",          't', 0,                    G_OPTION_ARG_STRING,   &token,                     "Token to check in the client query",           "<token>" },
-        { "cert-file",      'c', 0,                    G_OPTION_ARG_FILENAME, &cert_file,                 "Path to the certificate file",                 "<path>" },
-        { "key-file",       'k', 0,                    G_OPTION_ARG_FILENAME, &key_file,                  "Path to the key file (defaults to cert-file)", "<path>" },
-        { "host",           'h', 0,                    G_OPTION_ARG_STRING,   &host,                      "eventd host to connect to",                    "<host>" },
-        { "merge-thresold", 'm', 0,                    G_OPTION_ARG_INT,      &merge_thresold,            "Number of commits to start merging",           "<thresold>" },
-        { "commit-id-size",  0,  0,                    G_OPTION_ARG_INT,      &commit_id_size,            "Number of chars to limmit the commit id to",   "<limit>" },
-        { "version",        'V', 0,                    G_OPTION_ARG_NONE,     &print_version,             "Print version",                                NULL },
+        { "port",           'p', 0, G_OPTION_ARG_INT,      &port,           "Port to listen to (defaults to 0, random)",                  "<port>" },
+        { "token",          't', 0, G_OPTION_ARG_STRING,   &token,          "Token to check in the client query",                         "<token>" },
+        { "cert-file",      'c', 0, G_OPTION_ARG_FILENAME, &cert_file,      "Path to the certificate file",                               "<path>" },
+        { "key-file",       'k', 0, G_OPTION_ARG_FILENAME, &key_file,       "Path to the key file (defaults to cert-file)",               "<path>" },
+        { "host",           'h', 0, G_OPTION_ARG_STRING,   &host,           "eventd host to connect to",                                  "<host>" },
+        { "merge-thresold", 'm', 0, G_OPTION_ARG_INT,      &merge_thresold, "Number of commits to start merging (defaults to 5)",         "<thresold>" },
+        { "commit-id-size",  0,  0, G_OPTION_ARG_INT,      &commit_id_size, "Number of chars to limmit the commit id to (defaults to 7)", "<limit>" },
+        { "version",        'V', 0, G_OPTION_ARG_NONE,     &print_version,  "Print version",                                              NULL },
         { NULL }
     };
 
