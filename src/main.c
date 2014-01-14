@@ -108,7 +108,7 @@ _github_eventd_gateway_server_callback(SoupServer *server, SoupMessage *msg, con
         JsonObject *pusher = json_object_get_object_member(root, "pusher");
 
         event = eventd_event_new("scm", "commit-group");
-        eventd_event_add_data(event, g_strdup("author-name"), json_object_dup_string_member(pusher, "name"));
+        eventd_event_add_data(event, g_strdup("pusher-name"), json_object_dup_string_member(pusher, "name"));
         //eventd_event_add_data(event, g_strdup("author-username"), json_object_dup_string_member(pusher, "username"));
         //eventd_event_add_data(event, g_strdup("author-email"), json_object_dup_string_member(pusher, "email"));
         eventd_event_add_data(event, g_strdup("size"), g_strdup_printf("%u", json_array_get_length(commits)));
