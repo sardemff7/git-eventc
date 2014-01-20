@@ -41,11 +41,102 @@
 #include <libsoup/soup.h>
 #include <json-glib/json-glib.h>
 
+#define DEFAULT_SHORTENER_URL ""
+
 #define json_object_dup_string_member(o, m) (g_strdup(json_object_get_string_member(o, m)))
+
+typedef enum {
+    GITHUB_EVENTC_SHORTENERS_NONE = 0,
+    GITHUB_EVENTC_SHORTENERS_GITIO = 1,
+    GITHUB_EVENTC_SHORTENERS_TINYURL,
+    GITHUB_EVENTC_SHORTENERS_ISGD,
+    GITHUB_EVENTC_SHORTENERS_SIZE
+} GithubEventcShorteners;
+
+typedef gchar *(*GithubEventcShortenerParse)(SoupMessage *msg);
+
+typedef struct {
+    const gchar *name;
+    const gchar *method;
+    const gchar *url;
+    const gchar *field_name;
+    GithubEventcShortenerParse parse;
+} GithubEventcShortener;
 
 static gchar *token = NULL;
 static guint merge_thresold = 5;
 static guint commit_id_size = 7;
+static GithubEventcShortener *shortener = NULL;
+static SoupSession *shortener_session = NULL;
+
+
+static gchar *
+_github_eventc_shortener_parse_gitio(SoupMessage *msg)
+{
+    if ( msg->status_code != SOUP_STATUS_CREATED )
+        return NULL;
+
+    return g_strdup(soup_message_headers_get_one(msg->response_headers, "Location"));
+}
+
+static GithubEventcShortener shorteners[GITHUB_EVENTC_SHORTENERS_SIZE] = {
+    [GITHUB_EVENTC_SHORTENERS_GITIO] = {
+        .name       = "git.io",
+        .method     = "POST",
+        .url        = "http://git.io/",
+        .field_name = "url",
+        .parse      = _github_eventc_shortener_parse_gitio,
+    },
+    [GITHUB_EVENTC_SHORTENERS_TINYURL] = {
+        .name       = "tinyurl",
+        .method     = "GET",
+        .url        = "http://tinyurl.com/api-create.php",
+        .field_name = "url",
+    },
+    [GITHUB_EVENTC_SHORTENERS_ISGD] = {
+        .name       = "is.gd",
+        .method     = "POST",
+        .url        = "http://is.gd/create.php?format=simple",
+        .field_name = "url",
+    },
+};
+
+static gchar *
+_github_eventc_get_url(const gchar *url)
+{
+    if ( shortener_session == NULL )
+        return g_strdup(url);
+
+    SoupURI *uri;
+    SoupMessage *msg;
+    gchar *escaped_url;
+    gchar *data;
+    gchar *short_url = NULL;
+
+    uri = soup_uri_new(shortener->url);
+    msg = soup_message_new_from_uri(shortener->method, uri);
+    escaped_url = soup_uri_encode(url, NULL);
+    data = g_strdup_printf("%s=%s", shortener->field_name, escaped_url);
+    g_free(escaped_url);
+    soup_message_set_request(msg, "application/x-www-form-urlencoded", SOUP_MEMORY_TAKE, data, strlen(data));
+    soup_session_send_message(shortener_session, msg);
+
+    if ( shortener->parse != NULL )
+        short_url = shortener->parse(msg);
+    else if ( SOUP_STATUS_IS_SUCCESSFUL(msg->status_code) )
+        short_url = g_strndup(msg->response_body->data, msg->response_body->length);
+
+    if ( short_url == NULL )
+    {
+        g_warning("Failed to shorten URL '%s'", url);
+        short_url = g_strdup(url);
+    }
+
+    soup_uri_free(uri);
+    g_object_unref(msg);
+
+    return short_url;
+}
 
 static void
 _github_eventd_gateway_server_callback(SoupServer *server, SoupMessage *msg, const char *path, GHashTable *query, SoupClientContext *client, gpointer user_data)
@@ -112,7 +203,7 @@ _github_eventd_gateway_server_callback(SoupServer *server, SoupMessage *msg, con
         //eventd_event_add_data(event, g_strdup("author-username"), json_object_dup_string_member(pusher, "username"));
         //eventd_event_add_data(event, g_strdup("author-email"), json_object_dup_string_member(pusher, "email"));
         eventd_event_add_data(event, g_strdup("size"), g_strdup_printf("%u", json_array_get_length(commits)));
-        eventd_event_add_data(event, g_strdup("url"), json_object_dup_string_member(root, "compare"));
+        eventd_event_add_data(event, g_strdup("url"), _github_eventc_get_url(json_object_get_string_member(root, "compare")));
 
         eventd_event_add_data(event, g_strdup("repository-name"), json_object_dup_string_member(repository, "name"));
         eventd_event_add_data(event, g_strdup("branch"), g_strdup(json_object_get_string_member(root, "ref") + strlen("refs/heads/")));
@@ -143,7 +234,7 @@ _github_eventd_gateway_server_callback(SoupServer *server, SoupMessage *msg, con
             eventd_event_add_data(event, g_strdup("author-username"), json_object_dup_string_member(author, "username"));
             eventd_event_add_data(event, g_strdup("author-email"), json_object_dup_string_member(author, "email"));
             eventd_event_add_data(event, g_strdup("message"), message);
-            eventd_event_add_data(event, g_strdup("url"), json_object_dup_string_member(commit, "url"));
+            eventd_event_add_data(event, g_strdup("url"), _github_eventc_get_url(json_object_get_string_member(commit, "url")));
 
             eventd_event_add_data(event, g_strdup("repository-name"), json_object_dup_string_member(repository, "name"));
             eventd_event_add_data(event, g_strdup("branch"), g_strdup(json_object_get_string_member(root, "ref") + strlen("refs/heads/")));
@@ -187,6 +278,8 @@ main(int argc, char *argv[])
     gint port = 0;
     gchar *host = NULL;
     gboolean print_version = FALSE;
+    gchar *shortener_name = NULL;
+
 
     int retval = 0;
     GError *error = NULL;
@@ -205,6 +298,7 @@ main(int argc, char *argv[])
         { "host",           'h', 0, G_OPTION_ARG_STRING,   &host,           "eventd host to connect to",                                  "<host>" },
         { "merge-thresold", 'm', 0, G_OPTION_ARG_INT,      &merge_thresold, "Number of commits to start merging (defaults to 5)",         "<thresold>" },
         { "commit-id-size",  0,  0, G_OPTION_ARG_INT,      &commit_id_size, "Number of chars to limmit the commit id to (defaults to 7)", "<limit>" },
+        { "shortener",      's', 0, G_OPTION_ARG_STRING,   &shortener_name, "Shortener service name (\"list\" for a list)",               "<name>" },
         { "version",        'V', 0, G_OPTION_ARG_NONE,     &print_version,  "Print version",                                              NULL },
         { NULL }
     };
@@ -221,6 +315,32 @@ main(int argc, char *argv[])
     {
         g_print(PACKAGE_NAME " " PACKAGE_VERSION "\n");
         goto end;
+    }
+
+    if ( shortener_name != NULL )
+    {
+        gint i;
+        if ( g_strcmp0(shortener_name, "list") == 0 )
+        {
+            g_printf("Supported shorteners:\n");
+            for ( i = 1 ; i < GITHUB_EVENTC_SHORTENERS_SIZE ; ++i )
+                g_printf("    %s\n", shorteners[i].name);
+            goto end;
+        }
+        else
+        {
+            for ( i = 1 ; i < GITHUB_EVENTC_SHORTENERS_SIZE ; ++i )
+            {
+                if ( g_strcmp0(shortener_name, shorteners[i].name) == 0 )
+                    shortener = &shorteners[i];
+            }
+            if ( shortener == NULL )
+            {
+                g_printf("Unknown shortener: %s", shortener_name);
+                retval = 3;
+                goto end;
+            }
+        }
     }
 
     GMainLoop *loop;
@@ -253,28 +373,33 @@ main(int argc, char *argv[])
     }
     else
     {
-
         SoupServer *server;
         server = soup_server_new(SOUP_SERVER_PORT, port, SOUP_SERVER_SSL_CERT_FILE, cert_file, SOUP_SERVER_SSL_KEY_FILE, ( ( key_file == NULL ) ? cert_file : key_file ), NULL);
         if ( server == NULL )
         {
             g_warning("Couldn't create the server");
+            retval = 2;
         }
         else
         {
+            if ( shortener != NULL )
+                shortener_session = g_object_new(SOUP_TYPE_SESSION, SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_CONTENT_DECODER, SOUP_SESSION_USER_AGENT, PACKAGE_NAME " ", NULL);
+
             soup_server_add_handler(server, NULL, _github_eventd_gateway_server_callback, client, NULL);
             soup_server_run_async(server);
-
             g_main_loop_run(loop);
             g_main_loop_unref(loop);
-
             soup_server_quit(server);
+
+            if ( shortener_session != NULL )
+                g_object_unref(shortener_session);
         }
     }
 
     g_object_unref(client);
 
 end:
+    g_free(shortener_name);
     g_free(host);
     g_free(key_file);
     g_free(cert_file);
