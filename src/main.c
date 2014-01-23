@@ -148,8 +148,6 @@ _git_eventc_webhook_parse_payload_github(EventcConnection *connection, const gch
 
         event = eventd_event_new("scm", "commit-group");
         eventd_event_add_data(event, g_strdup("pusher-name"), json_object_dup_string_member(pusher, "name"));
-        //eventd_event_add_data(event, g_strdup("author-username"), json_object_dup_string_member(pusher, "username"));
-        //eventd_event_add_data(event, g_strdup("author-email"), json_object_dup_string_member(pusher, "email"));
         eventd_event_add_data(event, g_strdup("size"), g_strdup_printf("%u", json_array_get_length(commits)));
         eventd_event_add_data(event, g_strdup("url"), _git_eventc_webhook_get_url(json_object_get_string_member(root, "compare")));
 
