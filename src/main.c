@@ -133,7 +133,7 @@ _github_eventc_get_url(const gchar *url)
     return short_url;
 }
 
-static void
+static guint
 _github_eventc_parse_payload_github(EventcConnection *connection, const gchar *project, JsonObject *root)
 {
     JsonObject *repository = json_object_get_object_member(root, "repository");
@@ -196,6 +196,8 @@ _github_eventc_parse_payload_github(EventcConnection *connection, const gchar *p
         }
         g_list_free(commit_list);
     }
+
+    return SOUP_STATUS_OK;
 }
 
 static void
@@ -249,11 +251,13 @@ _github_eventc_gateway_server_callback(SoupServer *server, SoupMessage *msg, con
     JsonNode *root_node = json_parser_get_root(parser);
     JsonObject *root = json_node_get_object(root_node);
 
-    _github_eventc_parse_payload_github(connection, project, root);
+    guint status_code = SOUP_STATUS_NOT_IMPLEMENTED;
+    if ( g_str_has_prefix(user_agent, "GitHub Hookshot ") )
+        status_code = _github_eventc_parse_payload_github(connection, project, root);
 
     g_object_unref(parser);
 
-    soup_message_set_status(msg, SOUP_STATUS_OK);
+    soup_message_set_status(msg, status_code);
 }
 
 #ifdef G_OS_UNIX
