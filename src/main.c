@@ -134,54 +134,8 @@ _github_eventc_get_url(const gchar *url)
 }
 
 static void
-_github_eventc_gateway_server_callback(SoupServer *server, SoupMessage *msg, const char *path, GHashTable *query, SoupClientContext *client, gpointer connection)
+_github_eventc_parse_payload_github(EventcConnection *connection, const gchar *project, JsonObject *root)
 {
-    if ( msg->method != SOUP_METHOD_POST )
-    {
-        g_warning("Non-POST request from %s", soup_message_headers_get_one(msg->request_headers, "User-Agent"));
-        soup_message_set_status(msg, SOUP_STATUS_NOT_IMPLEMENTED);
-        return;
-    }
-
-    const gchar *query_token = NULL;
-    const gchar *project = NULL;
-    if ( query != NULL )
-    {
-        query_token = g_hash_table_lookup(query, "token");
-        project = g_hash_table_lookup(query, "project");
-    }
-
-    if ( ( token != NULL ) && ( ( query_token == NULL ) || ( g_strcmp0(token, query_token) != 0 ) ) )
-    {
-        g_warning("Unauthorized request from %s", soup_message_headers_get_one(msg->request_headers, "User-Agent"));
-        soup_message_set_status(msg, SOUP_STATUS_UNAUTHORIZED);
-        return;
-    }
-
-    GHashTable *data = soup_form_decode(msg->request_body->data);
-
-    if ( data == NULL )
-    {
-        g_warning("Bad POST (no data) from %s", soup_message_headers_get_one(msg->request_headers, "User-Agent"));
-        soup_message_set_status(msg, SOUP_STATUS_BAD_REQUEST);
-        return;
-    }
-
-    const gchar *payload = g_hash_table_lookup(data, "payload");
-    if ( payload == NULL )
-    {
-        g_warning("Bad POST (no paylaod) from %s", soup_message_headers_get_one(msg->request_headers, "User-Agent"));
-        soup_message_set_status(msg, SOUP_STATUS_BAD_REQUEST);
-        return;
-    }
-    JsonParser *parser = json_parser_new();
-
-    json_parser_load_from_data(parser, payload, -1, NULL);
-    g_hash_table_unref(data);
-
-    JsonNode *root_node = json_parser_get_root(parser);
-    JsonObject *root = json_node_get_object(root_node);
-
     JsonObject *repository = json_object_get_object_member(root, "repository");
 
     JsonArray *commits = json_object_get_array_member(root, "commits");
@@ -242,6 +196,58 @@ _github_eventc_gateway_server_callback(SoupServer *server, SoupMessage *msg, con
         }
         g_list_free(commit_list);
     }
+}
+
+static void
+_github_eventc_gateway_server_callback(SoupServer *server, SoupMessage *msg, const char *path, GHashTable *query, SoupClientContext *client, gpointer connection)
+{
+    if ( msg->method != SOUP_METHOD_POST )
+    {
+        g_warning("Non-POST request from %s", soup_message_headers_get_one(msg->request_headers, "User-Agent"));
+        soup_message_set_status(msg, SOUP_STATUS_NOT_IMPLEMENTED);
+        return;
+    }
+
+    const gchar *query_token = NULL;
+    const gchar *project = NULL;
+    if ( query != NULL )
+    {
+        query_token = g_hash_table_lookup(query, "token");
+        project = g_hash_table_lookup(query, "project");
+    }
+
+    if ( ( token != NULL ) && ( ( query_token == NULL ) || ( g_strcmp0(token, query_token) != 0 ) ) )
+    {
+        g_warning("Unauthorized request from %s", soup_message_headers_get_one(msg->request_headers, "User-Agent"));
+        soup_message_set_status(msg, SOUP_STATUS_UNAUTHORIZED);
+        return;
+    }
+
+    GHashTable *data = soup_form_decode(msg->request_body->data);
+
+    if ( data == NULL )
+    {
+        g_warning("Bad POST (no data) from %s", soup_message_headers_get_one(msg->request_headers, "User-Agent"));
+        soup_message_set_status(msg, SOUP_STATUS_BAD_REQUEST);
+        return;
+    }
+
+    const gchar *payload = g_hash_table_lookup(data, "payload");
+    if ( payload == NULL )
+    {
+        g_warning("Bad POST (no paylaod) from %s", soup_message_headers_get_one(msg->request_headers, "User-Agent"));
+        soup_message_set_status(msg, SOUP_STATUS_BAD_REQUEST);
+        return;
+    }
+    JsonParser *parser = json_parser_new();
+
+    json_parser_load_from_data(parser, payload, -1, NULL);
+    g_hash_table_unref(data);
+
+    JsonNode *root_node = json_parser_get_root(parser);
+    JsonObject *root = json_node_get_object(root_node);
+
+    _github_eventc_parse_payload_github(connection, project, root);
 
     g_object_unref(parser);
 
