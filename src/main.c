@@ -149,18 +149,19 @@ _github_eventd_gateway_server_callback(SoupServer *server, SoupMessage *msg, con
     }
 
     const gchar *query_token = NULL;
+    const gchar *project = NULL;
     if ( query != NULL )
+    {
         query_token = g_hash_table_lookup(query, "token");
+        project = g_hash_table_lookup(query, "project");
+    }
+
     if ( ( token != NULL ) && ( ( query_token == NULL ) || ( g_strcmp0(token, query_token) != 0 ) ) )
     {
         g_warning("Unauthorized request from %s", soup_message_headers_get_one(msg->request_headers, "User-Agent"));
         soup_message_set_status(msg, SOUP_STATUS_UNAUTHORIZED);
         return;
     }
-
-    const gchar *project = NULL;
-    if ( query != NULL )
-        project = g_hash_table_lookup(query, "project");
 
     GHashTable *data = soup_form_decode(msg->request_body->data);
 
