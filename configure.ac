@@ -33,18 +33,30 @@ if test -d .git; then
     AC_DEFINE_UNQUOTED([PACKAGE_VERSION], ["$PACKAGE_VERSION"], [Full version with git information])
 fi
 
-AC_CHECK_HEADERS([string.h])
+AC_CHECK_HEADERS([string.h stdio.h])
 
-PKG_CHECK_MODULES(GLIB, [glib-2.0 >= $glib_min_version gobject-2.0])
+PKG_CHECK_MODULES(GLIB, [glib-2.0 >= $glib_min_version gobject-2.0 gio-2.0])
 AC_DEFINE_UNQUOTED([GLIB_VERSION_MIN_REQUIRED], [(G_ENCODE_VERSION(${glib_min_major},${glib_min_minor}))], [The lower GLib version supported])
 
 PKG_CHECK_MODULES(LIBEVENTC, [libeventc])
 
 PKG_CHECK_MODULES(LIBSOUP, [libsoup-2.4])
 
-PKG_CHECK_MODULES(JSON_GLIB, [json-glib-1.0])
+AC_ARG_ENABLE(hook, AS_HELP_STRING([--disable-hook], [Disable post-receive hook]), [], enable_hook=yes)
+if test x$enable_hook = xyes; then
+    PKG_CHECK_MODULES(LIBGIT2, [libgit2])
+fi
+AM_CONDITIONAL(ENABLE_HOOK, test x$enable_hook = xyes)
 
+AC_ARG_ENABLE(webhook, AS_HELP_STRING([--disable-webhook], [Disable WebHook handler]), [], enable_webhook=yes)
+if test x$enable_webhook = xyes; then
+    PKG_CHECK_MODULES(JSON_GLIB, [json-glib-1.0])
+fi
+AM_CONDITIONAL(ENABLE_WEBHOOK, test x$enable_webhook = xyes)
 
+if test x$enable_hook = xno -a x$enable_webhook = xno; then
+    AC_MSG_ERROR([All features disabled])
+fi
 # Debug flags
 AC_ARG_ENABLE(debug, AS_HELP_STRING([--enable-debug], [Enable debug]), [], enable_debug=no)
 if test x$enable_debug = xyes; then
@@ -62,4 +74,7 @@ AC_OUTPUT
 
 AC_MSG_RESULT([
     ${PACKAGE_NAME} ${PACKAGE_VERSION}
+
+    post-receive hook: $enable_hook
+    WebHook handler: $enable_webhook
 ])

@@ -1,3 +1,4 @@
 /src/config.h*
 /libgit-eventc.a
+/git-eventc-post-receive
 /git-eventc-webhook
