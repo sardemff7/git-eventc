@@ -41,10 +41,6 @@
 #include <libsoup/soup.h>
 #include <json-glib/json-glib.h>
 
-#define DEFAULT_SHORTENER_URL ""
-
-#define json_object_dup_string_member(o, m) (g_strdup(json_object_get_string_member(o, m)))
-
 typedef gchar *(*GitEventcWebhookShortenerParse)(SoupMessage *msg);
 
 typedef struct {
@@ -138,31 +134,81 @@ _git_eventc_webhook_get_url(const gchar *url)
     return short_url;
 }
 
+static void
+_git_eventc_webhook_send_commit_group(EventcConnection *connection, const gchar *pusher_name, guint size, const gchar *url, const gchar *repository_name, const gchar *branch, const gchar *project)
+{
+    EventdEvent *event;
+
+    event = eventd_event_new("scm", "commit-group");
+
+    eventd_event_add_data(event, g_strdup("pusher-name"), g_strdup(pusher_name));
+    eventd_event_add_data(event, g_strdup("size"), g_strdup_printf("%u", size));
+    eventd_event_add_data(event, g_strdup("url"), _git_eventc_webhook_get_url(url));
+
+    eventd_event_add_data(event, g_strdup("repository-name"), g_strdup(repository_name));
+    eventd_event_add_data(event, g_strdup("branch"), g_strdup(branch));
+
+    if ( project != NULL )
+        eventd_event_add_data(event, g_strdup("project"), g_strdup(project));
+
+    eventc_connection_event(connection, event, NULL);
+    g_object_unref(event);
+}
+
+static void
+_git_eventc_webhook_send_commit(EventcConnection *connection, const gchar *id, const gchar *base_message, const gchar *url, const gchar *author_name, const gchar *author_username, const gchar *author_email, const gchar *repository_name, const gchar *branch, const gchar *project)
+{
+    const gchar *new_line = g_utf8_strchr(base_message, -1, '\n');
+    gchar *message;
+    if ( new_line != NULL )
+        message = g_strndup(base_message, ( new_line - base_message ));
+    else
+        message = g_strdup(base_message);
+
+    EventdEvent *event;
+
+    event = eventd_event_new("scm", "commit");
+
+    eventd_event_add_data(event, g_strdup("id"), g_strndup(id, commit_id_size));
+    eventd_event_add_data(event, g_strdup("message"), message);
+    eventd_event_add_data(event, g_strdup("url"), _git_eventc_webhook_get_url(url));
+
+    eventd_event_add_data(event, g_strdup("author-name"), g_strdup(author_name));
+    if ( author_username != NULL )
+        eventd_event_add_data(event, g_strdup("author-username"), g_strdup(author_username));
+    if ( author_email != NULL )
+        eventd_event_add_data(event, g_strdup("author-email"), g_strdup(author_email));
+
+    eventd_event_add_data(event, g_strdup("repository-name"), g_strdup(repository_name));
+    eventd_event_add_data(event, g_strdup("branch"), g_strdup(branch));
+
+    if ( project != NULL )
+        eventd_event_add_data(event, g_strdup("project"), g_strdup(project));
+
+    eventc_connection_event(connection, event, NULL);
+    g_object_unref(event);
+}
+
 static guint
 _git_eventc_webhook_parse_payload_github(EventcConnection *connection, const gchar *project, JsonObject *root)
 {
     JsonObject *repository = json_object_get_object_member(root, "repository");
 
     JsonArray *commits = json_object_get_array_member(root, "commits");
+    guint size = json_array_get_length(commits);
 
-    EventdEvent *event;
+    const gchar *repository_name = json_object_get_string_member(repository, "name");
+    const gchar *branch = json_object_get_string_member(root, "ref") + strlen("refs/heads/");
 
-    if ( json_array_get_length(commits) >= merge_thresold )
+    if ( size >= merge_thresold )
     {
         JsonObject *pusher = json_object_get_object_member(root, "pusher");
 
-        event = eventd_event_new("scm", "commit-group");
-        eventd_event_add_data(event, g_strdup("pusher-name"), json_object_dup_string_member(pusher, "name"));
-        eventd_event_add_data(event, g_strdup("size"), g_strdup_printf("%u", json_array_get_length(commits)));
-        eventd_event_add_data(event, g_strdup("url"), _git_eventc_webhook_get_url(json_object_get_string_member(root, "compare")));
-
-        eventd_event_add_data(event, g_strdup("repository-name"), json_object_dup_string_member(repository, "name"));
-        eventd_event_add_data(event, g_strdup("branch"), g_strdup(json_object_get_string_member(root, "ref") + strlen("refs/heads/")));
-        if ( project != NULL )
-            eventd_event_add_data(event, g_strdup("project"), g_strdup(project));
-
-        eventc_connection_event(connection, event, NULL);
-        g_object_unref(event);
+        _git_eventc_webhook_send_commit_group(connection,
+            json_object_get_string_member(pusher, "name"),
+            size,
+            json_object_get_string_member(root, "compare"),
+            repository_name, branch, project);
     }
     else
     {
@@ -173,29 +219,14 @@ _git_eventc_webhook_parse_payload_github(EventcConnection *connection, const gch
             JsonObject *commit = json_node_get_object(commit_->data);
             JsonObject *author = json_object_get_object_member(commit, "author");
 
-            const gchar *base_message = json_object_get_string_member(commit, "message");
-            const gchar *new_line = g_utf8_strchr(base_message, -1, '\n');
-            gchar *message;
-            if ( new_line != NULL )
-                message = g_strndup(base_message, ( new_line - base_message ));
-            else
-                message = g_strdup(base_message);
-
-            event = eventd_event_new("scm", "commit");
-            eventd_event_add_data(event, g_strdup("id"), g_strndup(json_object_get_string_member(commit, "id"), commit_id_size));
-            eventd_event_add_data(event, g_strdup("author-name"), json_object_dup_string_member(author, "name"));
-            eventd_event_add_data(event, g_strdup("author-username"), json_object_dup_string_member(author, "username"));
-            eventd_event_add_data(event, g_strdup("author-email"), json_object_dup_string_member(author, "email"));
-            eventd_event_add_data(event, g_strdup("message"), message);
-            eventd_event_add_data(event, g_strdup("url"), _git_eventc_webhook_get_url(json_object_get_string_member(commit, "url")));
-
-            eventd_event_add_data(event, g_strdup("repository-name"), json_object_dup_string_member(repository, "name"));
-            eventd_event_add_data(event, g_strdup("branch"), g_strdup(json_object_get_string_member(root, "ref") + strlen("refs/heads/")));
-            if ( project != NULL )
-                eventd_event_add_data(event, g_strdup("project"), g_strdup(project));
-
-            eventc_connection_event(connection, event, NULL);
-            g_object_unref(event);
+            _git_eventc_webhook_send_commit(connection,
+                json_object_get_string_member(commit, "id"),
+                json_object_get_string_member(commit, "message"),
+                json_object_get_string_member(commit, "url"),
+                json_object_get_string_member(author, "name"),
+                json_object_get_string_member(author, "username"),
+                json_object_get_string_member(author, "email"),
+                repository_name, branch, project);
         }
         g_list_free(commit_list);
     }
