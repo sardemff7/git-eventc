@@ -201,9 +201,11 @@ _github_eventc_parse_payload_github(EventcConnection *connection, const gchar *p
 static void
 _github_eventc_gateway_server_callback(SoupServer *server, SoupMessage *msg, const char *path, GHashTable *query, SoupClientContext *client, gpointer connection)
 {
+    const gchar *user_agent = soup_message_headers_get_one(msg->request_headers, "User-Agent");
+
     if ( msg->method != SOUP_METHOD_POST )
     {
-        g_warning("Non-POST request from %s", soup_message_headers_get_one(msg->request_headers, "User-Agent"));
+        g_warning("Non-POST request from %s", user_agent);
         soup_message_set_status(msg, SOUP_STATUS_NOT_IMPLEMENTED);
         return;
     }
@@ -218,7 +220,7 @@ _github_eventc_gateway_server_callback(SoupServer *server, SoupMessage *msg, con
 
     if ( ( token != NULL ) && ( ( query_token == NULL ) || ( g_strcmp0(token, query_token) != 0 ) ) )
     {
-        g_warning("Unauthorized request from %s", soup_message_headers_get_one(msg->request_headers, "User-Agent"));
+        g_warning("Unauthorized request from %s", user_agent);
         soup_message_set_status(msg, SOUP_STATUS_UNAUTHORIZED);
         return;
     }
@@ -227,7 +229,7 @@ _github_eventc_gateway_server_callback(SoupServer *server, SoupMessage *msg, con
 
     if ( data == NULL )
     {
-        g_warning("Bad POST (no data) from %s", soup_message_headers_get_one(msg->request_headers, "User-Agent"));
+        g_warning("Bad POST (no data) from %s", user_agent);
         soup_message_set_status(msg, SOUP_STATUS_BAD_REQUEST);
         return;
     }
@@ -235,7 +237,7 @@ _github_eventc_gateway_server_callback(SoupServer *server, SoupMessage *msg, con
     const gchar *payload = g_hash_table_lookup(data, "payload");
     if ( payload == NULL )
     {
-        g_warning("Bad POST (no paylaod) from %s", soup_message_headers_get_one(msg->request_headers, "User-Agent"));
+        g_warning("Bad POST (no paylaod) from %s", user_agent);
         soup_message_set_status(msg, SOUP_STATUS_BAD_REQUEST);
         return;
     }
