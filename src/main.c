@@ -139,7 +139,7 @@ _github_eventc_get_url(const gchar *url)
 }
 
 static void
-_github_eventd_gateway_server_callback(SoupServer *server, SoupMessage *msg, const char *path, GHashTable *query, SoupClientContext *client, gpointer user_data)
+_github_eventc_gateway_server_callback(SoupServer *server, SoupMessage *msg, const char *path, GHashTable *query, SoupClientContext *client, gpointer connection)
 {
     if ( msg->method != SOUP_METHOD_POST )
     {
@@ -211,7 +211,7 @@ _github_eventd_gateway_server_callback(SoupServer *server, SoupMessage *msg, con
         if ( project != NULL )
             eventd_event_add_data(event, g_strdup("project"), g_strdup(project));
 
-        eventc_connection_event(user_data, event, NULL);
+        eventc_connection_event(connection, event, NULL);
         g_object_unref(event);
     }
     else
@@ -242,13 +242,12 @@ _github_eventd_gateway_server_callback(SoupServer *server, SoupMessage *msg, con
             if ( project != NULL )
                 eventd_event_add_data(event, g_strdup("project"), g_strdup(project));
 
-            eventc_connection_event(user_data, event, NULL);
+            eventc_connection_event(connection, event, NULL);
             g_object_unref(event);
         }
     }
 
     g_object_unref(parser);
-
 
     soup_message_set_status(msg, SOUP_STATUS_OK);
 }
@@ -386,7 +385,7 @@ main(int argc, char *argv[])
             if ( shortener != NULL )
                 shortener_session = g_object_new(SOUP_TYPE_SESSION, SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_CONTENT_DECODER, SOUP_SESSION_USER_AGENT, PACKAGE_NAME " ", NULL);
 
-            soup_server_add_handler(server, NULL, _github_eventd_gateway_server_callback, client, NULL);
+            soup_server_add_handler(server, NULL, _github_eventc_gateway_server_callback, client, NULL);
             soup_server_run_async(server);
             g_main_loop_run(loop);
             g_main_loop_unref(loop);
