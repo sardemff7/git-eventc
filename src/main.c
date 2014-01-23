@@ -254,6 +254,8 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
     guint status_code = SOUP_STATUS_NOT_IMPLEMENTED;
     if ( g_str_has_prefix(user_agent, "GitHub Hookshot ") )
         status_code = _git_eventc_webhook_parse_payload_github(connection, project, root);
+    else
+        g_warning("Unknown WebHook service: %s", user_agent);
 
     g_object_unref(parser);
 
