@@ -185,8 +185,6 @@ _github_eventc_gateway_server_callback(SoupServer *server, SoupMessage *msg, con
     JsonObject *repository = json_object_get_object_member(root, "repository");
 
     JsonArray *commits = json_object_get_array_member(root, "commits");
-    GList *commit_list = json_array_get_elements(commits);
-    GList *commit_;
 
     EventdEvent *event;
 
@@ -211,6 +209,8 @@ _github_eventc_gateway_server_callback(SoupServer *server, SoupMessage *msg, con
     }
     else
     {
+        GList *commit_list = json_array_get_elements(commits);
+        GList *commit_;
         for ( commit_ = commit_list ; commit_ != NULL ; commit_ = g_list_next(commit_) )
         {
             JsonObject *commit = json_node_get_object(commit_->data);
@@ -240,6 +240,7 @@ _github_eventc_gateway_server_callback(SoupServer *server, SoupMessage *msg, con
             eventc_connection_event(connection, event, NULL);
             g_object_unref(event);
         }
+        g_list_free(commit_list);
     }
 
     g_object_unref(parser);
