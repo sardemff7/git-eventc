@@ -1,22 +1,22 @@
 /*
- * github-eventd-gateway - Gateway to push GitHub commits to eventd
+ * git-eventc-webhook - WebHook to eventd server for various Git hosting providers
  *
- * Copyright © 2013 Quentin "Sardem FF7" Glidic
+ * Copyright © 2013-2014 Quentin "Sardem FF7" Glidic
  *
- * This file is part of eventd.
+ * This file is part of git-eventc.
  *
- * eventd is free software: you can redistribute it and/or modify
+ * git-eventc is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * eventd is distributed in the hope that it will be useful,
+ * git-eventc is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with eventd. If not, see <http://www.gnu.org/licenses/>.
+ * along with git-eventc. If not, see <http://www.gnu.org/licenses/>.
  *
  */
 
@@ -45,15 +45,15 @@
 
 #define json_object_dup_string_member(o, m) (g_strdup(json_object_get_string_member(o, m)))
 
-typedef gchar *(*GithubEventcShortenerParse)(SoupMessage *msg);
+typedef gchar *(*GitEventcWebhookShortenerParse)(SoupMessage *msg);
 
 typedef struct {
     const gchar *name;
     const gchar *method;
     const gchar *url;
     const gchar *field_name;
-    GithubEventcShortenerParse parse;
-} GithubEventcShortener;
+    GitEventcWebhookShortenerParse parse;
+} GitEventcWebhookShortener;
 
 static gchar *token = NULL;
 static guint merge_thresold = 5;
@@ -62,7 +62,7 @@ static SoupSession *shortener_session = NULL;
 
 
 static gchar *
-_github_eventc_shortener_parse_gitio(SoupMessage *msg)
+_git_eventc_webhook_shortener_parse_gitio(SoupMessage *msg)
 {
     if ( msg->status_code != SOUP_STATUS_CREATED )
         return NULL;
@@ -70,13 +70,13 @@ _github_eventc_shortener_parse_gitio(SoupMessage *msg)
     return g_strdup(soup_message_headers_get_one(msg->response_headers, "Location"));
 }
 
-static GithubEventcShortener shorteners[] = {
+static GitEventcWebhookShortener shorteners[] = {
     {
         .name       = "git.io",
         .method     = "POST",
         .url        = "http://git.io/",
         .field_name = "url",
-        .parse      = _github_eventc_shortener_parse_gitio,
+        .parse      = _git_eventc_webhook_shortener_parse_gitio,
     },
     {
         .name       = "tinyurl",
@@ -93,7 +93,7 @@ static GithubEventcShortener shorteners[] = {
 };
 
 static gchar *
-_github_eventc_get_url(const gchar *url)
+_git_eventc_webhook_get_url(const gchar *url)
 {
     if ( shortener_session == NULL )
         return g_strdup(url);
@@ -134,7 +134,7 @@ _github_eventc_get_url(const gchar *url)
 }
 
 static guint
-_github_eventc_parse_payload_github(EventcConnection *connection, const gchar *project, JsonObject *root)
+_git_eventc_webhook_parse_payload_github(EventcConnection *connection, const gchar *project, JsonObject *root)
 {
     JsonObject *repository = json_object_get_object_member(root, "repository");
 
@@ -151,7 +151,7 @@ _github_eventc_parse_payload_github(EventcConnection *connection, const gchar *p
         //eventd_event_add_data(event, g_strdup("author-username"), json_object_dup_string_member(pusher, "username"));
         //eventd_event_add_data(event, g_strdup("author-email"), json_object_dup_string_member(pusher, "email"));
         eventd_event_add_data(event, g_strdup("size"), g_strdup_printf("%u", json_array_get_length(commits)));
-        eventd_event_add_data(event, g_strdup("url"), _github_eventc_get_url(json_object_get_string_member(root, "compare")));
+        eventd_event_add_data(event, g_strdup("url"), _git_eventc_webhook_get_url(json_object_get_string_member(root, "compare")));
 
         eventd_event_add_data(event, g_strdup("repository-name"), json_object_dup_string_member(repository, "name"));
         eventd_event_add_data(event, g_strdup("branch"), g_strdup(json_object_get_string_member(root, "ref") + strlen("refs/heads/")));
@@ -184,7 +184,7 @@ _github_eventc_parse_payload_github(EventcConnection *connection, const gchar *p
             eventd_event_add_data(event, g_strdup("author-username"), json_object_dup_string_member(author, "username"));
             eventd_event_add_data(event, g_strdup("author-email"), json_object_dup_string_member(author, "email"));
             eventd_event_add_data(event, g_strdup("message"), message);
-            eventd_event_add_data(event, g_strdup("url"), _github_eventc_get_url(json_object_get_string_member(commit, "url")));
+            eventd_event_add_data(event, g_strdup("url"), _git_eventc_webhook_get_url(json_object_get_string_member(commit, "url")));
 
             eventd_event_add_data(event, g_strdup("repository-name"), json_object_dup_string_member(repository, "name"));
             eventd_event_add_data(event, g_strdup("branch"), g_strdup(json_object_get_string_member(root, "ref") + strlen("refs/heads/")));
@@ -201,7 +201,7 @@ _github_eventc_parse_payload_github(EventcConnection *connection, const gchar *p
 }
 
 static void
-_github_eventc_gateway_server_callback(SoupServer *server, SoupMessage *msg, const char *path, GHashTable *query, SoupClientContext *client, gpointer connection)
+_git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg, const char *path, GHashTable *query, SoupClientContext *client, gpointer connection)
 {
     const gchar *user_agent = soup_message_headers_get_one(msg->request_headers, "User-Agent");
 
@@ -253,7 +253,7 @@ _github_eventc_gateway_server_callback(SoupServer *server, SoupMessage *msg, con
 
     guint status_code = SOUP_STATUS_NOT_IMPLEMENTED;
     if ( g_str_has_prefix(user_agent, "GitHub Hookshot ") )
-        status_code = _github_eventc_parse_payload_github(connection, project, root);
+        status_code = _git_eventc_webhook_parse_payload_github(connection, project, root);
 
     g_object_unref(parser);
 
@@ -263,17 +263,17 @@ _github_eventc_gateway_server_callback(SoupServer *server, SoupMessage *msg, con
 #ifdef G_OS_UNIX
 #if GLIB_CHECK_VERSION(2,32,0)
 static gboolean
-_eventd_core_stop(gpointer user_data)
+_git_eventc_webhook_stop(gpointer user_data)
 {
     g_main_loop_quit(user_data);
     return FALSE;
 }
 #else /* ! GLIB_CHECK_VERSION(2,32,0) */
-static GMainLoop *_github_eventd_gateway_main_loop = NULL;
+static GMainLoop *_git_eventc_webhook_main_loop = NULL;
 static void
-_eventd_core_sigaction_stop(int sig, siginfo_t *info, void *data)
+_git_eventc_webhook_sigaction_stop(int sig, siginfo_t *info, void *data)
 {
-    g_main_loop_quit(_github_eventd_gateway_main_loop);
+    g_main_loop_quit(_git_eventc_webhook_main_loop);
 }
 #endif /* ! GLIB_CHECK_VERSION(2,32,0) */
 #endif /* G_OS_UNIX */
@@ -311,7 +311,7 @@ main(int argc, char *argv[])
         { NULL }
     };
 
-    option_context = g_option_context_new("- GitHub WebHook to eventd gateway");
+    option_context = g_option_context_new("- Git WebHook to eventd gateway");
 
     g_option_context_add_main_entries(option_context, entries, NULL);
 
@@ -321,7 +321,7 @@ main(int argc, char *argv[])
 
     if ( print_version )
     {
-        g_print(PACKAGE_NAME " " PACKAGE_VERSION "\n");
+        g_print(PACKAGE_NAME "-webhook " PACKAGE_VERSION "\n");
         goto end;
     }
 
@@ -330,12 +330,12 @@ main(int argc, char *argv[])
 
 #ifdef G_OS_UNIX
 #if GLIB_CHECK_VERSION(2,32,0)
-    g_unix_signal_add(SIGTERM, _eventd_core_stop, loop);
-    g_unix_signal_add(SIGINT, _eventd_core_stop, loop);
+    g_unix_signal_add(SIGTERM, _git_eventc_webhook_stop, loop);
+    g_unix_signal_add(SIGINT, _git_eventc_webhook_stop, loop);
 #else /* ! GLIB_CHECK_VERSION(2,32,0) */
-    _github_eventd_gateway_main_loop = loop;
+    _git_eventc_webhook_main_loop = loop;
     struct sigaction action;
-    action.sa_sigaction = _eventd_core_sigaction_stop;
+    action.sa_sigaction = _git_eventc_webhook_sigaction_stop;
     action.sa_flags = SA_SIGINFO;
     sigemptyset(&action.sa_mask);
     sigaction(SIGTERM, &action, NULL);
@@ -365,9 +365,9 @@ main(int argc, char *argv[])
         else
         {
             if ( shortener )
-                shortener_session = g_object_new(SOUP_TYPE_SESSION, SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_CONTENT_DECODER, SOUP_SESSION_USER_AGENT, PACKAGE_NAME " ", NULL);
+                shortener_session = g_object_new(SOUP_TYPE_SESSION, SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_CONTENT_DECODER, SOUP_SESSION_USER_AGENT, PACKAGE_NAME "-webhook ", NULL);
 
-            soup_server_add_handler(server, NULL, _github_eventc_gateway_server_callback, client, NULL);
+            soup_server_add_handler(server, NULL, _git_eventc_webhook_gateway_server_callback, client, NULL);
             soup_server_run_async(server);
             g_main_loop_run(loop);
             g_main_loop_unref(loop);

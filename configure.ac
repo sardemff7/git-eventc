@@ -1,5 +1,5 @@
 AC_PREREQ([2.65])
-AC_INIT([github-eventc],[0.1],[],[])
+AC_INIT([git-eventc],[0.1],[],[])
 
 AC_CONFIG_HEADERS([src/config.h])
 AC_CONFIG_SRCDIR([src/main.c])

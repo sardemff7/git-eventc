@@ -2,19 +2,19 @@ ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS}
 AM_MAKEFLAGS = --no-print-directory
 
 bin_PROGRAMS = \
-	github-eventc
+	git-eventc-webhook
 
-github_eventc_SOURCES = \
+git_eventc_webhook_SOURCES = \
 	src/main.c
 
-github_eventc_CFLAGS = \
+git_eventc_webhook_CFLAGS = \
 	$(AM_CFLAGS) \
 	$(JSON_GLIB_CFLAGS) \
 	$(LIBSOUP_CFLAGS) \
 	$(LIBEVENTC_CFLAGS) \
 	$(GLIB_CFLAGS)
 
-github_eventc_LDADD = \
+git_eventc_webhook_LDADD = \
 	$(JSON_GLIB_LIBS) \
 	$(LIBSOUP_LIBS) \
 	$(LIBEVENTC_LIBS) \
