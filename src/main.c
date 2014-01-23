@@ -52,6 +52,7 @@ typedef struct {
     const gchar *method;
     const gchar *url;
     const gchar *field_name;
+    const gchar *prefix;
     GitEventcWebhookShortenerParse parse;
 } GitEventcWebhookShortener;
 
@@ -76,6 +77,7 @@ static GitEventcWebhookShortener shorteners[] = {
         .method     = "POST",
         .url        = "http://git.io/",
         .field_name = "url",
+        .prefix     = "https://github.com/",
         .parse      = _git_eventc_webhook_shortener_parse_gitio,
     },
     {
@@ -107,6 +109,9 @@ _git_eventc_webhook_get_url(const gchar *url)
 
     for ( i = 0 ; ( i < G_N_ELEMENTS(shorteners) ) && ( short_url == NULL ) ; ++i )
     {
+        if ( ( shorteners[i].prefix != NULL ) && ( ! g_str_has_prefix(url, shorteners[i].prefix) ) )
+            continue;
+
         uri = soup_uri_new(shorteners[i].url);
         msg = soup_message_new_from_uri(shorteners[i].method, uri);
         escaped_url = soup_uri_encode(url, NULL);
