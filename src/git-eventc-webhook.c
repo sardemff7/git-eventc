@@ -56,7 +56,7 @@ _git_eventc_webhook_parse_payload_github(const gchar *project, JsonObject *root)
     const gchar *repository_name = json_object_get_string_member(repository, "name");
     const gchar *branch = json_object_get_string_member(root, "ref") + strlen("refs/heads/");
 
-    if ( git_eventc_is_above_thresold(size) )
+    if ( git_eventc_is_above_threshold(size) )
     {
         JsonObject *pusher = json_object_get_object_member(root, "pusher");
 
@@ -101,7 +101,7 @@ _git_eventc_webhook_parse_payload_gitorious(const gchar *project, JsonObject *ro
     const gchar *repository_name = json_object_get_string_member(repository, "name");
     const gchar *branch = json_object_get_string_member(root, "ref");
 
-    if ( git_eventc_is_above_thresold(size) )
+    if ( git_eventc_is_above_threshold(size) )
     {
         gchar *url;
 

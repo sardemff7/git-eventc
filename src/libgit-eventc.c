@@ -54,7 +54,7 @@ typedef struct {
 } GitEventcShortener;
 
 static gchar *host = NULL;
-static guint merge_thresold = 5;
+static guint merge_threshold = 5;
 static guint commit_id_size = 7;
 static gboolean shortener = FALSE;
 
@@ -70,11 +70,11 @@ git_eventc_parse_options(gint *argc, gchar ***argv, GOptionEntry *extra_entries,
     GOptionContext *option_context;
     GOptionEntry entries[] =
     {
-        { "host",           'h', 0, G_OPTION_ARG_STRING,   &host,           "eventd host to connect to",                                  "<host>" },
-        { "merge-thresold", 'm', 0, G_OPTION_ARG_INT,      &merge_thresold, "Number of commits to start merging (defaults to 5)",         "<thresold>" },
-        { "commit-id-size",  0,  0, G_OPTION_ARG_INT,      &commit_id_size, "Number of chars to limmit the commit id to (defaults to 7)", "<limit>" },
-        { "use-shortener",  's', 0, G_OPTION_ARG_NONE,     &shortener,      "Use a URL shortener service)",                               NULL },
-        { "version",        'V', 0, G_OPTION_ARG_NONE,     print_version,   "Print version",                                              NULL },
+        { "host",            'h', 0, G_OPTION_ARG_STRING,   &host,            "eventd host to connect to",                                  "<host>" },
+        { "merge-threshold", 'm', 0, G_OPTION_ARG_INT,      &merge_threshold, "Number of commits to start merging (defaults to 5)",         "<threshold>" },
+        { "commit-id-size",   0,  0, G_OPTION_ARG_INT,      &commit_id_size,  "Number of chars to limmit the commit id to (defaults to 7)", "<limit>" },
+        { "use-shortener",   's', 0, G_OPTION_ARG_NONE,     &shortener,       "Use a URL shortener service)",                               NULL },
+        { "version",         'V', 0, G_OPTION_ARG_NONE,     print_version,    "Print version",                                              NULL },
         { NULL }
     };
     GError *error = NULL;
@@ -157,9 +157,9 @@ git_eventc_uninit(void)
 }
 
 gboolean
-git_eventc_is_above_thresold(guint size)
+git_eventc_is_above_threshold(guint size)
 {
-    return ( size >= merge_thresold );
+    return ( size >= merge_threshold );
 }
 
 static gchar *

@@ -123,7 +123,7 @@ _git_eventc_post_receive(git_repository *repository, const gchar *before, const 
     }
 
     gchar *url = NULL;
-    if ( git_eventc_is_above_thresold(size) )
+    if ( git_eventc_is_above_threshold(size) )
     {
         if ( diff_url != NULL )
             url = g_strdup_printf(diff_url, repository_name, before, after);
