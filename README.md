@@ -86,9 +86,11 @@ Here is the list of used values:
 * `git-eventc.commit-url`: URL template for a single commit with two C-style string conversion specifier (`%s`):
     * the first one for the repository name
     * the second one for the commit id
+    * Examples: `http://cgit.example.com/%s/commit/?id=%s` or `http://gitweb.example.com/?p=%s.git;a=commitdiff;h=%s`
 * `git-eventc.diff-url`: URL template for a diff between two commits with three C-style string conversion specifier (`%s`):
     * the first one for the repository name
     * the second and third ones for the commit ids
+    * Examples: `http://cgit.example.com/%s/diff/?id2=%s&id=%s` or `http://gitweb.example.com/?p=%s.git;a=commitdiff;hp=%s;h=%s`
 * `git-eventc.repository`: used as `repositoriy-name`
 
 It alse has some basic support for Gitolite environment variables:
