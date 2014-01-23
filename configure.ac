@@ -2,7 +2,7 @@ AC_PREREQ([2.65])
 AC_INIT([git-eventc],[0.1],[],[])
 
 AC_CONFIG_HEADERS([src/config.h])
-AC_CONFIG_SRCDIR([src/main.c])
+AC_CONFIG_SRCDIR([src/libgit-eventc.c])
 AC_CONFIG_AUX_DIR([.aux])
 
 AM_INIT_AUTOMAKE([1.11 foreign subdir-objects parallel-tests dist-xz no-dist-gzip tar-ustar])
@@ -12,6 +12,7 @@ AM_SILENT_RULES([yes])
 AC_PROG_CC
 AC_PROG_CC_C99
 AM_PROG_CC_C_O
+AC_PROG_RANLIB
 PKG_PROG_PKG_CONFIG
 
 AC_PROG_INSTALL
