@@ -197,7 +197,7 @@ static GitEventcShortener shorteners[] = {
 static gchar *
 _git_eventc_get_url(const gchar *url)
 {
-    if ( ( ! shortener ) || ( url == NULL ) )
+    if ( ( ! shortener ) || ( url == NULL ) || ( *url == '\0') )
         return g_strdup(url);
 
     if ( shortener_session == NULL )
