@@ -109,10 +109,23 @@ See `--help` output for its configuration.
 
 Just run it or your server and point the WebHook to it.
 You can use the proxy support of your favorite web server if you prefer.
+<br />
+It supports TLS/SSL directly.
+
+git-eventc-webhook supports several URL parameters:
+
+* `project`: the project name, used as `project`
+* `token`: the “security” token (see `--help`)
+* `service`: needed for some services (see below)
 
 Here is the list of supported services.
-Some services will require you to add a URL parameter `service` (indicated in parens),
-others are automatically detected.
+Some services will require you to add a `service` URL parameter (value indicated in parens), others are automatically detected.
 
 * GitHub
 * Gitorious (`gitorious`)
+
+Example URLs:
+
+    http://example.com:8080/?project=TestProject&token=superSecure
+    https://example.com:8080/?project=TestProject&token=superSecure
+    https://example.com/webhook?project=TestProject&token=superSecure (behind Apache ProxyPass)
