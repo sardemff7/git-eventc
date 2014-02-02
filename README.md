@@ -91,12 +91,12 @@ Here is the list of used values:
     * the first one for the repository name
     * the second and third ones for the commit ids
     * Examples: `http://cgit.example.com/%s/diff/?id2=%s&id=%s` or `http://gitweb.example.com/?p=%s.git;a=commitdiff;hp=%s;h=%s`
-* `git-eventc.repository`: used as `repositoriy-name`
+* `git-eventc.repository`: used as `repository-name`
 
 It alse has some basic support for Gitolite environment variables:
 
 * `GL_USER`: used as `pusher-name`
-* `GL_REPO`: used as `repositoriy-name`
+* `GL_REPO`: used as `repository-name`
 
 
 ### git-eventc-webhook
