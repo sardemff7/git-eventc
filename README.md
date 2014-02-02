@@ -78,7 +78,8 @@ See `--help` output for basic configuration.
 <br />
 You can use it directly as a post-receive hook or in a wrapper script. Please make sure `stdin` is fed correctly.
 
-It will use configuration directly from the Git repository.
+It will use configuration directly from Git.
+You should configure most of them in your system configuration (`/etc/gitconfig`).
 <br />
 Here is the list of used values:
 
@@ -91,7 +92,7 @@ Here is the list of used values:
     * the first one for the repository name
     * the second and third ones for the commit ids
     * Examples: `http://cgit.example.com/%s/diff/?id2=%s&id=%s` or `http://gitweb.example.com/?p=%s.git;a=commitdiff;hp=%s;h=%s`
-* `git-eventc.repository`: used as `repository-name`
+* `git-eventc.repository`: used as `repository-name` (not meaningful in system configuration)
 
 It alse has some basic support for Gitolite environment variables:
 
@@ -105,3 +106,13 @@ git-eventc-webhook is a tiny daemon that will listen HTTP POST based hook.
 These are provided by many Git host providers (GitHub, Gitorious).
 <br />
 See `--help` output for its configuration.
+
+Just run it or your server and point the WebHook to it.
+You can use the proxy support of your favorite web server if you prefer.
+
+Here is the list of supported services.
+Some services will require you to add a URL parameter `service` (indicated in parens),
+others are automatically detected.
+
+* GitHub
+* Gitorious (`gitorious`)
