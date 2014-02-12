@@ -63,3 +63,5 @@ git_eventc_webhook_LDADD = \
 	$(LIBSOUP_LIBS) \
 	$(LIBEVENTC_LIBS) \
 	$(GLIB_LIBS)
+
+-include local-rules.mk
