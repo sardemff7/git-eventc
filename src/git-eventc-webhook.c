@@ -166,33 +166,56 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
         return;
     }
 
-    GHashTable *data = soup_form_decode(msg->request_body->data);
+    const gchar *payload = NULL;
+    GHashTable *data = NULL;
 
-    if ( data == NULL )
+    const gchar *content_type = soup_message_headers_get_one(msg->request_headers, "Content-Type");
+    if ( content_type == NULL )
     {
-        g_warning("Bad POST (no data) from %s", user_agent);
+        g_warning("Bad request (no Content-Type header) from %s", user_agent);
         soup_message_set_status(msg, SOUP_STATUS_BAD_REQUEST);
         return;
     }
 
-    const gchar *payload = g_hash_table_lookup(data, "payload");
+    if ( g_strcmp0(content_type, "application/json") == 0 )
+        payload = msg->request_body->data;
+    else if ( g_strcmp0(content_type, "application/x-www-form-urlencoded") == 0 )
+    {
+        data = soup_form_decode(msg->request_body->data);
+
+        if ( data == NULL )
+        {
+            g_warning("Bad POST (no data) from %s", user_agent);
+            soup_message_set_status(msg, SOUP_STATUS_BAD_REQUEST);
+            return;
+        }
+        payload = g_hash_table_lookup(data, "payload");
+    }
+
     if ( payload == NULL )
     {
-        g_warning("Bad POST (no paylaod) from %s", user_agent);
+        g_warning("Bad POST (no payload) from %s", user_agent);
         soup_message_set_status(msg, SOUP_STATUS_BAD_REQUEST);
         return;
     }
     JsonParser *parser = json_parser_new();
 
     json_parser_load_from_data(parser, payload, -1, NULL);
-    g_hash_table_unref(data);
+    if ( data != NULL )
+        g_hash_table_destroy(data);
 
     JsonNode *root_node = json_parser_get_root(parser);
     JsonObject *root = json_node_get_object(root_node);
 
     guint status_code = SOUP_STATUS_NOT_IMPLEMENTED;
     if ( g_str_has_prefix(user_agent, "GitHub Hookshot ") )
-        status_code = _git_eventc_webhook_parse_payload_github(project, root);
+    {
+        const gchar *event = soup_message_headers_get_one(msg->request_headers, "X-GitHub-Event");
+        if ( g_strcmp0(event, "push") == 0 )
+            status_code = _git_eventc_webhook_parse_payload_github(project, root);
+        else if ( g_strcmp0(event, "ping") == 0 )
+            status_code = SOUP_STATUS_OK;
+    }
     else if ( g_strcmp0(service, "gitorious") == 0 )
         status_code = _git_eventc_webhook_parse_payload_gitorious(project, root);
     else
