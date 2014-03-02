@@ -31,6 +31,9 @@ Here is the list of provided data:
 * `author-name`: The name of the author
 * `author-email`: The email of the author
 * `author-username`: The username of the author (if available)
+* `files`: The list (as a string) of modified files, with some basic prefix detection
+    <br />
+    The `post-receive` hook also detects file renames and copies if asked so.
 
 
 ### `commit-group`
@@ -53,7 +56,7 @@ For a `commit` event:
     Category = scm
     Name = commit
     [IMAccount freenode]
-    Message = ^B${project}^O: ^C03${author-name}^O ${repository-name}:^C07${branch}^O * ${id}: ${message} ^C05${url}^O
+    Message = ^B${project}^O: ^C03${author-name}^O ${repository-name}:^C07${branch}^O * ${id}: ${message} ^C05${url}^O ^C14${files}^0
     Channels = #test;
 
 For a `commit-group` event:
