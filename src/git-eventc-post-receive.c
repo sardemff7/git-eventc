@@ -40,6 +40,97 @@
 
 #include "libgit-eventc.h"
 
+static git_diff_options _git_eventc_diff_options = GIT_DIFF_OPTIONS_INIT;
+static git_diff_find_options _git_eventc_diff_find_options = GIT_DIFF_FIND_OPTIONS_INIT;
+
+static int
+_git_eventc_diff_foreach_callback(const git_diff_delta *delta, float progress, void *payload)
+{
+    GList **paths = payload;
+    const gchar *old_path = delta->old_file.path;
+    const gchar *new_path = delta->old_file.path;
+    gchar *path = NULL;
+
+    switch ( delta->status )
+    {
+        case GIT_DELTA_COPIED:
+        case GIT_DELTA_RENAMED:
+        {
+            gint o;
+            o = git_eventc_get_path_prefix_length(old_path, new_path, strlen(old_path));
+            path = g_strdup_printf( "%.*s{%s => %s}", o, old_path, old_path + o, new_path + o);
+        }
+        break;
+        case GIT_DELTA_UNMODIFIED:
+            return 0;
+        case GIT_DELTA_DELETED:
+            new_path = old_path;
+        default:
+            path = g_strdup(new_path);
+        break;
+    }
+
+    *paths = g_list_prepend(*paths, path);
+
+    return 0;
+}
+
+static gchar *
+_git_eventc_commit_get_files(git_repository *repository, const git_commit *commit)
+{
+    int error = 0;
+    gchar *files = NULL;
+    git_commit *parent_commit = NULL;
+    git_tree *tree = NULL, *parent_tree = NULL;
+
+    error = git_commit_parent(&parent_commit, commit, 0);
+    if ( error != 0 )
+    {
+        g_warning("Couldn't parent commit: %s", giterr_last()->message);
+        goto fail;
+    }
+
+    error = git_commit_tree(&tree, commit);
+    if ( error != 0 )
+    {
+        g_warning("Couldn't get commit tree: %s", giterr_last()->message);
+        goto fail;
+    }
+    error = git_commit_tree(&parent_tree, parent_commit);
+    if ( error != 0 )
+    {
+        g_warning("Couldn't parent commit tree: %s", giterr_last()->message);
+        goto fail;
+    }
+
+    git_diff *diff;
+    error = git_diff_tree_to_tree(&diff, repository, parent_tree, tree, &_git_eventc_diff_options);
+    if ( error != 0 )
+    {
+        g_warning("Couldn't get the diff: %s", giterr_last()->message);
+        goto fail;
+    }
+    error = git_diff_find_similar(diff, &_git_eventc_diff_find_options);
+    if ( error != 0 )
+    {
+        g_warning("Couldn't find similar files: %s", giterr_last()->message);
+        goto fail;
+    }
+
+    GList *paths = NULL;
+    git_diff_foreach(diff, _git_eventc_diff_foreach_callback, NULL, NULL, &paths);
+    files = git_eventc_get_files(paths);
+
+fail:
+    if ( parent_tree != NULL )
+        git_tree_free(parent_tree);
+    if ( tree != NULL )
+        git_tree_free(tree);
+    if ( parent_commit != NULL )
+        git_commit_free(parent_commit);
+    return files;
+}
+
 static void
 _git_eventc_post_receive(git_repository *repository, const gchar *before, const gchar *after, const gchar *ref)
 {
@@ -143,14 +234,81 @@ _git_eventc_post_receive(git_repository *repository, const gchar *before, const 
                 g_free(url);
                 url = g_strdup_printf(commit_url, repository_name, id);
             }
+            gchar *files;
+            files = _git_eventc_commit_get_files(repository, commit);
 
-            git_eventc_send_commit(id, git_commit_message(commit), url, author->name, NULL, author->email, repository_name, branch, NULL, project);
+            git_eventc_send_commit(id, git_commit_message(commit), url, author->name, NULL, author->email, repository_name, branch, files, project);
+
+            g_free(files);
         }
     }
     g_free(url);
     g_slist_free_full(commits, (GDestroyNotify) git_commit_free);
 
     g_free(repository_guessed_name);
+}
+
+static gboolean
+_git_eventc_parse_percent_arg(const gchar *option_name, const gchar *value, guint8 *ret, GError **error)
+{
+    gint16 v = -1;
+    if ( value == NULL )
+    {
+        *ret = 50;
+        return TRUE;
+    }
+
+    switch ( strlen(value) )
+    {
+    case 4: /* strlen("100%") */
+        if ( g_strcmp0(value, "100%") == 0 )
+            v = 100;
+    break;
+    case 3: /* strlen("10%") */
+        if ( value[2] != '%' )
+            break;
+    case 2: /* strlen("1%") || strlen("10") */
+        if ( value[1] == '%' )
+            v = g_ascii_digit_value(value[0]);
+        else if ( g_ascii_isdigit(value[0]) )
+            v = g_ascii_digit_value(value[0]) * 10 + g_ascii_digit_value(value[1]);
+    break;
+    case 1: /* strlen("1") */
+        v = g_ascii_digit_value(value[0]) * 10;
+    break;
+    }
+    if ( v < 0 )
+    {
+        g_set_error(error, G_OPTION_ERROR, G_OPTION_ERROR_BAD_VALUE, "'%s' requires the same value format as 'git diff %s'", option_name, option_name);
+        return FALSE;
+    }
+
+    *ret = v;
+    return TRUE;
+}
+
+static gboolean
+_git_eventc_find_renames(const gchar *option_name, const gchar *value, gpointer data, GError **error)
+{
+    guint8 v;
+    if ( ! _git_eventc_parse_percent_arg(option_name, value, &v, error) )
+        return FALSE;
+    _git_eventc_diff_find_options.flags |= GIT_DIFF_FIND_RENAMES;
+    _git_eventc_diff_find_options.rename_threshold = v;
+    g_print("-M%d%%\n", v);
+    return TRUE;
+}
+
+static gboolean
+_git_eventc_find_copies(const gchar *option_name, const gchar *value, gpointer data, GError **error)
+{
+    guint8 v;
+    if ( ! _git_eventc_parse_percent_arg(option_name, value, &v, error) )
+        return FALSE;
+    _git_eventc_diff_find_options.flags |= GIT_DIFF_FIND_COPIES;
+    _git_eventc_diff_find_options.copy_threshold = v;
+    g_print("-C%d%%\n", v);
+    return TRUE;
 }
 
 int
@@ -165,7 +323,14 @@ main(int argc, char *argv[])
 #endif /* ! GLIB_CHECK_VERSION(2,35,1) */
     git_threads_init();
 
-    git_eventc_parse_options(&argc, &argv, NULL, "- Git hook to eventd gateway", &print_version);
+    GOptionEntry entries[] =
+    {
+        { "find-renames", 'M', G_OPTION_FLAG_OPTIONAL_ARG, G_OPTION_ARG_CALLBACK, &_git_eventc_find_renames, "See 'git help diff'", "<n>" },
+        { "find-copies",  'C', G_OPTION_FLAG_OPTIONAL_ARG, G_OPTION_ARG_CALLBACK, &_git_eventc_find_copies,  "See 'git help diff'", "<n>" },
+        { NULL }
+    };
+
+    git_eventc_parse_options(&argc, &argv, entries, "- Git hook to eventd gateway", &print_version);
     if ( print_version )
     {
         g_print(PACKAGE_NAME "-post-receive " PACKAGE_VERSION "\n");
@@ -182,6 +347,9 @@ main(int argc, char *argv[])
             g_warning("Couldn't open repository: %s", giterr_last()->message);
         else
         {
+            /* Set some diff options */
+            _git_eventc_diff_options.flags |= GIT_DIFF_INCLUDE_TYPECHANGE;
+
             char *line = NULL;
             size_t len = 0;
             ssize_t r;
