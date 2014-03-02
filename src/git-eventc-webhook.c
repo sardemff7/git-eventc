@@ -44,6 +44,21 @@
 
 static gchar *token = NULL;
 
+static gchar *
+_git_eventc_webhook_payload_get_files_github(JsonObject *commit)
+{
+    JsonArray *added_files, *modified_files, *removed_files;
+    added_files = json_object_get_array_member(commit, "added");
+    modified_files = json_object_get_array_member(commit, "modified");
+    removed_files = json_object_get_array_member(commit, "removed");
+
+    GList *paths = NULL;
+    paths = g_list_concat(paths, json_array_get_elements(added_files));
+    paths = g_list_concat(paths, json_array_get_elements(modified_files));
+    paths = g_list_concat(paths, json_array_get_elements(removed_files));
+
+    return git_eventc_get_files(paths);
+}
 
 static guint
 _git_eventc_webhook_payload_parse_github(const gchar *project, JsonObject *root)
@@ -75,6 +90,9 @@ _git_eventc_webhook_payload_parse_github(const gchar *project, JsonObject *root)
             JsonObject *commit = json_node_get_object(commit_->data);
             JsonObject *author = json_object_get_object_member(commit, "author");
 
+            gchar *files;
+            files = _git_eventc_webhook_payload_get_files_github(commit);
+
             git_eventc_send_commit(
                 json_object_get_string_member(commit, "id"),
                 json_object_get_string_member(commit, "message"),
@@ -83,8 +101,10 @@ _git_eventc_webhook_payload_parse_github(const gchar *project, JsonObject *root)
                 json_object_get_string_member(author, "username"),
                 json_object_get_string_member(author, "email"),
                 repository_name, branch,
-                NULL,
+                files,
                 project);
+
+            g_free(files);
         }
         g_list_free(commit_list);
     }
