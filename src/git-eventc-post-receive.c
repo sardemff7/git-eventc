@@ -84,8 +84,6 @@ _git_eventc_post_receive(git_repository *repository, const gchar *before, const 
             repository_guessed_name = g_utf8_substring(path, (tmp+1 - path), last);
         }
         repository_name = repository_guessed_name;
-        g_print("path = %s guessed = %s\n", path, repository_guessed_name);
-        return;
     }
 
     git_revwalk *walker;
