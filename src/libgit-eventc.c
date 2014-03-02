@@ -300,7 +300,8 @@ git_eventc_send_commit(const gchar *id, const gchar *base_message, const gchar *
 
     eventd_event_add_data(event, g_strdup("id"), g_strndup(id, commit_id_size));
     eventd_event_add_data(event, g_strdup("message"), message);
-    eventd_event_add_data(event, g_strdup("url"), _git_eventc_get_url(url));
+    if ( url != NULL )
+        eventd_event_add_data(event, g_strdup("url"), _git_eventc_get_url(url));
 
     eventd_event_add_data(event, g_strdup("author-name"), g_strdup(author_name));
     eventd_event_add_data(event, g_strdup("author-email"), g_strdup(author_email));
