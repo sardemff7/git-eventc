@@ -263,7 +263,7 @@ git_eventc_send_commit_group(const gchar *pusher_name, guint size, const gchar *
 }
 
 void
-git_eventc_send_commit(const gchar *id, const gchar *base_message, const gchar *url, const gchar *author_name, const gchar *author_username, const gchar *author_email, const gchar *repository_name, const gchar *branch, const gchar *project)
+git_eventc_send_commit(const gchar *id, const gchar *base_message, const gchar *url, const gchar *author_name, const gchar *author_username, const gchar *author_email, const gchar *repository_name, const gchar *branch, const gchar *files, const gchar *project)
 {
 #ifdef DEBUG
     g_debug("Send commit:"
@@ -275,6 +275,7 @@ git_eventc_send_commit(const gchar *id, const gchar *base_message, const gchar *
         "\nAuthor email: %s"
         "\nRepository: %s"
         "\nBranch: %s"
+        "\nFiles: %s"
         "\nProject: %s",
         id,
         base_message,
@@ -284,6 +285,7 @@ git_eventc_send_commit(const gchar *id, const gchar *base_message, const gchar *
         author_email,
         repository_name,
         branch,
+        files,
         project);
 #endif /* DEBUG */
 
@@ -310,6 +312,9 @@ git_eventc_send_commit(const gchar *id, const gchar *base_message, const gchar *
 
     eventd_event_add_data(event, g_strdup("repository-name"), g_strdup(repository_name));
     eventd_event_add_data(event, g_strdup("branch"), g_strdup(branch));
+
+    if ( files != NULL )
+        eventd_event_add_data(event, g_strdup("files"), g_strdup(files));
 
     if ( project != NULL )
         eventd_event_add_data(event, g_strdup("project"), g_strdup(project));

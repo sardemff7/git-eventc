@@ -144,7 +144,7 @@ _git_eventc_post_receive(git_repository *repository, const gchar *before, const 
                 url = g_strdup_printf(commit_url, repository_name, id);
             }
 
-            git_eventc_send_commit(id, git_commit_message(commit), url, author->name, NULL, author->email, repository_name, branch, project);
+            git_eventc_send_commit(id, git_commit_message(commit), url, author->name, NULL, author->email, repository_name, branch, NULL, project);
         }
     }
     g_free(url);

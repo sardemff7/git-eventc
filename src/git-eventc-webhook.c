@@ -82,7 +82,9 @@ _git_eventc_webhook_payload_parse_github(const gchar *project, JsonObject *root)
                 json_object_get_string_member(author, "name"),
                 json_object_get_string_member(author, "username"),
                 json_object_get_string_member(author, "email"),
-                repository_name, branch, project);
+                repository_name, branch,
+                NULL,
+                project);
         }
         g_list_free(commit_list);
     }
@@ -129,7 +131,9 @@ _git_eventc_webhook_payload_parse_gitorious(const gchar *project, JsonObject *ro
                 json_object_get_string_member(author, "name"),
                 NULL,
                 json_object_get_string_member(author, "email"),
-                repository_name, branch, project);
+                repository_name, branch,
+                NULL,
+                project);
         }
         g_list_free(commit_list);
     }
