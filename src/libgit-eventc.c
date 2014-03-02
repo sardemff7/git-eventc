@@ -56,6 +56,8 @@ git_eventc_get_files(GList *paths)
 {
     if ( paths == NULL )
         return NULL;
+    if ( g_list_next(paths) == NULL )
+        return g_strdup(paths->data);
 
     gsize size = 1;
     const gchar *prefix = paths->data;
