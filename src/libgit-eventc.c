@@ -265,6 +265,28 @@ git_eventc_send_commit_group(const gchar *pusher_name, guint size, const gchar *
 void
 git_eventc_send_commit(const gchar *id, const gchar *base_message, const gchar *url, const gchar *author_name, const gchar *author_username, const gchar *author_email, const gchar *repository_name, const gchar *branch, const gchar *project)
 {
+#ifdef DEBUG
+    g_debug("Send commit:"
+        "\nID: %s"
+        "\nMessage: %s"
+        "\nURL: %s"
+        "\nAuthor name: %s"
+        "\nAuthor username: %s"
+        "\nAuthor email: %s"
+        "\nRepository: %s"
+        "\nBranch: %s"
+        "\nProject: %s",
+        id,
+        base_message,
+        url,
+        author_name,
+        author_username,
+        author_email,
+        repository_name,
+        branch,
+        project);
+#endif /* DEBUG */
+
     const gchar *new_line = g_utf8_strchr(base_message, -1, '\n');
     gchar *message;
     if ( new_line != NULL )
