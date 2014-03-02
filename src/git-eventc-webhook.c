@@ -44,6 +44,15 @@
 
 static gchar *token = NULL;
 
+static void
+_git_eventc_webhook_node_list_to_string_list(GList *list)
+{
+    /* Retrieve the actual strings */
+    GList *node;
+    for ( node = list ; node != NULL ; node = g_list_next(node) )
+        node->data = (gpointer) json_node_get_string(node->data);
+}
+
 static gchar *
 _git_eventc_webhook_payload_get_files_github(JsonObject *commit)
 {
@@ -56,6 +65,8 @@ _git_eventc_webhook_payload_get_files_github(JsonObject *commit)
     paths = g_list_concat(paths, json_array_get_elements(added_files));
     paths = g_list_concat(paths, json_array_get_elements(modified_files));
     paths = g_list_concat(paths, json_array_get_elements(removed_files));
+
+    _git_eventc_webhook_node_list_to_string_list(paths);
 
     return git_eventc_get_files(paths);
 }
