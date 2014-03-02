@@ -1,6 +1,9 @@
 ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS}
 AM_MAKEFLAGS = --no-print-directory
 
+AM_CPPFLAGS += \
+	-I$(srcdir)/src
+
 bin_PROGRAMS =
 libexec_PROGRAMS =
 noinst_LIBRARIES = \
@@ -63,5 +66,7 @@ git_eventc_webhook_LDADD = \
 	$(LIBSOUP_LIBS) \
 	$(LIBEVENTC_LIBS) \
 	$(GLIB_LIBS)
+
+include tests/tests.mk
 
 -include local-rules.mk

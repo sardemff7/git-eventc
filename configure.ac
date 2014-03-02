@@ -57,6 +57,7 @@ AM_CONDITIONAL(ENABLE_WEBHOOK, test x$enable_webhook = xyes)
 if test x$enable_hook = xno -a x$enable_webhook = xno; then
     AC_MSG_ERROR([All features disabled])
 fi
+
 # Debug flags
 AC_ARG_ENABLE(debug, AS_HELP_STRING([--enable-debug], [Enable debug]), [], enable_debug=no)
 if test x$enable_debug = xyes; then

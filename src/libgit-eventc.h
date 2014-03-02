@@ -23,6 +23,9 @@
 #ifndef __GIT_EVENTC_LIBGIT_EVENTC_H__
 #define __GIT_EVENTC_LIBGIT_EVENTC_H__
 
+gsize git_eventc_get_path_prefix_length(const gchar *a, const gchar *b, gsize max_length);
+gchar *git_eventc_get_files(GList *paths);
+
 void git_eventc_parse_options(gint *argc, gchar ***argv, GOptionEntry *extra_entries, const gchar *description, gboolean *print_version);
 gboolean git_eventc_init(GMainLoop *loop, gint *retval);
 void git_eventc_uninit(void);

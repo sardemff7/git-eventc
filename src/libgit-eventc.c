@@ -42,6 +42,52 @@
 
 #include "libgit-eventc.h"
 
+gsize
+git_eventc_get_path_prefix_length(const gchar *a, const gchar *b, gsize max_length)
+{
+    gsize len = 0;
+    while ( ( len < max_length ) && ( a[len] == b[len] ) )
+        ++len;
+    return len;
+}
+
+gchar *
+git_eventc_get_files(GList *paths)
+{
+    if ( paths == NULL )
+        return NULL;
+
+    gsize size = 1;
+    const gchar *prefix = paths->data;
+    gsize prefix_length = strlen(prefix), len;
+    GList *path;
+    for ( path = g_list_next(paths) ; path != NULL ; path = g_list_next(path), ++size )
+    {
+        len = git_eventc_get_path_prefix_length(prefix, path->data, prefix_length);
+        prefix_length = MIN(prefix_length, len);
+        if ( len < 2 )
+            /* Short-circuit if we are already nothing or root ('/') only */
+            break;
+    }
+    size += g_list_length(path);
+
+    GString *files;
+    files = g_string_sized_new(strlen(paths->data) * size);
+    if ( prefix_length > 0 )
+        g_string_append_c(g_string_append_len(files, prefix, prefix_length), ' ');
+
+    GList *path_;
+    for ( path_ = paths ; path_ != NULL ; path_ = g_list_next(path_) )
+    {
+        const gchar *path = path_->data;
+        g_string_append_c(g_string_append(files, path + prefix_length), ' ');
+    }
+    g_list_free(paths);
+
+    g_string_truncate(files, files->len - 1);
+    return g_string_free(files, FALSE);
+}
+
 typedef gchar *(*GitEventcShortenerParse)(SoupMessage *msg);
 
 typedef struct {
