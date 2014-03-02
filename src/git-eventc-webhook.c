@@ -46,7 +46,7 @@ static gchar *token = NULL;
 
 
 static guint
-_git_eventc_webhook_parse_payload_github(const gchar *project, JsonObject *root)
+_git_eventc_webhook_payload_parse_github(const gchar *project, JsonObject *root)
 {
     JsonObject *repository = json_object_get_object_member(root, "repository");
 
@@ -91,7 +91,7 @@ _git_eventc_webhook_parse_payload_github(const gchar *project, JsonObject *root)
 }
 
 static guint
-_git_eventc_webhook_parse_payload_gitorious(const gchar *project, JsonObject *root)
+_git_eventc_webhook_payload_parse_gitorious(const gchar *project, JsonObject *root)
 {
     JsonObject *repository = json_object_get_object_member(root, "repository");
 
@@ -212,12 +212,12 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
     {
         const gchar *event = soup_message_headers_get_one(msg->request_headers, "X-GitHub-Event");
         if ( g_strcmp0(event, "push") == 0 )
-            status_code = _git_eventc_webhook_parse_payload_github(project, root);
+            status_code = _git_eventc_webhook_payload_parse_github(project, root);
         else if ( g_strcmp0(event, "ping") == 0 )
             status_code = SOUP_STATUS_OK;
     }
     else if ( g_strcmp0(service, "gitorious") == 0 )
-        status_code = _git_eventc_webhook_parse_payload_gitorious(project, root);
+        status_code = _git_eventc_webhook_payload_parse_gitorious(project, root);
     else
         g_warning("Unknown WebHook service: %s", user_agent);
 
