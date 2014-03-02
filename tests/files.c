@@ -64,6 +64,15 @@ static struct {
             NULL
         },
     },
+    {
+        .testpath = "/path-prefix/similar-file-names",
+        .paths  = {
+            "src/lib/ main.c main.h",
+            "src/lib/main.c",
+            "src/lib/main.h",
+            NULL
+        },
+    },
 };
 
 static void

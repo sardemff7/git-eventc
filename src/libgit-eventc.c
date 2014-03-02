@@ -45,10 +45,14 @@
 gsize
 git_eventc_get_path_prefix_length(const gchar *a, const gchar *b, gsize max_length)
 {
+    const gchar *last_sep = a;
     gsize len = 0;
     while ( ( len < max_length ) && ( a[len] == b[len] ) )
-        ++len;
-    return len;
+    {
+        if ( a[len++] == '/' )
+            last_sep = a + len;
+    }
+    return (last_sep - a);
 }
 
 gchar *
