@@ -41,7 +41,7 @@ _test_strv_to_glist(const gchar * const *paths)
     return g_list_reverse(list);
 }
 
-static struct {
+static const struct {
     const gchar *testpath;
     const gchar * const paths[MAX_PATHS + 2 /* needle and NULL */];
 } _test_list[] = {
