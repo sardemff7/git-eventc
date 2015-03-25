@@ -243,7 +243,7 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
     JsonObject *root = json_node_get_object(root_node);
 
     guint status_code = SOUP_STATUS_NOT_IMPLEMENTED;
-    if ( g_str_has_prefix(user_agent, "GitHub Hookshot ") )
+    if ( g_str_has_prefix(user_agent, "GitHub Hookshot") )
     {
         const gchar *event = soup_message_headers_get_one(msg->request_headers, "X-GitHub-Event");
         if ( g_strcmp0(event, "push") == 0 )
