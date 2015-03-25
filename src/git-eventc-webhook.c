@@ -261,6 +261,61 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
     soup_message_set_status(msg, status_code);
 }
 
+SoupServer *
+_git_eventc_webhook_soup_server_init(gint port, const gchar *cert_file, const gchar *key_file, int *retval)
+{
+    GError *error = NULL;
+    SoupServer *server;
+#if SOUP_CHECK_VERSION(2,47,3)
+
+    server = soup_server_new(SOUP_SERVER_SSL_CERT_FILE, cert_file, SOUP_SERVER_SSL_KEY_FILE, ( ( key_file == NULL ) ? cert_file : key_file ), NULL);
+    if ( server == NULL )
+        goto error;
+
+    /* FIXME: We should be using soup_server_set_ssl_cert_file instead of the constructor property
+     * but the symbol was forgotten in the 2.48 release */
+#if 0
+    if ( cert_file != NULL )
+    {
+        soup_server_set_ssl_cert_file(server, cert_file, ( ( key_file == NULL ) ? cert_file : key_file ), &error);
+        g_warning("Couldn't set SSL/TLS certificate: %s", error->message);
+        goto error;
+    }
+#endif /* 0: see FIXME */
+#else /* ! SOUP_CHECK_VERSION(2,48,0) */
+    server = soup_server_new(SOUP_SERVER_PORT, port, SOUP_SERVER_SSL_CERT_FILE, cert_file, SOUP_SERVER_SSL_KEY_FILE, ( ( key_file == NULL ) ? cert_file : key_file ), NULL);
+    if ( server == NULL )
+        goto error;
+#endif /* ! SOUP_CHECK_VERSION(2,48,0) */
+
+
+    soup_server_add_handler(server, NULL, _git_eventc_webhook_gateway_server_callback, NULL, NULL);
+
+#if SOUP_CHECK_VERSION(2,47,3)
+    SoupServerListenOptions options = 0;
+    if ( cert_file != NULL )
+        options |= SOUP_SERVER_LISTEN_HTTPS;
+    if ( ! soup_server_listen_all(server, port, options, &error) )
+    {
+        g_warning("Couldn't listen on port %d: %s", port,  error->message);
+        goto error;
+    }
+#else /* ! SOUP_CHECK_VERSION(2,48,0) */
+    soup_server_run_async(server);
+#endif /* ! SOUP_CHECK_VERSION(2,48,0) */
+
+    return server;
+
+error:
+    g_clear_error(&error);
+    if ( server == NULL )
+        g_warning("Couldn't create the server");
+    else
+        g_object_unref(server);
+
+    *retval = 2;
+    return NULL;
+}
 
 int
 main(int argc, char *argv[])
@@ -298,18 +353,14 @@ main(int argc, char *argv[])
     if ( git_eventc_init(loop, &retval) )
     {
         SoupServer *server;
-        server = soup_server_new(SOUP_SERVER_PORT, port, SOUP_SERVER_SSL_CERT_FILE, cert_file, SOUP_SERVER_SSL_KEY_FILE, ( ( key_file == NULL ) ? cert_file : key_file ), NULL);
-        if ( server == NULL )
+        server = _git_eventc_webhook_soup_server_init(port, cert_file, key_file, &retval);
+        if ( server != NULL )
         {
-            g_warning("Couldn't create the server");
-            retval = 2;
-        }
-        else
-        {
-            soup_server_add_handler(server, NULL, _git_eventc_webhook_gateway_server_callback, NULL, NULL);
-            soup_server_run_async(server);
             g_main_loop_run(loop);
+#if ! SOUP_CHECK_VERSION(2,47,3)
             soup_server_quit(server);
+#endif /* ! SOUP_CHECK_VERSION(2,48,0) */
+            g_object_unref(server);
         }
     }
     g_main_loop_unref(loop);
