@@ -118,7 +118,7 @@ _git_eventc_commit_get_files(git_repository *repository, const git_commit *commi
     }
 
     GList *paths = NULL;
-    git_diff_foreach(diff, _git_eventc_diff_foreach_callback, NULL, NULL, &paths);
+    git_diff_foreach(diff, _git_eventc_diff_foreach_callback, NULL, NULL, NULL, &paths);
     files = git_eventc_get_files(paths);
 
 fail:
@@ -321,7 +321,7 @@ main(int argc, char *argv[])
 #if ! GLIB_CHECK_VERSION(2,35,1)
     g_type_init();
 #endif /* ! GLIB_CHECK_VERSION(2,35,1) */
-    git_threads_init();
+    git_libgit2_init();
 
     GOptionEntry entries[] =
     {
@@ -376,7 +376,7 @@ main(int argc, char *argv[])
 
 end:
     git_eventc_uninit();
-    git_threads_shutdown();
+    git_libgit2_shutdown();
 
     return retval;
 }

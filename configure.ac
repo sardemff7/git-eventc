@@ -23,6 +23,7 @@ glib_min_minor="28"
 glib_min_version="${glib_min_major}.${glib_min_minor}"
 gio_min_version="$glib_min_version"
 libeventc_min_version="0.6"
+libgit2_min_version="0.23.0"
 
 
 AM_CFLAGS="-fvisibility=hidden -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers"
@@ -46,7 +47,7 @@ PKG_CHECK_MODULES(LIBSOUP, [libsoup-2.4])
 
 AC_ARG_ENABLE(hook, AS_HELP_STRING([--disable-hook], [Disable post-receive hook]), [], enable_hook=yes)
 if test x$enable_hook = xyes; then
-    PKG_CHECK_MODULES(LIBGIT2, [libgit2])
+    PKG_CHECK_MODULES(LIBGIT2, [libgit2 >= ${libgit2_min_version}])
 fi
 AM_CONDITIONAL(ENABLE_HOOK, test x$enable_hook = xyes)
 
