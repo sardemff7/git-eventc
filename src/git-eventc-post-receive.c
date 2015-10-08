@@ -48,7 +48,7 @@ _git_eventc_diff_foreach_callback(const git_diff_delta *delta, float progress, v
 {
     GList **paths = payload;
     const gchar *old_path = delta->old_file.path;
-    const gchar *new_path = delta->old_file.path;
+    const gchar *new_path = delta->new_file.path;
     gchar *path = NULL;
 
     switch ( delta->status )
