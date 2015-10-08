@@ -180,7 +180,15 @@ git_eventc_init(GMainLoop *loop, gint *retval)
 #endif /* G_OS_UNIX */
 
     GError *error = NULL;
-    client = eventc_connection_new(host);
+    client = eventc_connection_new(host, &error);
+    if ( client == NULL )
+    {
+        g_warning("Couldn't resolve hostname: %s", error->message);
+        g_error_free(error);
+        *retval = 1;
+        return FALSE;
+    }
+
     eventc_connection_set_passive(client, TRUE);
 
     if ( ! eventc_connection_connect_sync(client, &error) )
