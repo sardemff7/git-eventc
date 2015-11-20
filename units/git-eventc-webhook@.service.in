@@ -1,5 +1,7 @@
 [Unit]
 Description=Git WebHook to eventd gateway
+Requires=eventd.socket
+After=eventd.socket
 
 [Service]
 ExecStart=@bindir@/git-eventc-webhook --token %i
