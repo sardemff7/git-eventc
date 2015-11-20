@@ -1,0 +1,8 @@
+[Unit]
+Description=Git WebHook to eventd gateway
+
+[Service]
+ExecStart=@bindir@/git-eventc-webhook --token %i
+
+[Install]
+WantedBy=default.target

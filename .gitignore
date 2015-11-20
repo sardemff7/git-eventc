@@ -3,3 +3,4 @@
 /git-eventc-post-receive
 /git-eventc-webhook
 /tests/*.test
+/units/*.service
