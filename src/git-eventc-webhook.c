@@ -192,11 +192,46 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
         service = g_hash_table_lookup(query, "service");
     }
 
-    if ( ( token != NULL ) && ( ( query_token == NULL ) || ( g_strcmp0(token, query_token) != 0 ) ) )
+    const gchar *signature;
+    signature = soup_message_headers_get_one(msg->request_headers, "X-Hub-Signature");
+    if ( signature != NULL )
     {
-        g_warning("Unauthorized request from %s", user_agent);
-        soup_message_set_status(msg, SOUP_STATUS_UNAUTHORIZED);
-        return;
+        if ( token == NULL )
+        {
+            g_warning("Cannot verify signature of request from %s", user_agent);
+            soup_message_set_status(msg, SOUP_STATUS_UNAUTHORIZED);
+            return;
+        }
+
+        if ( ! g_str_has_prefix(signature, "sha1=") )
+        {
+            g_warning("Signature of request from %s does not match", user_agent);
+            soup_message_set_status(msg, SOUP_STATUS_UNAUTHORIZED);
+            return;
+        }
+        signature += strlen("sha1=");
+
+        GHmac *hmac;
+        hmac = g_hmac_new(G_CHECKSUM_SHA1, (const guchar *) token, strlen(token));
+        g_hmac_update(hmac, (const guchar *) msg->request_body->data, msg->request_body->length);
+
+        if ( g_ascii_strcasecmp(signature, g_hmac_get_string(hmac)) != 0 )
+        {
+            g_warning("Signature of request from %s does not match %s != %s", user_agent, signature, g_hmac_get_string(hmac));
+            soup_message_set_status(msg, SOUP_STATUS_UNAUTHORIZED);
+            g_hmac_unref(hmac);
+            return;
+        }
+        g_hmac_unref(hmac);
+    }
+    else if ( token != NULL )
+    {
+        if ( ( query_token == NULL ) || ( g_strcmp0(token, query_token) != 0 ) )
+        {
+            g_warning("Unauthorized request from %s", user_agent);
+            soup_message_set_status(msg, SOUP_STATUS_UNAUTHORIZED);
+            return;
+        }
     }
 
     const gchar *payload = NULL;

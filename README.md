@@ -118,7 +118,9 @@ It supports TLS/SSL directly.
 git-eventc-webhook supports several URL parameters:
 
 * `project`: the project name, used as `project`
-* `token`: the “security” token (see `--help`)
+* `token`: the “security” token
+  * With GitHub, it is the “secret” you set in the WebHook configuration
+  * With other services, it must be passed as a query parameter
 * `service`: needed for some services (see below)
 
 Here is the list of supported services.
