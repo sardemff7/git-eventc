@@ -32,9 +32,7 @@
 #include <glib/gstdio.h>
 #include <glib-object.h>
 #ifdef G_OS_UNIX
-#if GLIB_CHECK_VERSION(2,32,0)
 #include <glib-unix.h>
-#endif /* GLIB_CHECK_VERSION(2,32,0) */
 #endif /* G_OS_UNIX */
 
 #include <libeventc.h>
@@ -144,39 +142,20 @@ git_eventc_parse_options(gint *argc, gchar ***argv, GOptionEntry *extra_entries,
 }
 
 #ifdef G_OS_UNIX
-#if GLIB_CHECK_VERSION(2,32,0)
 static gboolean
 _git_eventc_stop(gpointer user_data)
 {
     g_main_loop_quit(user_data);
     return FALSE;
 }
-#else /* ! GLIB_CHECK_VERSION(2,32,0) */
-static GMainLoop *_git_eventc_main_loop = NULL;
-static void
-_git_eventc_sigaction_stop(int sig, siginfo_t *info, void *data)
-{
-    g_main_loop_quit(_git_eventc_main_loop);
-}
-#endif /* ! GLIB_CHECK_VERSION(2,32,0) */
 #endif /* G_OS_UNIX */
 
 gboolean
 git_eventc_init(GMainLoop *loop, gint *retval)
 {
 #ifdef G_OS_UNIX
-#if GLIB_CHECK_VERSION(2,32,0)
     g_unix_signal_add(SIGTERM, _git_eventc_stop, loop);
     g_unix_signal_add(SIGINT, _git_eventc_stop, loop);
-#else /* ! GLIB_CHECK_VERSION(2,32,0) */
-    _git_eventc_main_loop = loop;
-    struct sigaction action;
-    action.sa_sigaction = _git_eventc_sigaction_stop;
-    action.sa_flags = SA_SIGINFO;
-    sigemptyset(&action.sa_mask);
-    sigaction(SIGTERM, &action, NULL);
-    sigaction(SIGINT, &action, NULL);
-#endif /* ! GLIB_CHECK_VERSION(2,32,0) */
 #endif /* G_OS_UNIX */
 
     GError *error = NULL;

@@ -19,10 +19,11 @@ PKG_PROG_PKG_CONFIG
 AC_PROG_INSTALL
 
 glib_min_major="2"
-glib_min_minor="28"
+glib_min_minor="42"
 glib_min_version="${glib_min_major}.${glib_min_minor}"
 gio_min_version="$glib_min_version"
 libeventc_min_version="0.6"
+libsoup_min_version="2.48"
 libgit2_min_version="0.23.0"
 
 
@@ -38,12 +39,12 @@ fi
 
 AC_CHECK_HEADERS([string.h stdio.h])
 
-PKG_CHECK_MODULES(GLIB, [glib-2.0 >= $glib_min_version gobject-2.0 gio-2.0])
+PKG_CHECK_MODULES(GLIB, [glib-2.0 >= ${glib_min_version} gobject-2.0 gio-2.0])
 AC_DEFINE_UNQUOTED([GLIB_VERSION_MIN_REQUIRED], [(G_ENCODE_VERSION(${glib_min_major},${glib_min_minor}))], [The lower GLib version supported])
 
 PKG_CHECK_MODULES(LIBEVENTC, [libeventc >= ${libeventc_min_version}])
 
-PKG_CHECK_MODULES(LIBSOUP, [libsoup-2.4])
+PKG_CHECK_MODULES(LIBSOUP, [libsoup-2.4 >= ${libsoup_min_version}])
 
 AC_ARG_ENABLE(hook, AS_HELP_STRING([--disable-hook], [Disable post-receive hook]), [], enable_hook=yes)
 if test x$enable_hook = xyes; then

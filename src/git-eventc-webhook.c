@@ -32,9 +32,7 @@
 #include <glib/gstdio.h>
 #include <glib-object.h>
 #ifdef G_OS_UNIX
-#if GLIB_CHECK_VERSION(2,32,0)
 #include <glib-unix.h>
-#endif /* GLIB_CHECK_VERSION(2,32,0) */
 #endif /* G_OS_UNIX */
 
 #include <libsoup/soup.h>
@@ -266,7 +264,6 @@ _git_eventc_webhook_soup_server_init(gint port, const gchar *cert_file, const gc
 {
     GError *error = NULL;
     SoupServer *server;
-#if SOUP_CHECK_VERSION(2,47,3)
 
     server = soup_server_new(SOUP_SERVER_SSL_CERT_FILE, cert_file, SOUP_SERVER_SSL_KEY_FILE, ( ( key_file == NULL ) ? cert_file : key_file ), NULL);
     if ( server == NULL )
@@ -282,16 +279,10 @@ _git_eventc_webhook_soup_server_init(gint port, const gchar *cert_file, const gc
         goto error;
     }
 #endif /* 0: see FIXME */
-#else /* ! SOUP_CHECK_VERSION(2,48,0) */
-    server = soup_server_new(SOUP_SERVER_PORT, port, SOUP_SERVER_SSL_CERT_FILE, cert_file, SOUP_SERVER_SSL_KEY_FILE, ( ( key_file == NULL ) ? cert_file : key_file ), NULL);
-    if ( server == NULL )
-        goto error;
-#endif /* ! SOUP_CHECK_VERSION(2,48,0) */
 
 
     soup_server_add_handler(server, NULL, _git_eventc_webhook_gateway_server_callback, NULL, NULL);
 
-#if SOUP_CHECK_VERSION(2,47,3)
     SoupServerListenOptions options = 0;
     if ( cert_file != NULL )
         options |= SOUP_SERVER_LISTEN_HTTPS;
@@ -300,9 +291,6 @@ _git_eventc_webhook_soup_server_init(gint port, const gchar *cert_file, const gc
         g_warning("Couldn't listen on port %d: %s", port,  error->message);
         goto error;
     }
-#else /* ! SOUP_CHECK_VERSION(2,48,0) */
-    soup_server_run_async(server);
-#endif /* ! SOUP_CHECK_VERSION(2,48,0) */
 
     return server;
 
@@ -326,10 +314,6 @@ main(int argc, char *argv[])
     gboolean print_version;
 
     int retval = 0;
-
-#if ! GLIB_CHECK_VERSION(2,35,1)
-    g_type_init();
-#endif /* ! GLIB_CHECK_VERSION(2,35,1) */
 
     GOptionEntry entries[] =
     {
@@ -357,9 +341,6 @@ main(int argc, char *argv[])
         if ( server != NULL )
         {
             g_main_loop_run(loop);
-#if ! SOUP_CHECK_VERSION(2,47,3)
-            soup_server_quit(server);
-#endif /* ! SOUP_CHECK_VERSION(2,48,0) */
             g_object_unref(server);
         }
     }
