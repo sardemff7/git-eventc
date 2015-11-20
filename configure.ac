@@ -101,4 +101,5 @@ AC_MSG_RESULT([
 
     post-receive hook: $enable_hook
     WebHook handler: $enable_webhook
+        systemd support: ${enable_systemd}
 ])
