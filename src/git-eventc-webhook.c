@@ -35,6 +35,16 @@
 #include <glib-unix.h>
 #endif /* G_OS_UNIX */
 
+#ifdef ENABLE_SYSTEMD
+#ifdef HAVE_SYS_SOCKET_H
+#include <sys/socket.h>
+#endif /* HAVE_SYS_SOCKET_H */
+#include <systemd/sd-daemon.h>
+#define SYSTEMD_SOCKETS_HELP ", -1 (= none) if systemd sockets are detected"
+#else /* ! ENABLE_SYSTEMD */
+#define SYSTEMD_SOCKETS_HELP
+#endif /* ! ENABLE_SYSTEMD */
+
 #include <libsoup/soup.h>
 #include <json-glib/json-glib.h>
 
@@ -321,6 +331,43 @@ _git_eventc_webhook_soup_server_init(gint port, const gchar *cert_file, const gc
     SoupServerListenOptions options = 0;
     if ( cert_file != NULL )
         options |= SOUP_SERVER_LISTEN_HTTPS;
+
+#ifdef ENABLE_SYSTEMD
+    gint systemd_fds;
+    systemd_fds = sd_listen_fds(TRUE);
+    if ( systemd_fds < 0 )
+    {
+        g_warning("Failed to acquire systemd sockets: %s", g_strerror(-systemd_fds));
+        goto error;
+    }
+    if ( ( systemd_fds > 0 ) && ( port == 0 ) )
+        port = -1;
+
+    gint fd;
+    for ( fd = SD_LISTEN_FDS_START ; fd < SD_LISTEN_FDS_START + systemd_fds ; ++fd )
+    {
+        gint r;
+        r = sd_is_socket(fd, AF_UNSPEC, SOCK_STREAM, 1);
+        if ( r < 0 )
+        {
+            g_warning("Failed to verify systemd socket type: %s", g_strerror(-r));
+            goto error;
+        }
+
+        if ( r == 0 )
+            continue;
+
+        if ( ! soup_server_listen_fd(server, fd, options, &error) )
+        {
+            g_warning("Failed to take a socket from systemd: %s", error->message);
+            goto error;
+        }
+    }
+#endif /* ENABLE_SYSTEMD */
+
+    if ( port == -1 )
+        return server;
+
     if ( ! soup_server_listen_all(server, port, options, &error) )
     {
         g_warning("Couldn't listen on port %d: %s", port,  error->message);
@@ -352,10 +399,10 @@ main(int argc, char *argv[])
 
     GOptionEntry entries[] =
     {
-        { "port",           'p', 0, G_OPTION_ARG_INT,      &port,           "Port to listen to (defaults to 0, random)",                  "<port>" },
-        { "token",          't', 0, G_OPTION_ARG_STRING,   &token,          "Token to check in the client query",                         "<token>" },
-        { "cert-file",      'c', 0, G_OPTION_ARG_FILENAME, &cert_file,      "Path to the certificate file",                               "<path>" },
-        { "key-file",       'k', 0, G_OPTION_ARG_FILENAME, &key_file,       "Path to the key file (defaults to cert-file)",               "<path>" },
+        { "port",           'p', 0, G_OPTION_ARG_INT,      &port,           "Port to listen to (defaults to 0, random" SYSTEMD_SOCKETS_HELP ")", "<port>" },
+        { "token",          't', 0, G_OPTION_ARG_STRING,   &token,          "Token to check in the client query",                                "<token>" },
+        { "cert-file",      'c', 0, G_OPTION_ARG_FILENAME, &cert_file,      "Path to the certificate file",                                      "<path>" },
+        { "key-file",       'k', 0, G_OPTION_ARG_FILENAME, &key_file,       "Path to the key file (defaults to cert-file)",                      "<path>" },
         { NULL }
     };
 

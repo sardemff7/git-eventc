@@ -58,6 +58,7 @@ git_eventc_webhook_CFLAGS = \
 	$(JSON_GLIB_CFLAGS) \
 	$(LIBSOUP_CFLAGS) \
 	$(LIBEVENTC_CFLAGS) \
+	$(SYSTEMD_CFLAGS) \
 	$(GLIB_CFLAGS)
 
 git_eventc_webhook_LDADD = \
@@ -65,6 +66,7 @@ git_eventc_webhook_LDADD = \
 	$(JSON_GLIB_LIBS) \
 	$(LIBSOUP_LIBS) \
 	$(LIBEVENTC_LIBS) \
+	$(SYSTEMD_LIBS) \
 	$(GLIB_LIBS)
 
 include tests/tests.mk

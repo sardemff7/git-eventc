@@ -62,6 +62,24 @@ if test x$enable_hook = xno -a x$enable_webhook = xno; then
     AC_MSG_ERROR([All features disabled])
 fi
 
+AC_ARG_ENABLE([systemd], AS_HELP_STRING([--enable-systemd], [Enable systemd activation support]), [], [enable_systemd=no])
+AC_ARG_WITH([systemduserunitdir], AS_HELP_STRING([--with-systemduserunitdir=DIR], [Directory for systemd user unit files]), [], [with_systemduserunitdir=yes])
+if test x${enable_systemd} = xyes; then
+    if test x$enable_webhook = xno; then
+        AC_MSG_ERROR([systemd support is requested but Webhook is disabled])
+    fi
+    case "${with_systemduserunitdir}" in
+        no|"") AC_MSG_ERROR([*** You must define systemduserunitdir when compiling systemd support]) ;;
+        yes) systemduserunitdir="`${PKG_CONFIG} --dont-define-prefix --variable=systemduserunitdir systemd`" ;;
+        *) systemduserunitdir="${with_systemduserunitdir}" ;;
+    esac
+    AC_CHECK_HEADERS([sys/socket.h])
+    PKG_CHECK_MODULES([SYSTEMD], [libsystemd >= 209],, [PKG_CHECK_MODULES([SYSTEMD], [libsystemd-daemon])])
+    AC_DEFINE([ENABLE_SYSTEMD], [1], [Enable systemd activation support])
+    AC_SUBST([systemduserunitdir])
+fi
+AM_CONDITIONAL([ENABLE_SYSTEMD], [test x${enable_systemd} = xyes])
+
 # Debug flags
 AC_ARG_ENABLE(debug, AS_HELP_STRING([--enable-debug], [Enable debug]), [], enable_debug=no)
 if test x$enable_debug = xyes; then
