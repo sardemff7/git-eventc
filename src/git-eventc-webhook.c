@@ -131,55 +131,6 @@ _git_eventc_webhook_payload_parse_github(const gchar *project, JsonObject *root)
     return SOUP_STATUS_OK;
 }
 
-static guint
-_git_eventc_webhook_payload_parse_gitorious(const gchar *project, JsonObject *root)
-{
-    JsonObject *repository = json_object_get_object_member(root, "repository");
-
-    JsonArray *commits = json_object_get_array_member(root, "commits");
-    guint size = json_array_get_length(commits);
-
-    const gchar *repository_name = json_object_get_string_member(repository, "name");
-    const gchar *branch = json_object_get_string_member(root, "ref");
-
-    if ( git_eventc_is_above_threshold(size) )
-    {
-        gchar *url;
-
-        url = g_strdup_printf("%s/commit/%s/diffs/%s", json_object_get_string_member(repository, "url"), json_object_get_string_member(root, "before"), json_object_get_string_member(root, "after"));
-        git_eventc_send_commit_group(
-            json_object_get_string_member(root, "pushed_by"),
-            size,
-            url,
-            repository_name, branch, project);
-        g_free(url);
-    }
-    else
-    {
-        GList *commit_list = json_array_get_elements(commits);
-        GList *commit_;
-        for ( commit_ = commit_list ; commit_ != NULL ; commit_ = g_list_next(commit_) )
-        {
-            JsonObject *commit = json_node_get_object(commit_->data);
-            JsonObject *author = json_object_get_object_member(commit, "author");
-
-            git_eventc_send_commit(
-                json_object_get_string_member(commit, "id"),
-                json_object_get_string_member(commit, "message"),
-                json_object_get_string_member(commit, "url"),
-                json_object_get_string_member(author, "name"),
-                NULL,
-                json_object_get_string_member(author, "email"),
-                repository_name, branch,
-                NULL,
-                project);
-        }
-        g_list_free(commit_list);
-    }
-
-    return SOUP_STATUS_OK;
-}
-
 static void
 _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg, const char *path, GHashTable *query, SoupClientContext *client, gpointer user_data)
 {
@@ -192,14 +143,10 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
         return;
     }
 
-    const gchar *query_token = NULL;
     const gchar *project = NULL;
-    const gchar *service = NULL;
     if ( query != NULL )
     {
-        query_token = g_hash_table_lookup(query, "token");
         project = g_hash_table_lookup(query, "project");
-        service = g_hash_table_lookup(query, "service");
     }
 
     const gchar *signature;
@@ -233,15 +180,6 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
             return;
         }
         g_hmac_unref(hmac);
-    }
-    else if ( token != NULL )
-    {
-        if ( ( query_token == NULL ) || ( g_strcmp0(token, query_token) != 0 ) )
-        {
-            g_warning("Unauthorized request from %s", user_agent);
-            soup_message_set_status(msg, SOUP_STATUS_UNAUTHORIZED);
-            return;
-        }
     }
 
     const gchar *payload = NULL;
@@ -294,8 +232,6 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
         else if ( g_strcmp0(event, "ping") == 0 )
             status_code = SOUP_STATUS_OK;
     }
-    else if ( g_strcmp0(service, "gitorious") == 0 )
-        status_code = _git_eventc_webhook_payload_parse_gitorious(project, root);
     else
         g_warning("Unknown WebHook service: %s", user_agent);
 
