@@ -327,7 +327,8 @@ main(int argc, char *argv[])
         { NULL }
     };
 
-    git_eventc_parse_options(&argc, &argv, entries, "- Git hook to eventd gateway", &print_version);
+    if ( ! git_eventc_parse_options(&argc, &argv, entries, "- Git hook to eventd gateway", &print_version) )
+        goto end;
     if ( print_version )
     {
         g_print(PACKAGE_NAME "-post-receive " PACKAGE_VERSION "\n");

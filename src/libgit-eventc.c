@@ -112,10 +112,12 @@ static EventcConnection *client = NULL;
 static SoupSession *shortener_session = NULL;
 
 
-void
+gboolean
 git_eventc_parse_options(gint *argc, gchar ***argv, GOptionEntry *extra_entries, const gchar *description, gboolean *print_version)
 {
     *print_version = FALSE;
+
+    GError *error = NULL;
 
     GOptionContext *option_context;
     GOptionEntry entries[] =
@@ -127,7 +129,6 @@ git_eventc_parse_options(gint *argc, gchar ***argv, GOptionEntry *extra_entries,
         { "version",         'V', 0, G_OPTION_ARG_NONE,     print_version,    "Print version",                                              NULL },
         { NULL }
     };
-    GError *error = NULL;
 
     option_context = g_option_context_new(description);
 
@@ -136,8 +137,15 @@ git_eventc_parse_options(gint *argc, gchar ***argv, GOptionEntry *extra_entries,
     g_option_context_add_main_entries(option_context, entries, NULL);
 
     if ( ! g_option_context_parse(option_context, argc, argv, &error) )
-        g_error("Option parsing failed: %s\n", error->message);
+    {
+        g_warning("Option parsing failed: %s\n", error->message);
+        goto out;
+    }
     g_option_context_free(option_context);
+
+out:
+    g_clear_error(&error);
+    return ( error == NULL );
 
 }
 
