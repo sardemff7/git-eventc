@@ -398,7 +398,7 @@ _git_eventc_get_url(const gchar *url)
 }
 
 void
-git_eventc_send_commit_group(const gchar *pusher_name, guint size, const gchar *url, const gchar *repository_name, const gchar *branch, const gchar *project)
+git_eventc_send_commit_group(const gchar *pusher_name, guint size, const gchar *url, const gchar *repository_name, const gchar *branch, const gchar **project)
 {
     EventdEvent *event;
 
@@ -411,15 +411,17 @@ git_eventc_send_commit_group(const gchar *pusher_name, guint size, const gchar *
     eventd_event_add_data(event, g_strdup("repository-name"), g_strdup(repository_name));
     eventd_event_add_data(event, g_strdup("branch"), g_strdup(branch));
 
-    if ( project != NULL )
-        eventd_event_add_data(event, g_strdup("project"), g_strdup(project));
+    if ( project[0] != NULL )
+        eventd_event_add_data(event, g_strdup("project-group"), g_strdup(project[0]));
+    if ( project[1] != NULL )
+        eventd_event_add_data(event, g_strdup("project"), g_strdup(project[1]));
 
     eventc_connection_event(client, event, NULL);
     g_object_unref(event);
 }
 
 void
-git_eventc_send_commit(const gchar *id, const gchar *base_message, const gchar *url, const gchar *author_name, const gchar *author_username, const gchar *author_email, const gchar *repository_name, const gchar *branch, const gchar *files, const gchar *project)
+git_eventc_send_commit(const gchar *id, const gchar *base_message, const gchar *url, const gchar *author_name, const gchar *author_username, const gchar *author_email, const gchar *repository_name, const gchar *branch, const gchar *files, const gchar **project)
 {
 #ifdef GIT_EVENTC_DEBUG
     g_debug("Send commit:"
@@ -432,7 +434,7 @@ git_eventc_send_commit(const gchar *id, const gchar *base_message, const gchar *
         "\nRepository: %s"
         "\nBranch: %s"
         "\nFiles: %s"
-        "\nProject: %s",
+        "\nProject: %s / %s",
         id,
         base_message,
         url,
@@ -442,7 +444,7 @@ git_eventc_send_commit(const gchar *id, const gchar *base_message, const gchar *
         repository_name,
         branch,
         files,
-        project);
+        project[0], project[1]);
 #endif /* GIT_EVENTC_DEBUG */
 
     const gchar *new_line = g_utf8_strchr(base_message, -1, '\n');
@@ -472,8 +474,10 @@ git_eventc_send_commit(const gchar *id, const gchar *base_message, const gchar *
     if ( files != NULL )
         eventd_event_add_data(event, g_strdup("files"), g_strdup(files));
 
-    if ( project != NULL )
-        eventd_event_add_data(event, g_strdup("project"), g_strdup(project));
+    if ( project[0] != NULL )
+        eventd_event_add_data(event, g_strdup("project-group"), g_strdup(project[0]));
+    if ( project[1] != NULL )
+        eventd_event_add_data(event, g_strdup("project"), g_strdup(project[1]));
 
     eventc_connection_event(client, event, NULL);
     g_object_unref(event);

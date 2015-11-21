@@ -139,7 +139,7 @@ _git_eventc_post_receive(git_repository *repository, const gchar *before, const 
     const char *pusher = NULL;
     const char *repository_name = NULL;
     gchar *repository_guessed_name = NULL;
-    const char *project = NULL;
+    const char *project[2] = { NULL, NULL };
     const char *commit_url = NULL;
     const char *diff_url = NULL;
     const gchar *branch = ref + strlen("refs/heads/");
@@ -154,7 +154,8 @@ _git_eventc_post_receive(git_repository *repository, const gchar *before, const 
         g_warning("Couldn't get repository configuration: %s", giterr_last()->message);
     else
     {
-        git_config_get_string(&project, config, PACKAGE_NAME ".project");
+        git_config_get_string(&project[0], config, PACKAGE_NAME ".project-group");
+        git_config_get_string(&project[1], config, PACKAGE_NAME ".project");
         git_config_get_string(&commit_url, config, PACKAGE_NAME ".commit-url");
         git_config_get_string(&diff_url, config, PACKAGE_NAME ".diff-url");
         git_config_get_string(&repository_name, config, PACKAGE_NAME ".repository");
