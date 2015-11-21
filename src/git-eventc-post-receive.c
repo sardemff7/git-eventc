@@ -316,7 +316,7 @@ main(int argc, char *argv[])
 {
     gboolean print_version;
 
-    int retval = 0;
+    int retval = 1;
 
 #if ! GLIB_CHECK_VERSION(2,35,1)
     g_type_init();
@@ -344,7 +344,10 @@ main(int argc, char *argv[])
 
         error = git_repository_open(&repository, ".");
         if ( error != 0 )
+        {
             g_warning("Couldn't open repository: %s", giterr_last()->message);
+            retval = 3;
+        }
         else
         {
             /* Set some diff options */
@@ -372,7 +375,10 @@ main(int argc, char *argv[])
             free(line);
         }
         giterr_clear();
+        retval = 0;
     }
+    else
+        retval = 2;
 
 end:
     git_eventc_uninit();
