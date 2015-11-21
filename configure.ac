@@ -84,7 +84,7 @@ AM_CONDITIONAL([ENABLE_SYSTEMD], [test x${enable_systemd} = xyes])
 # Debug flags
 AC_ARG_ENABLE(debug, AS_HELP_STRING([--enable-debug], [Enable debug]), [], enable_debug=no)
 if test x$enable_debug = xyes; then
-    AC_DEFINE([DEBUG], [1], [Activate debug mode])
+    AC_DEFINE([GIT_EVENTC_DEBUG], [1], [Activate debug mode])
 fi
 
 AC_SUBST(AM_CFLAGS)

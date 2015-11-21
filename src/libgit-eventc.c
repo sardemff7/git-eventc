@@ -161,6 +161,10 @@ _git_eventc_stop(gpointer user_data)
 gboolean
 git_eventc_init(GMainLoop *loop, gint *retval)
 {
+#ifdef GIT_EVENTC_DEBUG
+    g_setenv("G_MESSAGES_DEBUG", "all", FALSE);
+#endif /* GIT_EVENTC_DEBUG */
+
 #ifdef G_OS_UNIX
     g_unix_signal_add(SIGTERM, _git_eventc_stop, loop);
     g_unix_signal_add(SIGINT, _git_eventc_stop, loop);
@@ -187,6 +191,21 @@ git_eventc_init(GMainLoop *loop, gint *retval)
         *retval = 1;
         return FALSE;
     }
+
+#ifdef GIT_EVENTC_DEBUG
+#define bstring(b) ((b) ? "true" : "false")
+    g_debug("Configuration:"
+        "\n    eventd host: %s"
+        "\n    Merge threshold: %d"
+        "\n    Commit id size: %d"
+        "\n    Use shortener: %s"
+        "\n",
+        host,
+        merge_threshold,
+        commit_id_size,
+        bstring(shortener)
+    );
+#endif /* GIT_EVENTC_DEBUG */
 
     return TRUE;
 }
@@ -312,7 +331,7 @@ git_eventc_send_commit_group(const gchar *pusher_name, guint size, const gchar *
 void
 git_eventc_send_commit(const gchar *id, const gchar *base_message, const gchar *url, const gchar *author_name, const gchar *author_username, const gchar *author_email, const gchar *repository_name, const gchar *branch, const gchar *files, const gchar *project)
 {
-#ifdef DEBUG
+#ifdef GIT_EVENTC_DEBUG
     g_debug("Send commit:"
         "\nID: %s"
         "\nMessage: %s"
@@ -334,7 +353,7 @@ git_eventc_send_commit(const gchar *id, const gchar *base_message, const gchar *
         branch,
         files,
         project);
-#endif /* DEBUG */
+#endif /* GIT_EVENTC_DEBUG */
 
     const gchar *new_line = g_utf8_strchr(base_message, -1, '\n');
     gchar *message;
