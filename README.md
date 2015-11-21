@@ -17,6 +17,7 @@ Here is the list of common data provided by both events:
 * `url`: An URL to see the change online
 * `repository-name`: The name of the repository
 * `branch`: The updated branch name
+* `project-group`: The project group name (if set)
 * `project`: The project name (if set)
 
 
@@ -89,6 +90,7 @@ You should configure most of them in your system configuration (`/etc/gitconfig`
 <br />
 Here is the list of used values:
 
+* `git-eventc.project-group`: used as `project-group`
 * `git-eventc.project`: used as `project`
 * `git-eventc.commit-url`: URL template for a single commit with two C-style string conversion specifier (`%s`):
     * the first one for the repository name
