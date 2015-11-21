@@ -136,11 +136,15 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
 {
     const gchar *user_agent = soup_message_headers_get_one(msg->request_headers, "User-Agent");
 
+    GHmac *hmac = NULL;
+    GHashTable *data = NULL;
+
+    guint status_code = SOUP_STATUS_NOT_IMPLEMENTED;
+
     if ( msg->method != SOUP_METHOD_POST )
     {
         g_warning("Non-POST request from %s", user_agent);
-        soup_message_set_status(msg, SOUP_STATUS_NOT_IMPLEMENTED);
-        return;
+        goto cleanup;
     }
 
     const gchar *project = NULL;
@@ -153,46 +157,41 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
     signature = soup_message_headers_get_one(msg->request_headers, "X-Hub-Signature");
     if ( signature != NULL )
     {
+        status_code = SOUP_STATUS_UNAUTHORIZED;
+
         if ( token == NULL )
         {
             g_warning("Cannot verify signature of request from %s", user_agent);
-            soup_message_set_status(msg, SOUP_STATUS_UNAUTHORIZED);
-            return;
+            goto cleanup;
         }
 
         if ( ! g_str_has_prefix(signature, "sha1=") )
         {
             g_warning("Signature of request from %s does not match", user_agent);
-            soup_message_set_status(msg, SOUP_STATUS_UNAUTHORIZED);
-            return;
+            goto cleanup;
         }
         signature += strlen("sha1=");
 
-        GHmac *hmac;
         hmac = g_hmac_new(G_CHECKSUM_SHA1, (const guchar *) token, strlen(token));
         g_hmac_update(hmac, (const guchar *) msg->request_body->data, msg->request_body->length);
 
         if ( g_ascii_strcasecmp(signature, g_hmac_get_string(hmac)) != 0 )
         {
             g_warning("Signature of request from %s does not match %s != %s", user_agent, signature, g_hmac_get_string(hmac));
-            soup_message_set_status(msg, SOUP_STATUS_UNAUTHORIZED);
-            g_hmac_unref(hmac);
-            return;
+            goto cleanup;
         }
-        g_hmac_unref(hmac);
     }
 
-    const gchar *payload = NULL;
-    GHashTable *data = NULL;
+    status_code = SOUP_STATUS_BAD_REQUEST;
 
     const gchar *content_type = soup_message_headers_get_one(msg->request_headers, "Content-Type");
     if ( content_type == NULL )
     {
         g_warning("Bad request (no Content-Type header) from %s", user_agent);
-        soup_message_set_status(msg, SOUP_STATUS_BAD_REQUEST);
-        return;
+        goto cleanup;
     }
 
+    const gchar *payload = NULL;
     if ( g_strcmp0(content_type, "application/json") == 0 )
         payload = msg->request_body->data;
     else if ( g_strcmp0(content_type, "application/x-www-form-urlencoded") == 0 )
@@ -202,8 +201,7 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
         if ( data == NULL )
         {
             g_warning("Bad POST (no data) from %s", user_agent);
-            soup_message_set_status(msg, SOUP_STATUS_BAD_REQUEST);
-            return;
+            goto cleanup;
         }
         payload = g_hash_table_lookup(data, "payload");
     }
@@ -211,19 +209,16 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
     if ( payload == NULL )
     {
         g_warning("Bad POST (no payload) from %s", user_agent);
-        soup_message_set_status(msg, SOUP_STATUS_BAD_REQUEST);
-        return;
+        goto cleanup;
     }
     JsonParser *parser = json_parser_new();
 
     json_parser_load_from_data(parser, payload, -1, NULL);
-    if ( data != NULL )
-        g_hash_table_destroy(data);
 
     JsonNode *root_node = json_parser_get_root(parser);
     JsonObject *root = json_node_get_object(root_node);
 
-    guint status_code = SOUP_STATUS_NOT_IMPLEMENTED;
+    status_code = SOUP_STATUS_NOT_IMPLEMENTED;
     if ( g_str_has_prefix(user_agent, "GitHub-Hookshot/") )
     {
         const gchar *event = soup_message_headers_get_one(msg->request_headers, "X-GitHub-Event");
@@ -237,6 +232,11 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
 
     g_object_unref(parser);
 
+cleanup:
+    if ( data != NULL )
+        g_hash_table_unref(data);
+    if ( hmac != NULL )
+        g_hmac_unref(hmac);
     soup_message_set_status(msg, status_code);
 }
 
