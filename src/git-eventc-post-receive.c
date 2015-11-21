@@ -318,9 +318,6 @@ main(int argc, char *argv[])
 
     int retval = 1;
 
-#if ! GLIB_CHECK_VERSION(2,35,1)
-    g_type_init();
-#endif /* ! GLIB_CHECK_VERSION(2,35,1) */
     git_libgit2_init();
 
     GOptionEntry entries[] =
