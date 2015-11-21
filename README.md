@@ -111,31 +111,47 @@ It alse has some basic support for Gitolite environment variables:
 ### git-eventc-webhook
 
 git-eventc-webhook is a tiny daemon that will listen HTTP POST based hook.
-These are provided by many Git host providers (GitHub, Gitorious).
+These are provided by many Git host providers.
 <br />
 See `--help` output for its configuration.
 
 Just run it or your server and point the WebHook to it.
 You can use the proxy support of your favorite web server if you prefer.
 <br />
-It supports TLS/SSL directly.
+Direct TLS/SSL support is avaible.
 
-git-eventc-webhook supports several URL parameters:
+git-eventc-webhook will split the URL path in two:
 
-* `project`: the project name, used as `project`
-* `token`: the “security” token
-  * With GitHub, it is the “secret” you set in the WebHook configuration
-  * With other services, it must be passed as a query parameter
-* `service`: needed for some services (see below)
+* first part will be used as `project-group`
+* second part (may contain slashes) will be used as `project`
+    <br />
+    The second part is optional
 
 Here is the list of supported services.
-Some services will require you to add a `service` URL parameter (value indicated in parens), others are automatically detected.
 
 * GitHub
-* Gitorious (`gitorious`)
 
 Example URLs:
 
-    http://example.com:8080/?project=TestProject&token=superSecure
-    https://example.com:8080/?project=TestProject&token=superSecure
-    https://example.com/webhook?project=TestProject&token=superSecure (behind Apache ProxyPass)
+    http://example.com:8080/TestProjectGroup
+    https://example.com:8080/TestProjectGroup/TestProject
+    https://example.com/webhook/TestProjectGroup/TestProject (behind Apache ProxyPass)
+
+#### Secrets
+
+git-eventc-webhook as secret support. In your GitHub WebHook configuration, you can specify a secret.
+This secret will be used to compute a signature of the hook payload, which is sent in the request header.
+git-eventc-webhook will compute the signature and compare it with the one in the request.
+
+To specify secrets, you must use a configuration file. Here is the format:
+
+* The group name is `[webhook-secrets]`.
+* Each key is a project group name
+* Each value is the corresponding secret
+
+Example:
+
+    [webhook-secrets]
+    Group1=secret
+    Group2=secret
+    Group3=other-secret
