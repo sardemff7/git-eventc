@@ -345,7 +345,7 @@ main(int argc, char *argv[])
         { NULL }
     };
 
-    if ( ! git_eventc_parse_options(&argc, &argv, entries, "- Git WebHook to eventd gateway", &print_version) )
+    if ( ! git_eventc_parse_options(&argc, &argv, entries, "- Git WebHook to eventd gateway", NULL, &print_version) )
         goto end;
     if ( print_version )
     {

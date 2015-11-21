@@ -163,7 +163,7 @@ out:
 }
 
 gboolean
-git_eventc_parse_options(gint *argc, gchar ***argv, GOptionEntry *extra_entries, const gchar *description, gboolean *print_version)
+git_eventc_parse_options(gint *argc, gchar ***argv, GOptionEntry *extra_entries, const gchar *description, GitEventcKeyFileFunc extra_parsing, gboolean *print_version)
 {
     *print_version = FALSE;
 
@@ -206,6 +206,11 @@ git_eventc_parse_options(gint *argc, gchar ***argv, GOptionEntry *extra_entries,
         if ( extra_entries != NULL )
         {
             if ( ! _git_eventc_parse_config_file(key_file, extra_entries, &error) )
+                goto out;
+        }
+        if ( extra_parsing != NULL )
+        {
+            if ( ! extra_parsing(key_file, &error) )
                 goto out;
         }
     }
