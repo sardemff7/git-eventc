@@ -102,7 +102,7 @@ Here is the list of used values:
     * Examples: `http://cgit.example.com/%s/diff/?id2=%s&id=%s` or `http://gitweb.example.com/?p=%s.git;a=commitdiff;hp=%s;h=%s`
 * `git-eventc.repository`: used as `repository-name` (not meaningful in system configuration)
 
-It alse has some basic support for Gitolite environment variables:
+It also has some basic support for Gitolite environment variables:
 
 * `GL_USER`: used as `pusher-name`
 * `GL_REPO`: used as `repository-name`
@@ -139,7 +139,7 @@ Example URLs:
 
 #### Secrets
 
-git-eventc-webhook as secret support. In your GitHub WebHook configuration, you can specify a secret.
+git-eventc-webhook has secret support. In your GitHub WebHook configuration, you can specify a secret.
 This secret will be used to compute a signature of the hook payload, which is sent in the request header.
 git-eventc-webhook will compute the signature and compare it with the one in the request.
 
