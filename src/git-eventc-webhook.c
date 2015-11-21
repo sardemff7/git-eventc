@@ -395,7 +395,7 @@ main(int argc, char *argv[])
     gint port = 0;
     gboolean print_version;
 
-    int retval = 0;
+    int retval = 1;
 
     GOptionEntry entries[] =
     {
@@ -410,6 +410,7 @@ main(int argc, char *argv[])
     if ( print_version )
     {
         g_print(PACKAGE_NAME "-webhook " PACKAGE_VERSION "\n");
+        retval = 0;
         goto end;
     }
 
@@ -424,8 +425,13 @@ main(int argc, char *argv[])
         {
             g_main_loop_run(loop);
             g_object_unref(server);
+            retval = 0;
         }
+        else
+            retval = 3;
     }
+    else
+        retval = 2;
     g_main_loop_unref(loop);
 
 end:
