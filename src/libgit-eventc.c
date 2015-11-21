@@ -169,6 +169,7 @@ git_eventc_parse_options(gint *argc, gchar ***argv, GOptionEntry *extra_entries,
 
     gchar *config_file = NULL;
     GKeyFile *key_file = NULL;
+    gboolean ret = FALSE;
     GError *error = NULL;
 
     config_file = g_build_filename(g_get_user_config_dir(), PACKAGE_NAME ".conf", NULL);
@@ -222,12 +223,14 @@ git_eventc_parse_options(gint *argc, gchar ***argv, GOptionEntry *extra_entries,
     }
     g_option_context_free(option_context);
 
+    ret = TRUE;
+
 out:
     if ( key_file != NULL )
         g_key_file_unref(key_file);
     g_free(config_file);
     g_clear_error(&error);
-    return ( error == NULL );
+    return ret;
 
 }
 
