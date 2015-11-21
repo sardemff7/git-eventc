@@ -111,13 +111,83 @@ static gboolean shortener = FALSE;
 static EventcConnection *client = NULL;
 static SoupSession *shortener_session = NULL;
 
+#define g_key_file_get_string_list_alt(kf, g, k, e) g_key_file_get_string_list(kf, g, k, NULL, e)
+
+#define get_entry_with_code(arg_type, type_name, type, code) \
+    case G_OPTION_ARG_##arg_type: \
+    G_STMT_START { \
+        gboolean has; \
+        has = g_key_file_has_key(key_file, PACKAGE_NAME, entry->long_name, &error); \
+        if ( error != NULL ) \
+            goto out; \
+        if ( ! has ) \
+            continue; \
+        type v; \
+        v = g_key_file_get_##type_name(key_file, PACKAGE_NAME, entry->long_name, &error); \
+        if ( error != NULL ) \
+            goto out; \
+        code; \
+    } G_STMT_END; \
+    break;
+
+#define get_entry(arg_type, type_name, type) get_entry_with_code(arg_type, type_name, type, *((type *) entry->arg_data) = v)
+
+static gboolean
+_git_eventc_parse_config_file(GKeyFile *key_file, GOptionEntry *entry)
+{
+    GError *error = NULL;
+    for ( ; entry->long_name != NULL ; ++entry )
+    {
+        if ( entry->short_name == 'V' )
+            continue;
+
+        switch ( entry->arg )
+        {
+        get_entry(NONE, boolean, gboolean);
+        get_entry(STRING, string, gchar *);
+        get_entry(FILENAME, string, gchar *);
+        get_entry(STRING_ARRAY, string_list_alt, gchar **);
+        get_entry(FILENAME_ARRAY, string_list_alt, gchar **);
+        get_entry(INT, integer, gint);
+        get_entry(INT64, int64, gint64);
+        get_entry(DOUBLE, double, gdouble);
+        get_entry_with_code(CALLBACK, string, gchar *, ((GOptionArgFunc)entry->arg_data)(entry->long_name, v, NULL, &error));
+        }
+    }
+
+out:
+    if ( error == NULL )
+        return TRUE;
+
+    g_warning("Failed to parse '%s' option: %s", entry->long_name, error->message);
+    g_clear_error(&error);
+    return FALSE;
+}
 
 gboolean
 git_eventc_parse_options(gint *argc, gchar ***argv, GOptionEntry *extra_entries, const gchar *description, gboolean *print_version)
 {
     *print_version = FALSE;
 
+    gchar *config_file = NULL;
+    GKeyFile *key_file = NULL;
     GError *error = NULL;
+
+    config_file = g_build_filename(g_get_user_config_dir(), PACKAGE_NAME ".conf", NULL);
+    if ( g_file_test(config_file, G_FILE_TEST_IS_REGULAR) )
+    {
+        key_file = g_key_file_new();
+        if ( ! g_key_file_load_from_file(key_file, config_file, G_KEY_FILE_NONE, &error) )
+        {
+            g_warning("Could not parse config file '%s': %s", config_file, error->message);
+            goto out;
+        }
+        if ( ! g_key_file_has_group(key_file, PACKAGE_NAME) )
+        {
+            g_key_file_unref(key_file);
+            key_file = NULL;
+        }
+    }
 
     GOptionContext *option_context;
     GOptionEntry entries[] =
@@ -129,6 +199,17 @@ git_eventc_parse_options(gint *argc, gchar ***argv, GOptionEntry *extra_entries,
         { "version",         'V', 0, G_OPTION_ARG_NONE,     print_version,    "Print version",                                              NULL },
         { NULL }
     };
+
+    if ( key_file != NULL )
+    {
+        if ( ! _git_eventc_parse_config_file(key_file, entries) )
+            goto out;
+        if ( extra_entries != NULL )
+        {
+            if ( ! _git_eventc_parse_config_file(key_file, extra_entries) )
+                goto out;
+        }
+    }
 
     option_context = g_option_context_new(description);
 
@@ -144,6 +225,9 @@ git_eventc_parse_options(gint *argc, gchar ***argv, GOptionEntry *extra_entries,
     g_option_context_free(option_context);
 
 out:
+    if ( key_file != NULL )
+        g_key_file_unref(key_file);
+    g_free(config_file);
     g_clear_error(&error);
     return ( error == NULL );
 
