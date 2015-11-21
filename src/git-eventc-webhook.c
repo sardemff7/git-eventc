@@ -390,8 +390,8 @@ error:
 int
 main(int argc, char *argv[])
 {
-    gchar *cert_file = NULL;
-    gchar *key_file = NULL;
+    gchar *tls_cert_file = NULL;
+    gchar *tls_key_file = NULL;
     gint port = 0;
     gboolean print_version;
 
@@ -401,8 +401,8 @@ main(int argc, char *argv[])
     {
         { "port",           'p', 0, G_OPTION_ARG_INT,      &port,           "Port to listen to (defaults to 0, random" SYSTEMD_SOCKETS_HELP ")", "<port>" },
         { "token",          't', 0, G_OPTION_ARG_STRING,   &token,          "Token to check in the client query",                                "<token>" },
-        { "cert-file",      'c', 0, G_OPTION_ARG_FILENAME, &cert_file,      "Path to the certificate file",                                      "<path>" },
-        { "key-file",       'k', 0, G_OPTION_ARG_FILENAME, &key_file,       "Path to the key file (defaults to cert-file)",                      "<path>" },
+        { "cert-file",      'c', 0, G_OPTION_ARG_FILENAME, &tls_cert_file,  "Path to the certificate file",                                      "<path>" },
+        { "key-file",       'k', 0, G_OPTION_ARG_FILENAME, &tls_key_file,   "Path to the key file (defaults to cert-file)",                      "<path>" },
         { NULL }
     };
 
@@ -419,7 +419,7 @@ main(int argc, char *argv[])
     if ( git_eventc_init(loop, &retval) )
     {
         SoupServer *server;
-        server = _git_eventc_webhook_soup_server_init(port, cert_file, key_file, &retval);
+        server = _git_eventc_webhook_soup_server_init(port, tls_cert_file, tls_key_file, &retval);
         if ( server != NULL )
         {
             g_main_loop_run(loop);
@@ -430,8 +430,8 @@ main(int argc, char *argv[])
 
 end:
     git_eventc_uninit();
-    g_free(key_file);
-    g_free(cert_file);
+    g_free(tls_key_file);
+    g_free(tls_cert_file);
 
     return retval;
 }
