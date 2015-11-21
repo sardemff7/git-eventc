@@ -4,7 +4,7 @@ Requires=eventd.socket
 After=eventd.socket
 
 [Service]
-ExecStart=@bindir@/git-eventc-webhook --token %i
+ExecStart=@bindir@/git-eventc-webhook
 
 [Install]
 WantedBy=default.target

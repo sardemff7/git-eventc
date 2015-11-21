@@ -50,7 +50,7 @@
 
 #include "libgit-eventc.h"
 
-static gchar *token = NULL;
+static GHashTable *secrets = NULL;
 
 static void
 _git_eventc_webhook_node_list_to_string_list(GList *list)
@@ -170,7 +170,9 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
     {
         status_code = SOUP_STATUS_UNAUTHORIZED;
 
-        if ( token == NULL )
+        const gchar *secret = g_hash_table_lookup(secrets, project[0]);
+
+        if ( secret == NULL )
         {
             g_warning("Cannot verify signature of request from %s", user_agent);
             goto cleanup;
@@ -183,7 +185,7 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
         }
         signature += strlen("sha1=");
 
-        hmac = g_hmac_new(G_CHECKSUM_SHA1, (const guchar *) token, strlen(token));
+        hmac = g_hmac_new(G_CHECKSUM_SHA1, (const guchar *) secret, strlen(secret));
         g_hmac_update(hmac, (const guchar *) msg->request_body->data, msg->request_body->length);
 
         if ( g_ascii_strcasecmp(signature, g_hmac_get_string(hmac)) != 0 )
@@ -326,6 +328,33 @@ error:
     return NULL;
 }
 
+static gboolean
+_git_eventc_webhook_extra_key_file_parsing(GKeyFile *key_file, GError **error)
+{
+    const gchar *group = "webhook-secrets";
+    if ( ! g_key_file_has_group(key_file, group) )
+        return TRUE;
+
+    gchar **projects;
+    projects = g_key_file_get_keys(key_file, group, NULL, error);
+    if ( projects == NULL )
+        return FALSE;
+
+    secrets = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+    gchar **project;
+    for ( project = projects ; *project != NULL ; ++project )
+    {
+        gchar *secret;
+        secret = g_key_file_get_string(key_file, group, *project, error);
+        if ( *error != NULL )
+            return FALSE;
+        g_hash_table_insert(secrets, *project, secret);
+    }
+    g_free(projects);
+
+    return TRUE;
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -339,13 +368,12 @@ main(int argc, char *argv[])
     GOptionEntry entries[] =
     {
         { "port",           'p', 0, G_OPTION_ARG_INT,      &port,           "Port to listen to (defaults to 0, random" SYSTEMD_SOCKETS_HELP ")", "<port>" },
-        { "token",          't', 0, G_OPTION_ARG_STRING,   &token,          "Token to check in the client query",                                "<token>" },
         { "cert-file",      'c', 0, G_OPTION_ARG_FILENAME, &tls_cert_file,  "Path to the certificate file",                                      "<path>" },
         { "key-file",       'k', 0, G_OPTION_ARG_FILENAME, &tls_key_file,   "Path to the key file (defaults to cert-file)",                      "<path>" },
         { NULL }
     };
 
-    if ( ! git_eventc_parse_options(&argc, &argv, entries, "- Git WebHook to eventd gateway", NULL, &print_version) )
+    if ( ! git_eventc_parse_options(&argc, &argv, entries, "- Git WebHook to eventd gateway", _git_eventc_webhook_extra_key_file_parsing, &print_version) )
         goto end;
     if ( print_version )
     {

@@ -54,7 +54,7 @@ git_eventc_post_receive_LDADD = \
 
 if ENABLE_WEBHOOK
 bin_PROGRAMS += git-eventc-webhook
-systemduserunit_DATA += units/git-eventc-webhook@.service
+systemduserunit_DATA += units/git-eventc-webhook.service
 endif
 
 git_eventc_webhook_SOURCES = \
