@@ -117,14 +117,14 @@ static SoupSession *shortener_session = NULL;
     case G_OPTION_ARG_##arg_type: \
     G_STMT_START { \
         gboolean has; \
-        has = g_key_file_has_key(key_file, PACKAGE_NAME, entry->long_name, &error); \
-        if ( error != NULL ) \
+        has = g_key_file_has_key(key_file, PACKAGE_NAME, entry->long_name, error); \
+        if ( *error != NULL ) \
             goto out; \
         if ( ! has ) \
             continue; \
         type v; \
-        v = g_key_file_get_##type_name(key_file, PACKAGE_NAME, entry->long_name, &error); \
-        if ( error != NULL ) \
+        v = g_key_file_get_##type_name(key_file, PACKAGE_NAME, entry->long_name, error); \
+        if ( *error != NULL ) \
             goto out; \
         code; \
     } G_STMT_END; \
@@ -133,9 +133,8 @@ static SoupSession *shortener_session = NULL;
 #define get_entry(arg_type, type_name, type) get_entry_with_code(arg_type, type_name, type, *((type *) entry->arg_data) = v)
 
 static gboolean
-_git_eventc_parse_config_file(GKeyFile *key_file, GOptionEntry *entry)
+_git_eventc_parse_config_file(GKeyFile *key_file, GOptionEntry *entry, GError **error)
 {
-    GError *error = NULL;
     for ( ; entry->long_name != NULL ; ++entry )
     {
         if ( entry->short_name == 'V' )
@@ -151,16 +150,15 @@ _git_eventc_parse_config_file(GKeyFile *key_file, GOptionEntry *entry)
         get_entry(INT, integer, gint);
         get_entry(INT64, int64, gint64);
         get_entry(DOUBLE, double, gdouble);
-        get_entry_with_code(CALLBACK, string, gchar *, ((GOptionArgFunc)entry->arg_data)(entry->long_name, v, NULL, &error));
+        get_entry_with_code(CALLBACK, string, gchar *, ((GOptionArgFunc)entry->arg_data)(entry->long_name, v, NULL, error));
         }
     }
 
 out:
-    if ( error == NULL )
+    if ( *error == NULL )
         return TRUE;
 
-    g_warning("Failed to parse '%s' option: %s", entry->long_name, error->message);
-    g_clear_error(&error);
+    g_warning("Failed to parse '%s' option: %s", entry->long_name, (*error)->message);
     return FALSE;
 }
 
@@ -202,11 +200,11 @@ git_eventc_parse_options(gint *argc, gchar ***argv, GOptionEntry *extra_entries,
 
     if ( key_file != NULL )
     {
-        if ( ! _git_eventc_parse_config_file(key_file, entries) )
+        if ( ! _git_eventc_parse_config_file(key_file, entries, &error) )
             goto out;
         if ( extra_entries != NULL )
         {
-            if ( ! _git_eventc_parse_config_file(key_file, extra_entries) )
+            if ( ! _git_eventc_parse_config_file(key_file, extra_entries, &error) )
                 goto out;
         }
     }
