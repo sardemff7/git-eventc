@@ -136,6 +136,7 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
 {
     const gchar *user_agent = soup_message_headers_get_one(msg->request_headers, "User-Agent");
 
+    gchar **project = NULL;
     GHmac *hmac = NULL;
     GHashTable *data = NULL;
 
@@ -147,10 +148,20 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
         goto cleanup;
     }
 
-    const gchar *project = NULL;
-    if ( query != NULL )
+    status_code = SOUP_STATUS_BAD_REQUEST;
+
+    const gchar *content_type = soup_message_headers_get_one(msg->request_headers, "Content-Type");
+    if ( content_type == NULL )
     {
-        project = g_hash_table_lookup(query, "project");
+        g_warning("Bad request (no Content-Type header) from %s", user_agent);
+        goto cleanup;
+    }
+
+    project = g_strsplit(path+1, "/", 2);
+    if ( project[0] == NULL )
+    {
+        g_warning("Bad request (no project in path) from %s", user_agent);
+        goto cleanup;
     }
 
     const gchar *signature;
@@ -180,15 +191,6 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
             g_warning("Signature of request from %s does not match %s != %s", user_agent, signature, g_hmac_get_string(hmac));
             goto cleanup;
         }
-    }
-
-    status_code = SOUP_STATUS_BAD_REQUEST;
-
-    const gchar *content_type = soup_message_headers_get_one(msg->request_headers, "Content-Type");
-    if ( content_type == NULL )
-    {
-        g_warning("Bad request (no Content-Type header) from %s", user_agent);
-        goto cleanup;
     }
 
     const gchar *payload = NULL;
@@ -223,7 +225,7 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
     {
         const gchar *event = soup_message_headers_get_one(msg->request_headers, "X-GitHub-Event");
         if ( g_strcmp0(event, "push") == 0 )
-            status_code = _git_eventc_webhook_payload_parse_github(project, root);
+            status_code = _git_eventc_webhook_payload_parse_github(project[1], root);
         else if ( g_strcmp0(event, "ping") == 0 )
             status_code = SOUP_STATUS_OK;
     }
@@ -237,6 +239,7 @@ cleanup:
         g_hash_table_unref(data);
     if ( hmac != NULL )
         g_hmac_unref(hmac);
+    g_strfreev(project);
     soup_message_set_status(msg, status_code);
 }
 
