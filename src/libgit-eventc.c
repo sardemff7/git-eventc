@@ -270,8 +270,6 @@ git_eventc_init(GMainLoop *loop, gint *retval)
         return FALSE;
     }
 
-    eventc_connection_set_passive(client, TRUE);
-
     if ( ! eventc_connection_connect_sync(client, &error) )
     {
         g_warning("Couldn't connect to eventd: %s", error->message);
