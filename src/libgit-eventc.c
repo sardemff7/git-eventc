@@ -415,7 +415,7 @@ git_eventc_send_commit_group(const gchar *pusher_name, guint size, const gchar *
         eventd_event_add_data(event, g_strdup("project"), g_strdup(project[1]));
 
     eventc_connection_event(client, event, NULL);
-    g_object_unref(event);
+    eventd_event_unref(event);
 }
 
 void
@@ -478,5 +478,5 @@ git_eventc_send_commit(const gchar *id, const gchar *base_message, const gchar *
         eventd_event_add_data(event, g_strdup("project"), g_strdup(project[1]));
 
     eventc_connection_event(client, event, NULL);
-    g_object_unref(event);
+    eventd_event_unref(event);
 }
