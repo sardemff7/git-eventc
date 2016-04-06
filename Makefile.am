@@ -2,7 +2,9 @@ ACLOCAL_AMFLAGS = ${ACLOCAL_FLAGS}
 AM_MAKEFLAGS = --no-print-directory
 
 AM_CPPFLAGS += \
-	-I$(srcdir)/src
+	-I$(srcdir)/src \
+	-DSYSCONFDIR=\"$(sysconfdir)\" \
+	$(null)
 
 bin_PROGRAMS =
 libexec_PROGRAMS =

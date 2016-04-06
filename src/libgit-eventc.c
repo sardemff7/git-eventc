@@ -167,12 +167,14 @@ git_eventc_parse_options(gint *argc, gchar ***argv, GOptionEntry *extra_entries,
 {
     *print_version = FALSE;
 
-    gchar *config_file = NULL;
+    const gchar *config_file;
+    gchar *config_file_ = NULL;
     GKeyFile *key_file = NULL;
     gboolean ret = FALSE;
     GError *error = NULL;
-
-    config_file = g_build_filename(g_get_user_config_dir(), PACKAGE_NAME ".conf", NULL);
+    config_file = SYSCONFDIR G_DIR_SEPARATOR_S PACKAGE_NAME ".conf";
+    if ( ! g_file_test(config_file, G_FILE_TEST_IS_REGULAR) )
+        config_file = config_file_ = g_build_filename(g_get_user_config_dir(), PACKAGE_NAME ".conf", NULL);
     if ( g_file_test(config_file, G_FILE_TEST_IS_REGULAR) )
     {
         key_file = g_key_file_new();
@@ -231,7 +233,7 @@ git_eventc_parse_options(gint *argc, gchar ***argv, GOptionEntry *extra_entries,
 out:
     if ( key_file != NULL )
         g_key_file_unref(key_file);
-    g_free(config_file);
+    g_free(config_file_);
     g_clear_error(&error);
     return ret;
 
