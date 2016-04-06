@@ -71,7 +71,7 @@ if test x${enable_systemd} = xyes; then
     fi
     case "${with_systemduserunitdir}" in
         no|"") AC_MSG_ERROR([*** You must define systemduserunitdir when compiling systemd support]) ;;
-        yes) systemduserunitdir="`${PKG_CONFIG} --dont-define-prefix --variable=systemduserunitdir systemd`" ;;
+        yes) systemduserunitdir="`${PKG_CONFIG} --variable=systemduserunitdir systemd`" ;;
         *) systemduserunitdir="${with_systemduserunitdir}" ;;
     esac
     AC_CHECK_HEADERS([sys/socket.h])
