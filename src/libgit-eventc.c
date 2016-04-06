@@ -181,11 +181,6 @@ git_eventc_parse_options(gint *argc, gchar ***argv, GOptionEntry *extra_entries,
             g_warning("Could not parse config file '%s': %s", config_file, error->message);
             goto out;
         }
-        if ( ! g_key_file_has_group(key_file, PACKAGE_NAME) )
-        {
-            g_key_file_unref(key_file);
-            key_file = NULL;
-        }
     }
 
     GOptionContext *option_context;
@@ -201,12 +196,15 @@ git_eventc_parse_options(gint *argc, gchar ***argv, GOptionEntry *extra_entries,
 
     if ( key_file != NULL )
     {
-        if ( ! _git_eventc_parse_config_file(key_file, entries, &error) )
-            goto out;
-        if ( extra_entries != NULL )
+        if ( g_key_file_has_group(key_file, PACKAGE_NAME) )
         {
-            if ( ! _git_eventc_parse_config_file(key_file, extra_entries, &error) )
+            if ( ! _git_eventc_parse_config_file(key_file, entries, &error) )
                 goto out;
+            if ( extra_entries != NULL )
+            {
+                if ( ! _git_eventc_parse_config_file(key_file, extra_entries, &error) )
+                    goto out;
+            }
         }
         if ( extra_parsing != NULL )
         {
