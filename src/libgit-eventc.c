@@ -327,7 +327,7 @@ static GitEventcShortener shorteners[] = {
     {
         .name       = "git.io",
         .method     = "POST",
-        .url        = "http://git.io/",
+        .url        = "https://git.io/",
         .field_name = "url",
         .prefix     = "https://github.com/",
         .parse      = _git_eventc_shortener_parse_gitio,
@@ -341,7 +341,7 @@ static GitEventcShortener shorteners[] = {
     {
         .name       = "is.gd",
         .method     = "POST",
-        .url        = "http://is.gd/create.php?format=simple",
+        .url        = "https://is.gd/create.php?format=simple",
         .field_name = "url",
     },
 };
