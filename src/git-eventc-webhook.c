@@ -50,6 +50,12 @@
 
 #include "libgit-eventc.h"
 
+typedef struct {
+    gchar **project;
+    JsonParser *parser;
+    void (*func)(const gchar **project, JsonObject *root);
+} GitEventcWebhookParseData;
+
 static GHashTable *secrets = NULL;
 
 static void
@@ -79,7 +85,7 @@ _git_eventc_webhook_payload_get_files_github(JsonObject *commit)
     return git_eventc_get_files(paths);
 }
 
-static guint
+static void
 _git_eventc_webhook_payload_parse_github(const gchar **project, JsonObject *root)
 {
     JsonObject *repository = json_object_get_object_member(root, "repository");
@@ -127,8 +133,24 @@ _git_eventc_webhook_payload_parse_github(const gchar **project, JsonObject *root
         }
         g_list_free(commit_list);
     }
+}
 
-    return SOUP_STATUS_OK;
+static gboolean
+_git_eventc_webhook_parse_callback(gpointer user_data)
+{
+    GitEventcWebhookParseData *data = user_data;
+
+    JsonNode *root_node = json_parser_get_root(data->parser);
+    JsonObject *root = json_node_get_object(root_node);
+
+    data->func((const gchar **) data->project, root);
+
+    g_strfreev(data->project);
+    g_object_unref(data->parser);
+
+    g_slice_free(GitEventcWebhookParseData, data);
+
+    return FALSE;
 }
 
 static void
@@ -219,22 +241,35 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
 
     json_parser_load_from_data(parser, payload, -1, NULL);
 
-    JsonNode *root_node = json_parser_get_root(parser);
-    JsonObject *root = json_node_get_object(root_node);
+    GitEventcWebhookParseData parse_data = {
+        .project = project,
+        .parser = parser,
+    };
 
     status_code = SOUP_STATUS_NOT_IMPLEMENTED;
     if ( g_str_has_prefix(user_agent, "GitHub-Hookshot/") )
     {
         const gchar *event = soup_message_headers_get_one(msg->request_headers, "X-GitHub-Event");
         if ( g_strcmp0(event, "push") == 0 )
-            status_code = _git_eventc_webhook_payload_parse_github(project, root);
+        {
+            parse_data.func = _git_eventc_webhook_payload_parse_github;
+            status_code = SOUP_STATUS_OK;
+        }
         else if ( g_strcmp0(event, "ping") == 0 )
             status_code = SOUP_STATUS_OK;
     }
     else
         g_warning("Unknown WebHook service: %s", user_agent);
 
-    g_object_unref(parser);
+    if ( parse_data.func != NULL )
+    {
+        project = NULL;
+        g_idle_add(_git_eventc_webhook_parse_callback, g_slice_dup(GitEventcWebhookParseData, &parse_data));
+    }
+    else
+    {
+        g_object_unref(parser);
+    }
 
 cleanup:
     if ( data != NULL )
