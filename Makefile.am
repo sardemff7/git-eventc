@@ -11,7 +11,7 @@ libexec_PROGRAMS =
 noinst_LIBRARIES = \
 	libgit-eventc.a
 
-systemduserunit_DATA =
+systemdsystemunit_DATA =
 
 EXTRA_DIST = \
 	README.md \
@@ -56,7 +56,7 @@ git_eventc_post_receive_LDADD = \
 
 if ENABLE_WEBHOOK
 bin_PROGRAMS += git-eventc-webhook
-systemduserunit_DATA += units/git-eventc-webhook.service
+systemdsystemunit_DATA += units/git-eventc-webhook.service
 endif
 
 git_eventc_webhook_SOURCES = \
