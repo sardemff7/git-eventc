@@ -7,7 +7,6 @@ AM_CPPFLAGS += \
 	$(null)
 
 bin_PROGRAMS =
-libexec_PROGRAMS =
 noinst_LIBRARIES = \
 	libgit-eventc.a
 
@@ -35,7 +34,7 @@ libgit_eventc_a_LIBS = \
 	$(GLIB_LIBS)
 
 if ENABLE_HOOK
-libexec_PROGRAMS += git-eventc-post-receive
+bin_PROGRAMS += git-eventc-post-receive
 endif
 
 git_eventc_post_receive_SOURCES = \
