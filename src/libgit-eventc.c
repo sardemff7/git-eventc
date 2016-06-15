@@ -402,17 +402,17 @@ git_eventc_send_commit_group(const gchar *pusher_name, guint size, const gchar *
 
     event = eventd_event_new("scm", "commit-group");
 
-    eventd_event_add_data(event, g_strdup("pusher-name"), g_strdup(pusher_name));
-    eventd_event_add_data(event, g_strdup("size"), g_strdup_printf("%u", size));
-    eventd_event_add_data(event, g_strdup("url"), _git_eventc_get_url(url));
+    eventd_event_add_data_string(event, g_strdup("pusher-name"), g_strdup(pusher_name));
+    eventd_event_add_data(event, g_strdup("size"), g_variant_new_uint64(size));
+    eventd_event_add_data_string(event, g_strdup("url"), _git_eventc_get_url(url));
 
-    eventd_event_add_data(event, g_strdup("repository-name"), g_strdup(repository_name));
-    eventd_event_add_data(event, g_strdup("branch"), g_strdup(branch));
+    eventd_event_add_data_string(event, g_strdup("repository-name"), g_strdup(repository_name));
+    eventd_event_add_data_string(event, g_strdup("branch"), g_strdup(branch));
 
     if ( project[0] != NULL )
-        eventd_event_add_data(event, g_strdup("project-group"), g_strdup(project[0]));
+        eventd_event_add_data_string(event, g_strdup("project-group"), g_strdup(project[0]));
     if ( project[1] != NULL )
-        eventd_event_add_data(event, g_strdup("project"), g_strdup(project[1]));
+        eventd_event_add_data_string(event, g_strdup("project"), g_strdup(project[1]));
 
     eventc_connection_event(client, event, NULL);
     eventd_event_unref(event);
@@ -456,26 +456,26 @@ git_eventc_send_commit(const gchar *id, const gchar *base_message, const gchar *
 
     event = eventd_event_new("scm", "commit");
 
-    eventd_event_add_data(event, g_strdup("id"), g_strndup(id, commit_id_size));
-    eventd_event_add_data(event, g_strdup("message"), message);
+    eventd_event_add_data_string(event, g_strdup("id"), g_strndup(id, commit_id_size));
+    eventd_event_add_data_string(event, g_strdup("message"), message);
     if ( url != NULL )
-        eventd_event_add_data(event, g_strdup("url"), _git_eventc_get_url(url));
+        eventd_event_add_data_string(event, g_strdup("url"), _git_eventc_get_url(url));
 
-    eventd_event_add_data(event, g_strdup("author-name"), g_strdup(author_name));
-    eventd_event_add_data(event, g_strdup("author-email"), g_strdup(author_email));
+    eventd_event_add_data_string(event, g_strdup("author-name"), g_strdup(author_name));
+    eventd_event_add_data_string(event, g_strdup("author-email"), g_strdup(author_email));
     if ( author_username != NULL )
-        eventd_event_add_data(event, g_strdup("author-username"), g_strdup(author_username));
+        eventd_event_add_data_string(event, g_strdup("author-username"), g_strdup(author_username));
 
-    eventd_event_add_data(event, g_strdup("repository-name"), g_strdup(repository_name));
-    eventd_event_add_data(event, g_strdup("branch"), g_strdup(branch));
+    eventd_event_add_data_string(event, g_strdup("repository-name"), g_strdup(repository_name));
+    eventd_event_add_data_string(event, g_strdup("branch"), g_strdup(branch));
 
     if ( files != NULL )
-        eventd_event_add_data(event, g_strdup("files"), g_strdup(files));
+        eventd_event_add_data_string(event, g_strdup("files"), g_strdup(files));
 
     if ( project[0] != NULL )
-        eventd_event_add_data(event, g_strdup("project-group"), g_strdup(project[0]));
+        eventd_event_add_data_string(event, g_strdup("project-group"), g_strdup(project[0]));
     if ( project[1] != NULL )
-        eventd_event_add_data(event, g_strdup("project"), g_strdup(project[1]));
+        eventd_event_add_data_string(event, g_strdup("project"), g_strdup(project[1]));
 
     eventc_connection_event(client, event, NULL);
     eventd_event_unref(event);
