@@ -57,7 +57,7 @@ For a `commit` event:
     Category = scm
     Name = commit
     [IMAccount freenode]
-    Message = ^B${project}^O: ^C03${author-name}^O ${repository-name}:^C07${branch}^O * ${id}: ${message} ^C05${url}^O ^C14${files}^0
+    Message = ${project-group}/^B${project}^O/^C07${branch}^O: ^C03${author-name}^O * ${id}: ${message} ^C05${url}^O ^C14${files}^0
     Channels = #test;
 
 For a `commit-group` event:
@@ -66,7 +66,7 @@ For a `commit-group` event:
     Category = scm
     Name = commit-group
     [IMAccount freenode]
-    Message = ^B${project}^O: ^C03${pusher-name}^O pushed ${size} commits to ${repository-name}:^C07${branch}^O ^C05${url}^O
+    Message = ${project-group}/^B${project}^O/^C07${branch}^O: ^C03${pusher-name}^O pushed ${size} commits ^C05${url}^O
     Channels = #test;
 
 
