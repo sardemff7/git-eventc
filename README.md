@@ -18,7 +18,7 @@ Here is the list of common data provided by both events:
 * `repository-name`: The name of the repository
 * `branch`: The updated branch name
 * `project-group`: The project group name (if set)
-* `project`: The project name (if set)
+* `project`: The project name, defaults to `repository-name`
 
 
 ### `commit`
@@ -91,7 +91,7 @@ You should configure most of them in your system configuration (`/etc/gitconfig`
 Here is the list of used values:
 
 * `git-eventc.project-group`: used as `project-group`
-* `git-eventc.project`: used as `project`
+* `git-eventc.project`: used as `project`, defaults to `repository-name`
 * `git-eventc.commit-url`: URL template for a single commit with two C-style string conversion specifier (`%s`):
     * the first one for the repository name
     * the second one for the commit id
@@ -125,7 +125,7 @@ git-eventc-webhook will split the URL path in two:
 * first part will be used as `project-group`
 * second part (may contain slashes) will be used as `project`
     <br />
-    The second part is optional
+    The second part is optional and will default to `repository-name`
 
 Here is the list of supported services.
 
