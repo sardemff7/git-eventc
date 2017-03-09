@@ -89,6 +89,7 @@ static void
 _git_eventc_webhook_payload_parse_github(const gchar **project, JsonObject *root)
 {
     JsonObject *repository = json_object_get_object_member(root, "repository");
+    JsonObject *pusher = json_object_get_object_member(root, "pusher");
 
     JsonArray *commits = json_object_get_array_member(root, "commits");
     guint size = json_array_get_length(commits);
@@ -96,10 +97,21 @@ _git_eventc_webhook_payload_parse_github(const gchar **project, JsonObject *root
     const gchar *repository_name = json_object_get_string_member(repository, "name");
     const gchar *branch = json_object_get_string_member(root, "ref") + strlen("refs/heads/");
 
+    if ( json_object_get_boolean_member(root, "created") )
+    {
+        gchar *url;
+        url = g_strdup_printf("%s/tree/%s", json_object_get_string_member(repository, "url"), branch);
+        git_eventc_send_branch_created(json_object_get_string_member(pusher, "name"), url, repository_name, branch, project);
+        g_free(url);
+    }
+    else if ( json_object_get_boolean_member(root, "deleted") )
+    {
+        git_eventc_send_branch_deleted(json_object_get_string_member(pusher, "name"), repository_name, branch, project);
+        return;
+    }
+
     if ( git_eventc_is_above_threshold(size) )
     {
-        JsonObject *pusher = json_object_get_object_member(root, "pusher");
-
         git_eventc_send_commit_group(
             json_object_get_string_member(pusher, "name"),
             size,
