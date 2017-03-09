@@ -212,11 +212,9 @@ _git_eventc_post_receive_clean(GitEventcPostReceiveContext *context)
 }
 
 static void
-_git_eventc_post_receive(GitEventcPostReceiveContext *context, const gchar *before, const gchar *after, const gchar *ref)
+_git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gchar *ref_name, const gchar *branch, const gchar *before, const git_oid *from, const gchar *after, const git_oid *to)
 {
     int error;
-
-    const gchar *branch = ref + strlen("refs/heads/");
 
     git_revwalk *walker;
     error = git_revwalk_new(&walker, context->repository);
@@ -227,27 +225,24 @@ _git_eventc_post_receive(GitEventcPostReceiveContext *context, const gchar *befo
     }
     git_revwalk_sorting(walker, GIT_SORT_TOPOLOGICAL);
 
-    git_oid from, to;
-    git_oid_fromstr(&from, before);
-    git_oid_fromstr(&to, after);
-
     git_commit *commit;
-    error = git_revwalk_push(walker, &to);
+    error = git_revwalk_push(walker, to);
     if ( error < 0 )
     {
         g_warning("Couldn't push the revision list: %s", giterr_last()->message);
         return;
     }
+    git_oid id;
     guint size = 0;
     GSList *commits = NULL;
-    while ( ( ( error = git_revwalk_next(&to, walker) ) != GIT_ITEROVER ) && ( ! git_oid_equal(&from, &to) ) )
+    while ( ( ( error = git_revwalk_next(&id, walker) ) != GIT_ITEROVER ) && ( ! git_oid_equal(from, &id) ) )
     {
         if ( error < 0 )
         {
             g_warning("Couldn't walk the revision list: %s", giterr_last()->message);
             return;
         }
-        git_commit_lookup(&commit, context->repository, &to);
+        git_commit_lookup(&commit, context->repository, &id);
         ++size;
         commits = g_slist_prepend(commits, commit);
     }
@@ -285,6 +280,17 @@ _git_eventc_post_receive(GitEventcPostReceiveContext *context, const gchar *befo
     }
     g_free(url);
     g_slist_free_full(commits, (GDestroyNotify) git_commit_free);
+}
+
+static void
+_git_eventc_post_receive(GitEventcPostReceiveContext *context, const gchar *before, const gchar *after, const gchar *ref_name)
+{
+    git_oid from, to;
+    git_oid_fromstr(&from, before);
+    git_oid_fromstr(&to, after);
+
+    if ( g_str_has_prefix(ref_name, "refs/heads/") )
+        _git_eventc_post_receive_branch(context, ref_name, ref_name + strlen("refs/heads/"), before, &from, after, &to);
 }
 
 static gboolean
