@@ -105,7 +105,7 @@ _git_eventc_commit_get_files(git_repository *repository, const git_commit *commi
     GList *paths = NULL;
 
     error = git_commit_tree(&tree, commit);
-    if ( error != 0 )
+    if ( error < 0 )
     {
         g_warning("Couldn't get commit tree: %s", giterr_last()->message);
         goto fail;
@@ -114,13 +114,13 @@ _git_eventc_commit_get_files(git_repository *repository, const git_commit *commi
     if ( git_commit_parentcount(commit) > 0 )
     {
         error = git_commit_parent(&parent_commit, commit, 0);
-        if ( error != 0 )
+        if ( error < 0 )
         {
             g_warning("Couldn't parent commit: %s", giterr_last()->message);
             goto fail;
         }
         error = git_commit_tree(&parent_tree, parent_commit);
-        if ( error != 0 )
+        if ( error < 0 )
         {
             g_warning("Couldn't parent commit tree: %s", giterr_last()->message);
             goto fail;
@@ -128,13 +128,13 @@ _git_eventc_commit_get_files(git_repository *repository, const git_commit *commi
 
         git_diff *diff;
         error = git_diff_tree_to_tree(&diff, repository, parent_tree, tree, &_git_eventc_diff_options);
-        if ( error != 0 )
+        if ( error < 0 )
         {
             g_warning("Couldn't get the diff: %s", giterr_last()->message);
             goto fail;
         }
         error = git_diff_find_similar(diff, &_git_eventc_diff_find_options);
-        if ( error != 0 )
+        if ( error < 0 )
         {
             g_warning("Couldn't find similar files: %s", giterr_last()->message);
             goto fail;
@@ -176,7 +176,7 @@ _git_eventc_post_receive_init(GitEventcPostReceiveContext *context, git_reposito
 
     git_config *config;
     error = git_repository_config(&config, context->repository);
-    if ( error != 0 )
+    if ( error < 0 )
         g_warning("Couldn't get repository configuration: %s", giterr_last()->message);
     else
     {
@@ -220,7 +220,7 @@ _git_eventc_post_receive(GitEventcPostReceiveContext *context, const gchar *befo
 
     git_revwalk *walker;
     error = git_revwalk_new(&walker, context->repository);
-    if ( error != 0 )
+    if ( error < 0 )
     {
         g_warning("Couldn't initialize revision walker: %s", giterr_last()->message);
         return;
@@ -233,7 +233,7 @@ _git_eventc_post_receive(GitEventcPostReceiveContext *context, const gchar *befo
 
     git_commit *commit;
     error = git_revwalk_push(walker, &to);
-    if ( error != 0 )
+    if ( error < 0 )
     {
         g_warning("Couldn't push the revision list: %s", giterr_last()->message);
         return;
@@ -242,7 +242,7 @@ _git_eventc_post_receive(GitEventcPostReceiveContext *context, const gchar *befo
     GSList *commits = NULL;
     while ( ( ( error = git_revwalk_next(&to, walker) ) != GIT_ITEROVER ) && ( ! git_oid_equal(&from, &to) ) )
     {
-        if ( error != 0 )
+        if ( error < 0 )
         {
             g_warning("Couldn't walk the revision list: %s", giterr_last()->message);
             return;
@@ -380,7 +380,7 @@ main(int argc, char *argv[])
         git_repository *repository = NULL;
 
         error = git_repository_open(&repository, ".");
-        if ( error != 0 )
+        if ( error < 0 )
         {
             g_warning("Couldn't open repository: %s", giterr_last()->message);
             retval = 3;
