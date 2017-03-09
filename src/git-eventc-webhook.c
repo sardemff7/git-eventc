@@ -148,12 +148,35 @@ _git_eventc_webhook_payload_parse_github_branch(const gchar **project, JsonObjec
 }
 
 static void
+_git_eventc_webhook_payload_parse_github_tag(const gchar **project, JsonObject *root, const gchar *tag)
+{
+    JsonObject *repository = json_object_get_object_member(root, "repository");
+    JsonObject *pusher = json_object_get_object_member(root, "pusher");
+
+    const gchar *repository_name = json_object_get_string_member(repository, "name");
+    const gchar *pusher_name = json_object_get_string_member(pusher, "name");
+
+    if ( ! json_object_get_boolean_member(root, "created") )
+            git_eventc_send_tag_deleted(pusher_name, repository_name, tag, project);
+
+    if ( ! json_object_get_boolean_member(root, "deleted") )
+    {
+        gchar *url;
+        url = g_strdup_printf("%s/releases/tag/%s", json_object_get_string_member(repository, "url"), tag);
+        git_eventc_send_tag_created(pusher_name, url, repository_name, tag, NULL, project);
+        g_free(url);
+    }
+}
+
+static void
 _git_eventc_webhook_payload_parse_github(const gchar **project, JsonObject *root)
 {
     const gchar *ref = json_object_get_string_member(root, "ref");
 
     if ( g_str_has_prefix(ref, "refs/heads/") )
         _git_eventc_webhook_payload_parse_github_branch(project, root, ref + strlen("refs/heads/"));
+    else if ( g_str_has_prefix(ref, "refs/tags/") )
+        _git_eventc_webhook_payload_parse_github_tag(project, root, ref + strlen("refs/tags/"));
 }
 
 static gboolean
