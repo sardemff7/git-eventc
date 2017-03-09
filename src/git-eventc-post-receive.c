@@ -40,6 +40,16 @@
 
 #include "libgit-eventc.h"
 
+typedef struct {
+    git_repository *repository;
+    const gchar *repository_name;
+    gchar *repository_guessed_name;
+    const gchar *pusher;
+    const char *project[2];
+    const char *commit_url;
+    const char *diff_url;
+} GitEventcPostReceiveContext;
+
 static git_diff_options _git_eventc_diff_options = GIT_DIFF_OPTIONS_INIT;
 static git_diff_find_options _git_eventc_diff_find_options = GIT_DIFF_FIND_OPTIONS_INIT;
 
@@ -132,54 +142,68 @@ fail:
 }
 
 static void
-_git_eventc_post_receive(git_repository *repository, const gchar *before, const gchar *after, const gchar *ref)
+_git_eventc_post_receive_init(GitEventcPostReceiveContext *context, git_repository *repository)
 {
     int error;
 
-    const char *pusher = NULL;
-    const char *repository_name = NULL;
-    gchar *repository_guessed_name = NULL;
-    const char *project[2] = { NULL, NULL };
-    const char *commit_url = NULL;
-    const char *diff_url = NULL;
-    const gchar *branch = ref + strlen("refs/heads/");
+    context->repository = repository;
 
     /* Use Gitolite env */
-    pusher = g_getenv("GL_USER");
-    repository_name = g_getenv("GL_REPO");
+    context->pusher = g_getenv("GL_USER");
+    context->repository_name = g_getenv("GL_REPO");
+    context->repository_guessed_name = NULL;
+
+    context->project[0] = NULL;
+    context->project[1] = NULL;
+    context->commit_url = NULL;
+    context->diff_url = NULL;
 
     git_config *config;
-    error = git_repository_config(&config, repository);
+    error = git_repository_config(&config, context->repository);
     if ( error != 0 )
         g_warning("Couldn't get repository configuration: %s", giterr_last()->message);
     else
     {
-        git_config_get_string(&project[0], config, PACKAGE_NAME ".project-group");
-        git_config_get_string(&project[1], config, PACKAGE_NAME ".project");
-        git_config_get_string(&commit_url, config, PACKAGE_NAME ".commit-url");
-        git_config_get_string(&diff_url, config, PACKAGE_NAME ".diff-url");
-        git_config_get_string(&repository_name, config, PACKAGE_NAME ".repository");
+        git_config_get_string(&context->project[0], config, PACKAGE_NAME ".project-group");
+        git_config_get_string(&context->project[1], config, PACKAGE_NAME ".project");
+        git_config_get_string(&context->commit_url, config, PACKAGE_NAME ".commit-url");
+        git_config_get_string(&context->diff_url, config, PACKAGE_NAME ".diff-url");
+        git_config_get_string(&context->repository_name, config, PACKAGE_NAME ".repository");
     }
 
-    if ( pusher == NULL )
-        pusher = "Jane Doe";
-    if ( repository_name == NULL )
+    if ( context->pusher == NULL )
+        context->pusher = "Jane Doe";
+    if ( context->repository_name == NULL )
     {
         const gchar *path = git_repository_path(repository);
         if ( git_repository_is_bare(repository) )
-            repository_guessed_name = g_path_get_basename(path);
+            context->repository_guessed_name = g_path_get_basename(path);
         else
         {
             gsize last = strlen(path) - strlen("/.git/");
             gchar *tmp;
             tmp = g_utf8_strrchr(path, last, G_DIR_SEPARATOR);
-            repository_guessed_name = g_utf8_substring(path, (tmp+1 - path), last);
+            context->repository_guessed_name = g_utf8_substring(path, (tmp+1 - path), last);
         }
-        repository_name = repository_guessed_name;
+        context->repository_name = context->repository_guessed_name;
     }
+}
+
+static void
+_git_eventc_post_receive_clean(GitEventcPostReceiveContext *context)
+{
+    g_free(context->repository_guessed_name);
+}
+
+static void
+_git_eventc_post_receive(GitEventcPostReceiveContext *context, const gchar *before, const gchar *after, const gchar *ref)
+{
+    int error;
+
+    const gchar *branch = ref + strlen("refs/heads/");
 
     git_revwalk *walker;
-    error = git_revwalk_new(&walker, repository);
+    error = git_revwalk_new(&walker, context->repository);
     if ( error != 0 )
     {
         g_warning("Couldn't initialize revision walker: %s", giterr_last()->message);
@@ -207,7 +231,7 @@ _git_eventc_post_receive(git_repository *repository, const gchar *before, const 
             g_warning("Couldn't walk the revision list: %s", giterr_last()->message);
             return;
         }
-        git_commit_lookup(&commit, repository, &to);
+        git_commit_lookup(&commit, context->repository, &to);
         ++size;
         commits = g_slist_prepend(commits, commit);
     }
@@ -215,10 +239,10 @@ _git_eventc_post_receive(git_repository *repository, const gchar *before, const 
     gchar *url = NULL;
     if ( git_eventc_is_above_threshold(size) )
     {
-        if ( diff_url != NULL )
-            url = g_strdup_printf(diff_url, repository_name, before, after);
+        if ( context->diff_url != NULL )
+            url = g_strdup_printf(context->diff_url, context->repository_name, before, after);
 
-        git_eventc_send_commit_group(pusher, size, url, repository_name, branch, project);
+        git_eventc_send_commit_group(context->pusher, size, url, context->repository_name, branch, context->project);
     }
     else
     {
@@ -230,23 +254,21 @@ _git_eventc_post_receive(git_repository *repository, const gchar *before, const 
             const git_signature *author = git_commit_author(commit);
 
             git_oid_tostr(id, GIT_OID_HEXSZ+1, git_commit_id(commit));
-            if ( commit_url != NULL )
+            if ( context->commit_url != NULL )
             {
                 g_free(url);
-                url = g_strdup_printf(commit_url, repository_name, id);
+                url = g_strdup_printf(context->commit_url, context->repository_name, id);
             }
             gchar *files;
-            files = _git_eventc_commit_get_files(repository, commit);
+            files = _git_eventc_commit_get_files(context->repository, commit);
 
-            git_eventc_send_commit(id, git_commit_message(commit), url, author->name, NULL, author->email, repository_name, branch, files, project);
+            git_eventc_send_commit(id, git_commit_message(commit), url, author->name, NULL, author->email, context->repository_name, branch, files, context->project);
 
             g_free(files);
         }
     }
     g_free(url);
     g_slist_free_full(commits, (GDestroyNotify) git_commit_free);
-
-    g_free(repository_guessed_name);
 }
 
 static gboolean
@@ -349,6 +371,8 @@ main(int argc, char *argv[])
         }
         else
         {
+            GitEventcPostReceiveContext context;
+            _git_eventc_post_receive_init(&context, repository);
             /* Set some diff options */
             _git_eventc_diff_options.flags |= GIT_DIFF_INCLUDE_TYPECHANGE;
 
@@ -369,9 +393,10 @@ main(int argc, char *argv[])
                 *s = '\0';
                 ref = ++s;
 
-                _git_eventc_post_receive(repository, before, after, ref);
+                _git_eventc_post_receive(&context, before, after, ref);
             }
             free(line);
+            _git_eventc_post_receive_clean(&context);
         }
         giterr_clear();
         retval = 0;
