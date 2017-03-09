@@ -86,7 +86,7 @@ _git_eventc_webhook_payload_get_files_github(JsonObject *commit)
 }
 
 static void
-_git_eventc_webhook_payload_parse_github(const gchar **project, JsonObject *root)
+_git_eventc_webhook_payload_parse_github_branch(const gchar **project, JsonObject *root, const gchar *branch)
 {
     JsonObject *repository = json_object_get_object_member(root, "repository");
     JsonObject *pusher = json_object_get_object_member(root, "pusher");
@@ -95,25 +95,25 @@ _git_eventc_webhook_payload_parse_github(const gchar **project, JsonObject *root
     guint size = json_array_get_length(commits);
 
     const gchar *repository_name = json_object_get_string_member(repository, "name");
-    const gchar *branch = json_object_get_string_member(root, "ref") + strlen("refs/heads/");
+    const gchar *pusher_name = json_object_get_string_member(pusher, "name");
 
     if ( json_object_get_boolean_member(root, "created") )
     {
         gchar *url;
         url = g_strdup_printf("%s/tree/%s", json_object_get_string_member(repository, "url"), branch);
-        git_eventc_send_branch_created(json_object_get_string_member(pusher, "name"), url, repository_name, branch, project);
+        git_eventc_send_branch_created(pusher_name, url, repository_name, branch, project);
         g_free(url);
     }
     else if ( json_object_get_boolean_member(root, "deleted") )
     {
-        git_eventc_send_branch_deleted(json_object_get_string_member(pusher, "name"), repository_name, branch, project);
+        git_eventc_send_branch_deleted(pusher_name, repository_name, branch, project);
         return;
     }
 
     if ( git_eventc_is_above_threshold(size) )
     {
         git_eventc_send_commit_group(
-            json_object_get_string_member(pusher, "name"),
+            pusher_name,
             size,
             json_object_get_string_member(root, "compare"),
             repository_name, branch, project);
@@ -145,6 +145,15 @@ _git_eventc_webhook_payload_parse_github(const gchar **project, JsonObject *root
         }
         g_list_free(commit_list);
     }
+}
+
+static void
+_git_eventc_webhook_payload_parse_github(const gchar **project, JsonObject *root)
+{
+    const gchar *ref = json_object_get_string_member(root, "ref");
+
+    if ( g_str_has_prefix(ref, "refs/heads/") )
+        _git_eventc_webhook_payload_parse_github_branch(project, root, ref + strlen("refs/heads/"));
 }
 
 static gboolean
