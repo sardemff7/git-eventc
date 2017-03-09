@@ -10,13 +10,11 @@ Most people will need the eventd `im` plugin to act as an IRC commit bot.
 Events
 ------
 
-git-eventc will provide events in the `scm` event group: `commit`, `commit-group`, `branch-created`, `branch-deleted`.
+git-eventc will provide events in the `scm` event group: `commit`, `commit-group`, `branch-created`, `branch-deleted`, `tag-created`, `tag-deleted`.
 <br />
-Here is the list of common data provided by both events:
+Here is the list of common data provided by all events:
 
-* `url`: An URL to see the change online
 * `repository-name`: The name of the repository
-* `branch`: The updated branch name
 * `project-group`: The project group name (if set)
 * `project`: The project name, defaults to `repository-name`
 
@@ -29,9 +27,11 @@ Here is the list of provided data:
 
 * `id`: The commit id (short version, see `--help`)
 * `message`: The commit message (first line)
+* `branch`: The updated branch name
 * `author-name`: The name of the author
 * `author-email`: The email of the author
 * `author-username`: The username of the author (if available)
+* `url`: An URL to see the change online
 * `files`: The list (as a string) of modified files, with some basic prefix detection
     <br />
     The `post-receive` hook also detects file renames and copies if asked so.
@@ -45,7 +45,9 @@ It will be generated if a push is adding a number of commits above a specified t
 Here is the list of provided data:
 
 * `pusher-name`: The name of the pusher
+* `branch`: The updated branch name
 * `size`: The number of commits in this push
+* `url`: An URL to see the change online
 
 
 ### `branch-created` and `branch-deleted`
@@ -55,7 +57,20 @@ This event correspond to the creation/deletion of a branch.
 Here is the list of provided data:
 
 * `pusher-name`: The name of the pusher
-* `url`: The `branch-deleted` event will *not* have an URL
+* `branch`: The updated branch name
+* `url`: An URL to see the change online (for `branch-created` only)
+
+
+### `tag-created` and `tag-deleted`
+
+This event correspond to the creation/deletion of a tag.
+<br />
+Here is the list of provided data:
+
+* `pusher-name`: The name of the pusher
+* `branch`: These two events will *not* have a branch name
+* `url`: An URL to see the change online (for `tag-created` only)
+* `previous-tag`: The latest tag in this tag history tree (for `tag-created` only)
 
 
 ### Example event file
@@ -125,9 +140,9 @@ Here is the list of used values:
     * the first one for the repository name
     * the second one for the branch name
     * Examples: `http://cgit.example.com/%s/log/?h=%s` or `http://gitweb.example.com/?p=%s.git;a=shortlog;h=refs/heads/%s`
-* `git-eventc.commit-url`: URL template for a single commit with two C-style string conversion specifier (`%s`):
+* `git-eventc.commit-url` and `git-eventc.tag-url`: URL template for a single commit/tag with two C-style string conversion specifier (`%s`):
     * the first one for the repository name
-    * the second one for the commit id
+    * the second one for the commit id/tag name
     * Examples: `http://cgit.example.com/%s/commit/?id=%s` or `http://gitweb.example.com/?p=%s.git;a=commitdiff;h=%s`
 * `git-eventc.diff-url`: URL template for a diff between two commits with three C-style string conversion specifier (`%s`):
     * the first one for the repository name

@@ -436,6 +436,45 @@ git_eventc_send_branch_deleted(const gchar *pusher_name, const gchar *repository
     _git_eventc_send_branch(FALSE, pusher_name, NULL, repository_name, branch, project);
 }
 
+static void
+_git_eventc_send_tag(gboolean created, const gchar *pusher_name, const gchar *url, const gchar *repository_name, const gchar *tag, const gchar *previous_tag, const gchar **project)
+{
+    EventdEvent *event;
+
+    event = eventd_event_new("scm", created ? "tag-created" : "tag-deleted");
+
+    eventd_event_add_data_string(event, g_strdup("pusher-name"), g_strdup(pusher_name));
+    if ( url != NULL )
+        eventd_event_add_data_string(event, g_strdup("url"), _git_eventc_get_url(url));
+
+    eventd_event_add_data_string(event, g_strdup("repository-name"), g_strdup(repository_name));
+    eventd_event_add_data_string(event, g_strdup("tag"), g_strdup(tag));
+    if ( previous_tag != NULL )
+        eventd_event_add_data_string(event, g_strdup("previous-tag"), g_strdup(previous_tag));
+
+    if ( project[0] != NULL )
+        eventd_event_add_data_string(event, g_strdup("project-group"), g_strdup(project[0]));
+    if ( project[1] != NULL )
+        eventd_event_add_data_string(event, g_strdup("project"), g_strdup(project[1]));
+    else
+        eventd_event_add_data_string(event, g_strdup("project"), g_strdup(repository_name));
+
+    eventc_connection_event(client, event, NULL);
+    eventd_event_unref(event);
+}
+
+void
+git_eventc_send_tag_created(const gchar *pusher_name, const gchar *url, const gchar *repository_name, const gchar *tag, const gchar *previous_tag, const gchar **project)
+{
+    _git_eventc_send_tag(TRUE, pusher_name, url, repository_name, tag, previous_tag, project);
+}
+
+void
+git_eventc_send_tag_deleted(const gchar *pusher_name, const gchar *repository_name, const gchar *tag, const gchar **project)
+{
+    _git_eventc_send_tag(FALSE, pusher_name, NULL, repository_name, tag, NULL, project);
+}
+
 void
 git_eventc_send_commit_group(const gchar *pusher_name, guint size, const gchar *url, const gchar *repository_name, const gchar *branch, const gchar **project)
 {

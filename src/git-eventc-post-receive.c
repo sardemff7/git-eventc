@@ -48,6 +48,7 @@ typedef struct {
     const char *project[2];
     const char *branch_url;
     const char *commit_url;
+    const char *tag_url;
     const char *diff_url;
 } GitEventcPostReceiveContext;
 
@@ -174,6 +175,7 @@ _git_eventc_post_receive_init(GitEventcPostReceiveContext *context, git_reposito
     context->project[1] = NULL;
     context->branch_url = NULL;
     context->commit_url = NULL;
+    context->tag_url = NULL;
     context->diff_url = NULL;
 
     git_config *config;
@@ -185,6 +187,7 @@ _git_eventc_post_receive_init(GitEventcPostReceiveContext *context, git_reposito
         git_config_get_string(&context->project[0], config, PACKAGE_NAME ".project-group");
         git_config_get_string(&context->project[1], config, PACKAGE_NAME ".project");
         git_config_get_string(&context->branch_url, config, PACKAGE_NAME ".branch-url");
+        git_config_get_string(&context->tag_url, config, PACKAGE_NAME ".tag-url");
         git_config_get_string(&context->commit_url, config, PACKAGE_NAME ".commit-url");
         git_config_get_string(&context->diff_url, config, PACKAGE_NAME ".diff-url");
         git_config_get_string(&context->repository_name, config, PACKAGE_NAME ".repository");
@@ -299,6 +302,101 @@ _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gcha
     g_slist_free_full(commits, (GDestroyNotify) git_commit_free);
 }
 
+typedef struct {
+    GitEventcPostReceiveContext *context;
+    git_oid *id;
+    const char *name;
+} GitEventcPostReceiveTagSearch;
+
+static int
+_git_eventc_post_receive_is_tag(const char *name, git_oid *tag_id, void *payload)
+{
+    GitEventcPostReceiveTagSearch *search = payload;
+
+    if ( ! git_oid_equal(tag_id, search->id) )
+        return 0;
+
+    search->name = name + strlen("refs/tags/");
+    return 1;
+}
+
+static void
+_git_eventc_post_receive_tag(GitEventcPostReceiveContext *context, const gchar *ref_name, const gchar *tag_name, const gchar *before, const git_oid *from, const gchar *after, const git_oid *to)
+{
+    int error;
+
+    if ( ! git_oid_iszero(from) )
+        git_eventc_send_tag_deleted(context->pusher, context->repository_name, tag_name, context->project);
+
+    if ( ! git_oid_iszero(to) )
+    {
+        git_commit *commit;
+        const gchar *previous_tag_name = NULL;
+
+        error = git_commit_lookup(&commit, context->repository, to);
+        if ( error < 0 )
+            g_warning("Couldn't find tag commit: %s", giterr_last()->message);
+        else if ( git_commit_parentcount(commit) > 0 )
+        {
+            git_revwalk *walker;
+            error = git_revwalk_new(&walker, context->repository);
+            if ( error < 0 )
+            {
+                g_warning("Couldn't initialize revision walker: %s", giterr_last()->message);
+                return;
+            }
+            git_revwalk_sorting(walker, GIT_SORT_TOPOLOGICAL);
+
+            git_commit *parent;
+            error = git_commit_parent(&parent, commit, 0);
+            if ( error < 0 )
+            {
+                g_warning("Couldn't get tag commit parent: %s", giterr_last()->message);
+                return;
+            }
+            error = git_revwalk_push(walker, git_commit_id(parent));
+            if ( error < 0 )
+            {
+                g_warning("Couldn't push the revision list: %s", giterr_last()->message);
+                return;
+            }
+
+            git_oid id;
+            while ( ( error = git_revwalk_next(&id, walker) ) != GIT_ITEROVER )
+            {
+                if ( error < 0 )
+                {
+                    g_warning("Couldn't walk the revision list: %s", giterr_last()->message);
+                    break;
+                }
+
+                GitEventcPostReceiveTagSearch search = {
+                    .context = context,
+                    .id = &id,
+                };
+                error = git_tag_foreach(context->repository, _git_eventc_post_receive_is_tag, &search);
+                if ( error < 0 )
+                {
+                    g_warning("Couldn't walk the tag list: %s", giterr_last()->message);
+                    break;
+                }
+                if ( error )
+                {
+                    previous_tag_name = search.name;
+                    break;
+                }
+            }
+        }
+
+        gchar *url = NULL;
+        if ( context->tag_url != NULL )
+            url = g_strdup_printf(context->tag_url, context->repository_name, tag_name);
+
+        git_eventc_send_tag_created(context->pusher, url, context->repository_name, tag_name, previous_tag_name, context->project);
+        g_free(url);
+    }
+}
+
 static void
 _git_eventc_post_receive(GitEventcPostReceiveContext *context, const gchar *before, const gchar *after, const gchar *ref_name)
 {
@@ -308,6 +406,8 @@ _git_eventc_post_receive(GitEventcPostReceiveContext *context, const gchar *befo
 
     if ( g_str_has_prefix(ref_name, "refs/heads/") )
         _git_eventc_post_receive_branch(context, ref_name, ref_name + strlen("refs/heads/"), before, &from, after, &to);
+    else if ( g_str_has_prefix(ref_name, "refs/tags/") )
+        _git_eventc_post_receive_tag(context, ref_name, ref_name + strlen("refs/tags/"), before, &from, after, &to);
 }
 
 static gboolean
