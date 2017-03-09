@@ -85,6 +85,16 @@ _git_eventc_diff_foreach_callback(const git_diff_delta *delta, float progress, v
     return 0;
 }
 
+static int
+_git_eventc_tree_walk_callback(const char *root, const git_tree_entry *entry, void *payload)
+{
+    GList **paths = payload;
+
+    *paths = g_list_prepend(*paths, g_strdup(git_tree_entry_name(entry)));
+
+    return 0;
+}
+
 static gchar *
 _git_eventc_commit_get_files(git_repository *repository, const git_commit *commit)
 {
@@ -92,13 +102,7 @@ _git_eventc_commit_get_files(git_repository *repository, const git_commit *commi
     gchar *files = NULL;
     git_commit *parent_commit = NULL;
     git_tree *tree = NULL, *parent_tree = NULL;
-
-    error = git_commit_parent(&parent_commit, commit, 0);
-    if ( error != 0 )
-    {
-        g_warning("Couldn't parent commit: %s", giterr_last()->message);
-        goto fail;
-    }
+    GList *paths = NULL;
 
     error = git_commit_tree(&tree, commit);
     if ( error != 0 )
@@ -106,29 +110,41 @@ _git_eventc_commit_get_files(git_repository *repository, const git_commit *commi
         g_warning("Couldn't get commit tree: %s", giterr_last()->message);
         goto fail;
     }
-    error = git_commit_tree(&parent_tree, parent_commit);
-    if ( error != 0 )
-    {
-        g_warning("Couldn't parent commit tree: %s", giterr_last()->message);
-        goto fail;
-    }
 
-    git_diff *diff;
-    error = git_diff_tree_to_tree(&diff, repository, parent_tree, tree, &_git_eventc_diff_options);
-    if ( error != 0 )
+    if ( git_commit_parentcount(commit) > 0 )
     {
-        g_warning("Couldn't get the diff: %s", giterr_last()->message);
-        goto fail;
-    }
-    error = git_diff_find_similar(diff, &_git_eventc_diff_find_options);
-    if ( error != 0 )
-    {
-        g_warning("Couldn't find similar files: %s", giterr_last()->message);
-        goto fail;
-    }
+        error = git_commit_parent(&parent_commit, commit, 0);
+        if ( error != 0 )
+        {
+            g_warning("Couldn't parent commit: %s", giterr_last()->message);
+            goto fail;
+        }
+        error = git_commit_tree(&parent_tree, parent_commit);
+        if ( error != 0 )
+        {
+            g_warning("Couldn't parent commit tree: %s", giterr_last()->message);
+            goto fail;
+        }
 
-    GList *paths = NULL;
-    git_diff_foreach(diff, _git_eventc_diff_foreach_callback, NULL, NULL, NULL, &paths);
+        git_diff *diff;
+        error = git_diff_tree_to_tree(&diff, repository, parent_tree, tree, &_git_eventc_diff_options);
+        if ( error != 0 )
+        {
+            g_warning("Couldn't get the diff: %s", giterr_last()->message);
+            goto fail;
+        }
+        error = git_diff_find_similar(diff, &_git_eventc_diff_find_options);
+        if ( error != 0 )
+        {
+            g_warning("Couldn't find similar files: %s", giterr_last()->message);
+            goto fail;
+        }
+
+        git_diff_foreach(diff, _git_eventc_diff_foreach_callback, NULL, NULL, NULL, &paths);
+    }
+    else
+        git_tree_walk(tree, GIT_TREEWALK_PRE, _git_eventc_tree_walk_callback, &paths);
+
     files = git_eventc_get_files(paths);
 
 fail:
