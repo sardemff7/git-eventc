@@ -399,6 +399,43 @@ _git_eventc_get_url(const gchar *url)
     return short_url;
 }
 
+static void
+_git_eventc_send_branch(gboolean created, const gchar *pusher_name, const gchar *url, const gchar *repository_name, const gchar *branch, const gchar **project)
+{
+    EventdEvent *event;
+
+    event = eventd_event_new("scm", created ? "branch-created" : "branch-deleted");
+
+    eventd_event_add_data_string(event, g_strdup("pusher-name"), g_strdup(pusher_name));
+    if ( url != NULL )
+        eventd_event_add_data_string(event, g_strdup("url"), _git_eventc_get_url(url));
+
+    eventd_event_add_data_string(event, g_strdup("repository-name"), g_strdup(repository_name));
+    eventd_event_add_data_string(event, g_strdup("branch"), g_strdup(branch));
+
+    if ( project[0] != NULL )
+        eventd_event_add_data_string(event, g_strdup("project-group"), g_strdup(project[0]));
+    if ( project[1] != NULL )
+        eventd_event_add_data_string(event, g_strdup("project"), g_strdup(project[1]));
+    else
+        eventd_event_add_data_string(event, g_strdup("project"), g_strdup(repository_name));
+
+    eventc_connection_event(client, event, NULL);
+    eventd_event_unref(event);
+}
+
+void
+git_eventc_send_branch_created(const gchar *pusher_name, const gchar *url, const gchar *repository_name, const gchar *branch, const gchar **project)
+{
+    _git_eventc_send_branch(TRUE, pusher_name, url, repository_name, branch, project);
+}
+
+void
+git_eventc_send_branch_deleted(const gchar *pusher_name, const gchar *repository_name, const gchar *branch, const gchar **project)
+{
+    _git_eventc_send_branch(FALSE, pusher_name, NULL, repository_name, branch, project);
+}
+
 void
 git_eventc_send_commit_group(const gchar *pusher_name, guint size, const gchar *url, const gchar *repository_name, const gchar *branch, const gchar **project)
 {

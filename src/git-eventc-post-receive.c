@@ -46,6 +46,7 @@ typedef struct {
     gchar *repository_guessed_name;
     const gchar *pusher;
     const char *project[2];
+    const char *branch_url;
     const char *commit_url;
     const char *diff_url;
 } GitEventcPostReceiveContext;
@@ -171,6 +172,7 @@ _git_eventc_post_receive_init(GitEventcPostReceiveContext *context, git_reposito
 
     context->project[0] = NULL;
     context->project[1] = NULL;
+    context->branch_url = NULL;
     context->commit_url = NULL;
     context->diff_url = NULL;
 
@@ -182,6 +184,7 @@ _git_eventc_post_receive_init(GitEventcPostReceiveContext *context, git_reposito
     {
         git_config_get_string(&context->project[0], config, PACKAGE_NAME ".project-group");
         git_config_get_string(&context->project[1], config, PACKAGE_NAME ".project");
+        git_config_get_string(&context->branch_url, config, PACKAGE_NAME ".branch-url");
         git_config_get_string(&context->commit_url, config, PACKAGE_NAME ".commit-url");
         git_config_get_string(&context->diff_url, config, PACKAGE_NAME ".diff-url");
         git_config_get_string(&context->repository_name, config, PACKAGE_NAME ".repository");
@@ -215,6 +218,20 @@ static void
 _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gchar *ref_name, const gchar *branch, const gchar *before, const git_oid *from, const gchar *after, const git_oid *to)
 {
     int error;
+
+    if ( git_oid_iszero(from) )
+    {
+        gchar *url = NULL;
+        if ( context->branch_url != NULL )
+            url = g_strdup_printf(context->branch_url, context->repository_name, branch);
+        git_eventc_send_branch_created(context->pusher, url, context->repository_name, branch, context->project);
+        g_free(url);
+    }
+    else if ( git_oid_iszero(to) )
+    {
+        git_eventc_send_branch_deleted(context->pusher, context->repository_name, branch, context->project);
+        return;
+    }
 
     git_revwalk *walker;
     error = git_revwalk_new(&walker, context->repository);

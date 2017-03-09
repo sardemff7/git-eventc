@@ -10,7 +10,7 @@ Most people will need the eventd `im` plugin to act as an IRC commit bot.
 Events
 ------
 
-git-eventc will provide two events in the `scm` event group: `commit` and `commit-group`.
+git-eventc will provide events in the `scm` event group: `commit`, `commit-group`, `branch-created`, `branch-deleted`.
 <br />
 Here is the list of common data provided by both events:
 
@@ -47,6 +47,17 @@ Here is the list of provided data:
 * `pusher-name`: The name of the pusher
 * `size`: The number of commits in this push
 
+
+### `branch-created` and `branch-deleted`
+
+This event correspond to the creation/deletion of a branch.
+<br />
+Here is the list of provided data:
+
+* `pusher-name`: The name of the pusher
+* `url`: The `branch-deleted` event will *not* have an URL
+
+
 ### Example event file
 
 (See eventd configuration for further information.)
@@ -67,6 +78,24 @@ For a `commit-group` event:
     Name = commit-group
     [IMAccount freenode]
     Message = ${project-group}/^B${project}^O/^C07${branch}^O: ^C03${pusher-name}^O pushed ${size} commits ^C05${url}^O
+    Channels = #test;
+
+For a `branch-created` event:
+
+    [Event]
+    Category = scm
+    Name = branch-created
+    [IMAccount freenode]
+    Message = ${project-group}/^B${project}^O/^C07${branch}^O: ^C03${pusher-name}^O branch created ^C05${url}^O
+    Channels = #test;
+
+For a `branch-deleted` event:
+
+    [Event]
+    Category = scm
+    Name = branch-deleted
+    [IMAccount freenode]
+    Message = ${project-group}/^B${project}^O/^C07${branch}^O: ^C03${pusher-name}^O branch deleted ^C05${url}^O
     Channels = #test;
 
 
@@ -92,6 +121,10 @@ Here is the list of used values:
 
 * `git-eventc.project-group`: used as `project-group`
 * `git-eventc.project`: used as `project`, defaults to `repository-name`
+* `git-eventc.branch-url`: URL template for a branch with two C-style string conversion specifier (`%s`):
+    * the first one for the repository name
+    * the second one for the branch name
+    * Examples: `http://cgit.example.com/%s/log/?h=%s` or `http://gitweb.example.com/?p=%s.git;a=shortlog;h=refs/heads/%s`
 * `git-eventc.commit-url`: URL template for a single commit with two C-style string conversion specifier (`%s`):
     * the first one for the repository name
     * the second one for the commit id
