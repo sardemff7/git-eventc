@@ -58,6 +58,68 @@ typedef struct {
 
 static GHashTable *secrets = NULL;
 
+static JsonObject *
+_git_eventc_webhook_github_get(const gchar *url)
+{
+    static SoupSession *session = NULL;
+    GError *error = NULL;
+
+    if ( session == NULL )
+        session = soup_session_new_with_options(SOUP_SESSION_USER_AGENT, PACKAGE_NAME " " PACKAGE_VERSION, NULL);
+
+    SoupRequestHTTP *req;
+    req = soup_session_request_http(session, "GET", url, &error);
+    if ( req == NULL )
+    {
+        g_warning("Couldn't get %s: %s", url, error->message);
+        g_clear_error(&error);
+        return NULL;
+    }
+
+    SoupMessage *msg;
+    guint code;
+
+    msg = soup_request_http_get_message(req);
+    code = soup_session_send_message(session, msg);
+
+    if ( code != SOUP_STATUS_OK )
+    {
+        g_warning("Couldn't get %s: %s", url, soup_status_get_phrase(code));
+        return NULL;
+    }
+
+    g_debug("ANSWER: %.*s", (gint)msg->response_body->length, msg->response_body->data);
+
+    JsonParser *parser;
+    parser = json_parser_new();
+    if ( ! json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, &error) )
+    {
+        g_warning("Couldn't parse answer to %s: %s", url, error->message);
+        g_clear_error(&error);
+        return NULL;
+    }
+
+    JsonObject *object;
+    object = json_object_ref(json_node_get_object(json_parser_get_root(parser)));
+
+    g_object_unref(parser);
+
+    return object;
+}
+
+static JsonObject *
+_git_eventc_webhook_github_get_user(const gchar *username)
+{
+    gchar *url;
+    JsonObject *user;
+
+    url = g_strdup_printf("https://api.github.com/users/%s", username);
+    user = _git_eventc_webhook_github_get(url);
+    g_free(url);
+
+    return user;
+}
+
 static void
 _git_eventc_webhook_node_list_to_string_list(GList *list)
 {
@@ -90,12 +152,13 @@ _git_eventc_webhook_payload_parse_github_branch(const gchar **project, JsonObjec
 {
     JsonObject *repository = json_object_get_object_member(root, "repository");
     JsonObject *pusher = json_object_get_object_member(root, "pusher");
+    JsonObject *pusher_user = _git_eventc_webhook_github_get_user(json_object_get_string_member(pusher, "name"));
 
     JsonArray *commits = json_object_get_array_member(root, "commits");
     guint size = json_array_get_length(commits);
 
     const gchar *repository_name = json_object_get_string_member(repository, "name");
-    const gchar *pusher_name = json_object_get_string_member(pusher, "name");
+    gchar *pusher_name = g_strdup_printf("%s (%s)", json_object_get_string_member(pusher_user, "name"), json_object_get_string_member(pusher_user, "login"));
 
     if ( json_object_get_boolean_member(root, "created") )
     {
@@ -145,6 +208,9 @@ _git_eventc_webhook_payload_parse_github_branch(const gchar **project, JsonObjec
         }
         g_list_free(commit_list);
     }
+
+    g_free(pusher_name);
+    json_object_unref(pusher_user);
 }
 
 static void
@@ -152,9 +218,10 @@ _git_eventc_webhook_payload_parse_github_tag(const gchar **project, JsonObject *
 {
     JsonObject *repository = json_object_get_object_member(root, "repository");
     JsonObject *pusher = json_object_get_object_member(root, "pusher");
+    JsonObject *pusher_user = _git_eventc_webhook_github_get_user(json_object_get_string_member(pusher, "name"));
 
     const gchar *repository_name = json_object_get_string_member(repository, "name");
-    const gchar *pusher_name = json_object_get_string_member(pusher, "name");
+    gchar *pusher_name = g_strdup_printf("%s (%s)", json_object_get_string_member(pusher_user, "name"), json_object_get_string_member(pusher_user, "login"));
 
     if ( ! json_object_get_boolean_member(root, "created") )
             git_eventc_send_tag_deleted(pusher_name, repository_name, tag, project);
@@ -166,6 +233,9 @@ _git_eventc_webhook_payload_parse_github_tag(const gchar **project, JsonObject *
         git_eventc_send_tag_created(pusher_name, url, repository_name, tag, NULL, project);
         g_free(url);
     }
+
+    g_free(pusher_name);
+    json_object_unref(pusher_user);
 }
 
 static void
