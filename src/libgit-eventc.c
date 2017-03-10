@@ -564,3 +564,36 @@ git_eventc_send_commit(const gchar *id, const gchar *base_message, const gchar *
     eventc_connection_event(client, event, NULL);
     eventd_event_unref(event);
 }
+
+void
+git_eventc_send_bugreport(const gchar *action, guint64 number, const gchar *title, const gchar *url, const gchar *author_name, const gchar *author_username, const gchar *author_email, GVariant *tags, const gchar *repository_name, const gchar **project)
+{
+    EventdEvent *event;
+
+    event = eventd_event_new("bug-report", action);
+
+    eventd_event_add_data(event, g_strdup("number"), g_variant_new_uint64(number));
+    eventd_event_add_data_string(event, g_strdup("title"), g_strdup(title));
+    if ( author_name != NULL )
+        eventd_event_add_data_string(event, g_strdup("author-name"), g_strdup(author_name));
+    if ( author_email != NULL )
+        eventd_event_add_data_string(event, g_strdup("author-email"), g_strdup(author_email));
+    if ( author_username != NULL )
+        eventd_event_add_data_string(event, g_strdup("author-username"), g_strdup(author_username));
+    if ( url != NULL )
+        eventd_event_add_data_string(event, g_strdup("url"), _git_eventc_get_url(url));
+    if ( tags != NULL )
+        eventd_event_add_data(event, g_strdup("tags"), tags);
+
+    eventd_event_add_data_string(event, g_strdup("repository-name"), g_strdup(repository_name));
+
+    if ( project[0] != NULL )
+        eventd_event_add_data_string(event, g_strdup("project-group"), g_strdup(project[0]));
+    if ( project[1] != NULL )
+        eventd_event_add_data_string(event, g_strdup("project"), g_strdup(project[1]));
+    else
+        eventd_event_add_data_string(event, g_strdup("project"), g_strdup(repository_name));
+
+    eventc_connection_event(client, event, NULL);
+    eventd_event_unref(event);
+}

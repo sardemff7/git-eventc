@@ -239,7 +239,7 @@ _git_eventc_webhook_payload_parse_github_tag(const gchar **project, JsonObject *
 }
 
 static void
-_git_eventc_webhook_payload_parse_github(const gchar **project, JsonObject *root)
+_git_eventc_webhook_payload_parse_github_push(const gchar **project, JsonObject *root)
 {
     const gchar *ref = json_object_get_string_member(root, "ref");
 
@@ -247,6 +247,51 @@ _git_eventc_webhook_payload_parse_github(const gchar **project, JsonObject *root
         _git_eventc_webhook_payload_parse_github_branch(project, root, ref + strlen("refs/heads/"));
     else if ( g_str_has_prefix(ref, "refs/tags/") )
         _git_eventc_webhook_payload_parse_github_tag(project, root, ref + strlen("refs/tags/"));
+}
+
+static void
+_git_eventc_webhook_payload_parse_github_issues(const gchar **project, JsonObject *root)
+{
+    const gchar *action = json_object_get_string_member(root, "action");
+
+    if ( ( g_strcmp0(action, "opened") == 0 )
+         || ( g_strcmp0(action, "closed") == 0 )
+         || ( g_strcmp0(action, "reopened") == 0 ) )
+    { /* Pass these ones directly */ }
+    else
+        return;
+
+    JsonObject *repository = json_object_get_object_member(root, "repository");
+    JsonObject *issue = json_object_get_object_member(root, "issue");
+    JsonObject *author = _git_eventc_webhook_github_get_user(json_object_get_string_member(json_object_get_object_member(issue, "user"), "login"));
+    JsonArray *tags_array = json_object_get_array_member(issue, "labels");
+
+    const gchar *repository_name = json_object_get_string_member(repository, "name");
+    guint length = json_array_get_length(tags_array);
+    GVariant *tags = NULL;
+
+    if ( length > 0 )
+    {
+        GVariantBuilder *builder;
+        guint i;
+        builder = g_variant_builder_new(G_VARIANT_TYPE_STRING_ARRAY);
+        for ( i = 0 ; i < length ; ++i )
+            g_variant_builder_add_value(builder, g_variant_new_string(json_array_get_string_element(tags_array, i)));
+        tags = g_variant_builder_end(builder);
+        g_variant_builder_unref(builder);
+    }
+
+    git_eventc_send_bugreport(action,
+        json_object_get_int_member(issue, "number"),
+        json_object_get_string_member(issue, "title"),
+        json_object_get_string_member(issue, "html_url"),
+        json_object_get_string_member(author, "name"),
+        json_object_get_string_member(author, "login"),
+        json_object_get_string_member(author, "email"),
+        tags,
+        repository_name, project);
+
+    json_object_unref(author);
 }
 
 static gboolean
@@ -366,7 +411,12 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
         const gchar *event = soup_message_headers_get_one(msg->request_headers, "X-GitHub-Event");
         if ( g_strcmp0(event, "push") == 0 )
         {
-            parse_data.func = _git_eventc_webhook_payload_parse_github;
+            parse_data.func = _git_eventc_webhook_payload_parse_github_push;
+            status_code = SOUP_STATUS_OK;
+        }
+        else if ( g_strcmp0(event, "issues") == 0 )
+        {
+            parse_data.func = _git_eventc_webhook_payload_parse_github_issues;
             status_code = SOUP_STATUS_OK;
         }
         else if ( g_strcmp0(event, "ping") == 0 )
