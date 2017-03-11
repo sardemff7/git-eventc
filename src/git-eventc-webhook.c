@@ -58,7 +58,7 @@ typedef struct {
 
 static GHashTable *secrets = NULL;
 
-static JsonObject *
+static JsonNode *
 _git_eventc_webhook_github_get(const gchar *url)
 {
     static SoupSession *session = NULL;
@@ -99,12 +99,12 @@ _git_eventc_webhook_github_get(const gchar *url)
         return NULL;
     }
 
-    JsonObject *object;
-    object = json_object_ref(json_node_get_object(json_parser_get_root(parser)));
+    JsonNode *node;
+    node = json_node_copy(json_parser_get_root(parser));
 
     g_object_unref(parser);
 
-    return object;
+    return node;
 }
 
 static JsonObject *
@@ -112,10 +112,14 @@ _git_eventc_webhook_github_get_user(const gchar *username)
 {
     gchar *url;
     JsonObject *user;
+    JsonNode *node;
 
     url = g_strdup_printf("https://api.github.com/users/%s", username);
-    user = _git_eventc_webhook_github_get(url);
+    node = _git_eventc_webhook_github_get(url);
     g_free(url);
+
+    user = json_object_ref(json_node_get_object(node));
+    json_node_free(node);
 
     return user;
 }
