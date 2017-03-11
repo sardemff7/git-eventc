@@ -120,6 +120,20 @@ _git_eventc_webhook_github_get_user(JsonObject *user)
     return user;
 }
 
+static JsonArray *
+_git_eventc_webhook_github_get_tags(JsonObject *repository)
+{
+    JsonNode *node;
+    JsonArray *tags;
+
+    node = _git_eventc_webhook_github_get(json_object_get_string_member(repository, "tags"));
+
+    tags = json_array_ref(json_node_get_array(node));
+    json_node_free(node);
+
+    return tags;
+}
+
 static void
 _git_eventc_webhook_node_list_to_string_list(GList *list)
 {
@@ -228,9 +242,18 @@ _git_eventc_webhook_payload_parse_github_tag(const gchar **project, JsonObject *
 
     if ( ! json_object_get_boolean_member(root, "deleted") )
     {
+        JsonArray *tags = _git_eventc_webhook_github_get_tags(repository);
+        guint length = json_array_get_length(tags);
+        const gchar *previous_tag = NULL;
         gchar *url;
+
         url = g_strdup_printf("%s/releases/tag/%s", json_object_get_string_member(repository, "url"), tag);
-        git_eventc_send_tag_created(pusher_name, url, repository_name, tag, NULL, project);
+        if ( length > 1 )
+            previous_tag = json_object_get_string_member(json_array_get_object_element(tags, 1), "name");
+
+        git_eventc_send_tag_created(pusher_name, url, repository_name, tag, previous_tag, project);
+
+        json_array_unref(tags);
         g_free(url);
     }
 
