@@ -276,7 +276,7 @@ _git_eventc_webhook_payload_parse_github_issues(const gchar **project, JsonObjec
         guint i;
         builder = g_variant_builder_new(G_VARIANT_TYPE_STRING_ARRAY);
         for ( i = 0 ; i < length ; ++i )
-            g_variant_builder_add_value(builder, g_variant_new_string(json_array_get_string_element(tags_array, i)));
+            g_variant_builder_add_value(builder, g_variant_new_string(json_object_get_string_member(json_array_get_object_element(tags_array, i), "name")));
         tags = g_variant_builder_end(builder);
         g_variant_builder_unref(builder);
     }
