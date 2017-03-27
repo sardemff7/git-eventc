@@ -23,7 +23,7 @@ glib_min_major="2"
 glib_min_minor="42"
 glib_min_version="${glib_min_major}.${glib_min_minor}"
 gio_min_version="$glib_min_version"
-eventd_min_version="0.18.90"
+eventd_min_version="0.21.90"
 libsoup_min_version="2.48"
 libgit2_min_version="0.23.0"
 

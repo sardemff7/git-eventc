@@ -110,6 +110,8 @@ static gboolean shortener = FALSE;
 
 static EventcConnection *client = NULL;
 static SoupSession *shortener_session = NULL;
+static guint retry_timeout = 0;
+static guint retry_timeout_seconds = 1;
 
 #define g_key_file_get_string_list_alt(kf, g, k, e) g_key_file_get_string_list(kf, g, k, NULL, e)
 
@@ -243,6 +245,37 @@ out:
 
 }
 
+static gboolean
+_git_eventc_reconnect(gpointer user_data)
+{
+    GMainLoop *loop = user_data;
+    GError *error = NULL;
+
+    if ( ! eventc_connection_connect_sync(client, &error) )
+    {
+        g_warning("Couldn't connect to eventd: %s", error->message);
+        g_error_free(error);
+        if ( retry_timeout_seconds >= 1300 )
+            g_main_loop_quit(loop);
+        else
+            retry_timeout = g_timeout_add_seconds(retry_timeout_seconds << 2, _git_eventc_reconnect, client);
+    }
+    else
+    {
+        retry_timeout = 0;
+        retry_timeout_seconds = 1;
+    }
+    return FALSE;
+}
+
+static void
+_git_eventc_disconnected(EventcConnection *client, gpointer user_data)
+{
+    if ( retry_timeout != 0 )
+        return;
+    retry_timeout = g_timeout_add_seconds(retry_timeout_seconds, _git_eventc_reconnect, user_data);
+}
+
 #ifdef G_OS_UNIX
 static gboolean
 _git_eventc_stop(gpointer user_data)
@@ -283,6 +316,7 @@ git_eventc_init(GMainLoop *loop, gint *retval)
         *retval = 1;
         return FALSE;
     }
+    g_signal_connect(client, "disconnected", G_CALLBACK(_git_eventc_disconnected), loop);
 
 #ifdef GIT_EVENTC_DEBUG
 #define bstring(b) ((b) ? "true" : "false")
