@@ -23,6 +23,7 @@ libgit_eventc_a_SOURCES = \
 
 libgit_eventc_a_CFLAGS = \
 	$(AM_CFLAGS) \
+	-DG_LOG_DOMAIN='"libgit-eventc"' \
 	$(LIBSOUP_CFLAGS) \
 	$(LIBEVENTC_CFLAGS) \
 	$(GLIB_CFLAGS)
@@ -43,6 +44,7 @@ git_eventc_post_receive_SOURCES = \
 
 git_eventc_post_receive_CFLAGS = \
 	$(AM_CFLAGS) \
+	-DG_LOG_DOMAIN='"git-eventc-post-receive"' \
 	$(LIBGIT2_CFLAGS) \
 	$(LIBEVENTC_CFLAGS) \
 	$(GLIB_CFLAGS)
@@ -64,6 +66,7 @@ git_eventc_webhook_SOURCES = \
 
 git_eventc_webhook_CFLAGS = \
 	$(AM_CFLAGS) \
+	-DG_LOG_DOMAIN='"git-eventc-webhook"' \
 	$(JSON_GLIB_CFLAGS) \
 	$(LIBSOUP_CFLAGS) \
 	$(LIBEVENTC_CFLAGS) \
