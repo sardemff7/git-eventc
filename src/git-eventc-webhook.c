@@ -144,6 +144,17 @@ _git_eventc_webhook_node_list_to_string_list(GList *list)
 }
 
 static gchar *
+_git_eventc_webhook_payload_pusher_name_github(JsonObject *sender_user)
+{
+    const gchar *name = json_object_get_string_member(sender_user, "name");
+    const gchar *login = json_object_get_string_member(sender_user, "login");
+
+    if ( name != NULL )
+        return g_strdup_printf("%s (%s)", name, login);
+    return g_strdup(login);
+}
+
+static gchar *
 _git_eventc_webhook_payload_get_files_github(JsonObject *commit)
 {
     JsonArray *added_files, *modified_files, *removed_files;
@@ -172,7 +183,7 @@ _git_eventc_webhook_payload_parse_github_branch(const gchar **project, JsonObjec
     guint size = json_array_get_length(commits);
 
     const gchar *repository_name = json_object_get_string_member(repository, "name");
-    gchar *pusher_name = g_strdup_printf("%s (%s)", json_object_get_string_member(sender_user, "name"), json_object_get_string_member(sender_user, "login"));
+    gchar *pusher_name = _git_eventc_webhook_payload_pusher_name_github(sender_user);
 
     if ( json_object_get_boolean_member(root, "created") )
     {
@@ -235,7 +246,7 @@ _git_eventc_webhook_payload_parse_github_tag(const gchar **project, JsonObject *
     JsonObject *sender_user = _git_eventc_webhook_github_get_user(sender);
 
     const gchar *repository_name = json_object_get_string_member(repository, "name");
-    gchar *pusher_name = g_strdup_printf("%s (%s)", json_object_get_string_member(sender_user, "name"), json_object_get_string_member(sender_user, "login"));
+    gchar *pusher_name = _git_eventc_webhook_payload_pusher_name_github(sender_user);
 
     if ( ! json_object_get_boolean_member(root, "created") )
             git_eventc_send_tag_deleted(pusher_name, repository_name, tag, project);
