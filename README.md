@@ -26,7 +26,9 @@ This event correspond to a single commit.
 Here is the list of provided data:
 
 * `id`: The commit id (short version, see `--help`)
-* `message`: The commit message (first line)
+* `subject`: The commit subject (first line of message)
+* `message`: The commit message (with subject and footer tags stripped, only if not empty)
+* `full-message`: The full commit message (verbatim)
 * `branch`: The updated branch name
 * `author-name`: The name of the author
 * `author-email`: The email of the author

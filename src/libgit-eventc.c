@@ -561,19 +561,75 @@ git_eventc_send_commit(const gchar *id, const gchar *base_message, const gchar *
         project[0], project[1]);
 #endif /* GIT_EVENTC_DEBUG */
 
-    const gchar *new_line = g_utf8_strchr(base_message, -1, '\n');
-    gchar *message;
+    gsize l = strlen(base_message);
+    const gchar *new_line = g_utf8_strchr(base_message, l, '\n');
+    gchar *subject, *message = NULL;
     if ( new_line != NULL )
-        message = g_strndup(base_message, ( new_line - base_message ));
+    {
+        const gchar *start = new_line, *end = base_message + l;
+
+        /* We strip extra new lines */
+        while ( g_utf8_get_char(start) == '\n' )
+            start = g_utf8_next_char(start);
+
+        /* Then we strip footer tags */
+        gboolean all_tags = TRUE;
+        const gchar *pe, *e;
+        for ( e = end, pe = e ; all_tags && ( pe > start ) ; pe = e, e = g_utf8_strrchr(start, pe - start, '\n') )
+        {
+            const gchar *line;
+            if ( e == NULL )
+                line = e = start;
+            else
+                line = g_utf8_next_char(e);
+
+            const gchar *t = line;
+            gunichar c;
+
+            if ( line == pe )
+            {
+                /* We found two \n in a row, so a group of tags */
+                end = e;
+                continue;
+            }
+
+            for ( c = g_utf8_get_char(t) ; g_unichar_isalnum(c) || ( c == '-' ) || ( c == '_' ) ; c = g_utf8_get_char(t) )
+                t = g_utf8_next_char(t);
+            if ( g_utf8_get_char(t) != ':' )
+            {
+                /* A line not starting with a tag, check for some other tags */
+                const gchar * const lazy_tags[] = {
+                    /* GitHub closing tags */
+                    "close", "closes", "closed",
+                    "fix", "fixes", "fixed",
+                    "resolve", "resolves", "resolved",
+                };
+
+                gboolean ok = FALSE;
+                gsize i;
+                for ( i = 0 ; ( ! ok ) && ( i < G_N_ELEMENTS(lazy_tags) ) ; ++i )
+                    ok = ( g_ascii_strncasecmp(line, lazy_tags[i], t - line) == 0 );
+                if ( ! ok )
+                    all_tags = FALSE;
+            }
+        }
+
+        subject = g_strndup(base_message, ( new_line - base_message ));
+        if ( ! all_tags )
+            message = g_strndup(start, ( end - start ));
+    }
     else
-        message = g_strdup(base_message);
+        subject = g_strdup(base_message);
 
     EventdEvent *event;
 
     event = eventd_event_new("scm", "commit");
 
     eventd_event_add_data_string(event, g_strdup("id"), g_strndup(id, commit_id_size));
-    eventd_event_add_data_string(event, g_strdup("message"), message);
+    eventd_event_add_data_string(event, g_strdup("subject"), subject);
+    if ( message != NULL )
+        eventd_event_add_data_string(event, g_strdup("message"), message);
+    eventd_event_add_data_string(event, g_strdup("full-message"), g_strdup(base_message));
     if ( url != NULL )
         eventd_event_add_data_string(event, g_strdup("url"), _git_eventc_get_url(url));
 
