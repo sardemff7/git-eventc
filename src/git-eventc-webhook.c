@@ -111,6 +111,8 @@ _git_eventc_webhook_github_get_user(JsonObject *user)
     JsonNode *node;
 
     node = _git_eventc_webhook_github_get(json_object_get_string_member(user, "url"));
+    if ( node == NULL )
+        return json_object_ref(user);
 
     user = json_object_ref(json_node_get_object(node));
     json_node_free(node);
