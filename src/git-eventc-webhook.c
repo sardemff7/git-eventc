@@ -88,8 +88,6 @@ _git_eventc_webhook_github_get(const gchar *url)
         return NULL;
     }
 
-    g_debug("ANSWER: %.*s", (gint)msg->response_body->length, msg->response_body->data);
-
     JsonParser *parser;
     parser = json_parser_new();
     if ( ! json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, &error) )
