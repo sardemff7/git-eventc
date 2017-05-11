@@ -383,9 +383,7 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
         goto cleanup;
     }
 
-    const gchar *signature;
-    signature = soup_message_headers_get_one(msg->request_headers, "X-Hub-Signature");
-    if ( signature != NULL )
+    if ( secrets != NULL )
     {
         status_code = SOUP_STATUS_UNAUTHORIZED;
 
@@ -393,24 +391,35 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
 
         if ( secret == NULL )
         {
-            g_warning("Cannot verify signature of request from %s", user_agent);
+            g_warning("Signature mandatory but not secret for project group %s (%s)", project[0], user_agent);
             goto cleanup;
         }
 
-        if ( ! g_str_has_prefix(signature, "sha1=") )
+        if ( *secret != '\0' )
         {
-            g_warning("Signature of request from %s does not match", user_agent);
-            goto cleanup;
-        }
-        signature += strlen("sha1=");
+            const gchar *signature;
+            signature = soup_message_headers_get_one(msg->request_headers, "X-Hub-Signature");
+            if ( signature == NULL )
+            {
+                g_warning("Signature mandatory but not found %s", user_agent);
+                goto cleanup;
+            }
 
-        hmac = g_hmac_new(G_CHECKSUM_SHA1, (const guchar *) secret, strlen(secret));
-        g_hmac_update(hmac, (const guchar *) msg->request_body->data, msg->request_body->length);
+            if ( ! g_str_has_prefix(signature, "sha1=") )
+            {
+                g_warning("Signature of request from %s does not match", user_agent);
+                goto cleanup;
+            }
+            signature += strlen("sha1=");
 
-        if ( g_ascii_strcasecmp(signature, g_hmac_get_string(hmac)) != 0 )
-        {
-            g_warning("Signature of request from %s does not match %s != %s", user_agent, signature, g_hmac_get_string(hmac));
-            goto cleanup;
+            hmac = g_hmac_new(G_CHECKSUM_SHA1, (const guchar *) secret, strlen(secret));
+            g_hmac_update(hmac, (const guchar *) msg->request_body->data, msg->request_body->length);
+
+            if ( g_ascii_strcasecmp(signature, g_hmac_get_string(hmac)) != 0 )
+            {
+                g_warning("Signature of request from %s does not match %s != %s", user_agent, signature, g_hmac_get_string(hmac));
+                goto cleanup;
+            }
         }
     }
 
