@@ -19,7 +19,7 @@ Here is the list of common data provided by all events:
 * `project-group`: The project group name (if set)
 * `project`: The project name, defaults to `repository-name`
 * `pusher-name`: The name of the pusher
-* `branch`: The updated branch name (not for `tag-` events)
+* `branch`: The updated branch name (not for `tag-` events, and the related `push` event)
 * `url`: An URL to see the change online (not for `-deleted` events)
 
 
@@ -63,6 +63,14 @@ This event correspond to the creation/deletion of a tag.
 Here is the list of provided data:
 
 * `previous-tag`: The latest tag in this tag history tree (for `tag-created` only)
+
+
+### `push`
+
+This event correspond to a push.
+It will be generated after a set of `commit` events, or any of other events events.
+<br />
+This event is useful for mirroring purpose.
 
 
 ### Example event file

@@ -201,7 +201,7 @@ _git_eventc_webhook_payload_parse_github_branch(const gchar **project, JsonObjec
     else if ( json_object_get_boolean_member(root, "deleted") )
     {
         git_eventc_send_branch_deleted(pusher_name, repository_name, repository_url, branch, project);
-        return;
+        goto send_push;
     }
 
     if ( git_eventc_is_above_threshold(size) )
@@ -241,6 +241,9 @@ _git_eventc_webhook_payload_parse_github_branch(const gchar **project, JsonObjec
         g_list_free(commit_list);
     }
 
+send_push:
+    git_eventc_send_push(json_object_get_string_member(root, "compare"), pusher_name, repository_name, repository_url, branch, project);
+
     g_free(pusher_name);
 }
 
@@ -272,6 +275,8 @@ _git_eventc_webhook_payload_parse_github_tag(const gchar **project, JsonObject *
         json_array_unref(tags);
         g_free(url);
     }
+
+    git_eventc_send_push(json_object_get_string_member(root, "compare"), pusher_name, repository_name, repository_url, NULL, project);
 
     g_free(pusher_name);
 }

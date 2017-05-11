@@ -241,7 +241,7 @@ _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gcha
     else if ( git_oid_iszero(to) )
     {
         git_eventc_send_branch_deleted(context->pusher, context->repository_name, context->repository_url, branch, context->project);
-        goto cleanup;
+        goto send_push;
     }
 
     git_revwalk *walker;
@@ -302,6 +302,9 @@ _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gcha
         }
     }
 
+send_push:
+    git_eventc_send_push(diff_url, context->pusher, context->repository_name, context->repository_url, branch, context->project);
+
 cleanup:
     g_free(diff_url);
     g_slist_free_full(commits, (GDestroyNotify) git_commit_free);
@@ -329,6 +332,7 @@ static void
 _git_eventc_post_receive_tag(GitEventcPostReceiveContext *context, const gchar *ref_name, const gchar *tag_name, const gchar *before, const git_oid *from, const gchar *after, const git_oid *to)
 {
     int error;
+    gchar *url = NULL;
 
     if ( ! git_oid_iszero(from) )
         git_eventc_send_tag_deleted(context->pusher, context->repository_name, context->repository_url, tag_name, context->project);
@@ -337,6 +341,10 @@ _git_eventc_post_receive_tag(GitEventcPostReceiveContext *context, const gchar *
     {
         git_commit *commit;
         const gchar *previous_tag_name = NULL;
+
+        if ( context->tag_url != NULL )
+            url = g_strdup_printf(context->tag_url, context->repository_name, tag_name);
+
 
         error = git_commit_lookup(&commit, context->repository, to);
         if ( error < 0 )
@@ -348,7 +356,7 @@ _git_eventc_post_receive_tag(GitEventcPostReceiveContext *context, const gchar *
             if ( error < 0 )
             {
                 g_warning("Couldn't initialize revision walker: %s", giterr_last()->message);
-                return;
+                goto send_push;
             }
             git_revwalk_sorting(walker, GIT_SORT_TOPOLOGICAL);
 
@@ -357,13 +365,13 @@ _git_eventc_post_receive_tag(GitEventcPostReceiveContext *context, const gchar *
             if ( error < 0 )
             {
                 g_warning("Couldn't get tag commit parent: %s", giterr_last()->message);
-                return;
+                goto send_push;
             }
             error = git_revwalk_push(walker, git_commit_id(parent));
             if ( error < 0 )
             {
                 g_warning("Couldn't push the revision list: %s", giterr_last()->message);
-                return;
+                goto send_push;
             }
 
             git_oid id;
@@ -393,13 +401,13 @@ _git_eventc_post_receive_tag(GitEventcPostReceiveContext *context, const gchar *
             }
         }
 
-        gchar *url = NULL;
-        if ( context->tag_url != NULL )
-            url = g_strdup_printf(context->tag_url, context->repository_name, tag_name);
-
         git_eventc_send_tag_created(context->pusher, url, context->repository_name, context->repository_url, tag_name, previous_tag_name, context->project);
-        g_free(url);
     }
+
+send_push:
+    git_eventc_send_push(url, context->pusher, context->repository_name, context->repository_url, NULL, context->project);
+
+    g_free(url);
 }
 
 static void
