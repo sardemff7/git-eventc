@@ -188,18 +188,19 @@ _git_eventc_webhook_payload_parse_github_branch(const gchar **project, JsonObjec
     guint size = json_array_get_length(commits);
 
     const gchar *repository_name = json_object_get_string_member(repository, "name");
+    const gchar *repository_url = json_object_get_string_member(repository, "url");
     gchar *pusher_name = _git_eventc_webhook_payload_pusher_name_github(root);
 
     if ( json_object_get_boolean_member(root, "created") )
     {
         gchar *url;
         url = g_strdup_printf("%s/tree/%s", json_object_get_string_member(repository, "url"), branch);
-        git_eventc_send_branch_created(pusher_name, url, repository_name, branch, project);
+        git_eventc_send_branch_created(pusher_name, url, repository_name, repository_url, branch, project);
         g_free(url);
     }
     else if ( json_object_get_boolean_member(root, "deleted") )
     {
-        git_eventc_send_branch_deleted(pusher_name, repository_name, branch, project);
+        git_eventc_send_branch_deleted(pusher_name, repository_name, repository_url, branch, project);
         return;
     }
 
@@ -209,7 +210,7 @@ _git_eventc_webhook_payload_parse_github_branch(const gchar **project, JsonObjec
             pusher_name,
             size,
             json_object_get_string_member(root, "compare"),
-            repository_name, branch, project);
+            repository_name, repository_url, branch, project);
     }
     else
     {
@@ -230,7 +231,7 @@ _git_eventc_webhook_payload_parse_github_branch(const gchar **project, JsonObjec
                 json_object_get_string_member(author, "name"),
                 json_object_get_string_member(author, "username"),
                 json_object_get_string_member(author, "email"),
-                repository_name, branch,
+                repository_name, repository_url, branch,
                 files,
                 project);
 
@@ -248,10 +249,11 @@ _git_eventc_webhook_payload_parse_github_tag(const gchar **project, JsonObject *
     JsonObject *repository = json_object_get_object_member(root, "repository");
 
     const gchar *repository_name = json_object_get_string_member(repository, "name");
+    const gchar *repository_url = json_object_get_string_member(repository, "url");
     gchar *pusher_name = _git_eventc_webhook_payload_pusher_name_github(root);
 
     if ( ! json_object_get_boolean_member(root, "created") )
-            git_eventc_send_tag_deleted(pusher_name, repository_name, tag, project);
+            git_eventc_send_tag_deleted(pusher_name, repository_name, repository_url, tag, project);
 
     if ( ! json_object_get_boolean_member(root, "deleted") )
     {
@@ -264,7 +266,7 @@ _git_eventc_webhook_payload_parse_github_tag(const gchar **project, JsonObject *
         if ( length > 1 )
             previous_tag = json_object_get_string_member(json_array_get_object_element(tags, 1), "name");
 
-        git_eventc_send_tag_created(pusher_name, url, repository_name, tag, previous_tag, project);
+        git_eventc_send_tag_created(pusher_name, url, repository_name, repository_url, tag, previous_tag, project);
 
         json_array_unref(tags);
         g_free(url);
@@ -302,6 +304,7 @@ _git_eventc_webhook_payload_parse_github_issues(const gchar **project, JsonObjec
     JsonArray *tags_array = json_object_get_array_member(issue, "labels");
 
     const gchar *repository_name = json_object_get_string_member(repository, "name");
+    const gchar *repository_url = json_object_get_string_member(repository, "url");
     guint length = json_array_get_length(tags_array);
     GVariant *tags = NULL;
 
@@ -324,7 +327,7 @@ _git_eventc_webhook_payload_parse_github_issues(const gchar **project, JsonObjec
         json_object_get_string_member(author, "login"),
         json_object_get_string_member(author, "email"),
         tags,
-        repository_name, project);
+        repository_name, repository_url, project);
 
     json_object_unref(author);
 }

@@ -33,14 +33,14 @@ void git_eventc_uninit(void);
 
 gboolean git_eventc_is_above_threshold(guint size);
 
-void git_eventc_send_branch_created(const gchar *pusher_name, const gchar *url, const gchar *repository_name, const gchar *branch, const gchar **project);
-void git_eventc_send_branch_deleted(const gchar *pusher_name, const gchar *repository_name, const gchar *branch, const gchar **project);
+void git_eventc_send_branch_created(const gchar *pusher_name, const gchar *url, const gchar *repository_name, const gchar *repository_url, const gchar *branch, const gchar **project);
+void git_eventc_send_branch_deleted(const gchar *pusher_name, const gchar *repository_name, const gchar *repository_url, const gchar *branch, const gchar **project);
 
-void git_eventc_send_tag_created(const gchar *pusher_name, const gchar *url, const gchar *repository_name, const gchar *tag, const gchar *previous_tag, const gchar **project);
-void git_eventc_send_tag_deleted(const gchar *pusher_name, const gchar *repository_name, const gchar *tag, const gchar **project);
+void git_eventc_send_tag_created(const gchar *pusher_name, const gchar *url, const gchar *repository_name, const gchar *repository_url, const gchar *tag, const gchar *previous_tag, const gchar **project);
+void git_eventc_send_tag_deleted(const gchar *pusher_name, const gchar *repository_name, const gchar *repository_url, const gchar *tag, const gchar **project);
 
-void git_eventc_send_commit_group(const gchar *pusher_name, guint size, const gchar *url, const gchar *repository_name, const gchar *branch, const gchar **project);
-void git_eventc_send_commit(const gchar *id, const gchar *base_message, const gchar *url, const gchar *author_name, const gchar *author_username, const gchar *author_email, const gchar *repository_name, const gchar *branch, const gchar *files, const gchar **project);
+void git_eventc_send_commit_group(const gchar *pusher_name, guint size, const gchar *url, const gchar *repository_name, const gchar *repository_url, const gchar *branch, const gchar **project);
+void git_eventc_send_commit(const gchar *id, const gchar *base_message, const gchar *url, const gchar *author_name, const gchar *author_username, const gchar *author_email, const gchar *repository_name, const gchar *repository_url, const gchar *branch, const gchar *files, const gchar **project);
 
-void git_eventc_send_bugreport(const gchar *action, guint64 number, const gchar *title, const gchar *url, const gchar *author_name, const gchar *author_username, const gchar *author_email, GVariant *tags, const gchar *repository_name, const gchar **project);
+void git_eventc_send_bugreport(const gchar *action, guint64 number, const gchar *title, const gchar *url, const gchar *author_name, const gchar *author_username, const gchar *author_email, GVariant *tags, const gchar *repository_name, const gchar *repository_url, const gchar **project);
 #endif /* __GIT_EVENTC_LIBGIT_EVENTC_H__ */

@@ -15,6 +15,7 @@ git-eventc will provide events in the `scm` event group: `commit`, `commit-group
 Here is the list of common data provided by all events:
 
 * `repository-name`: The name of the repository
+* `repository-url`: The URL of the repository
 * `project-group`: The project group name (if set)
 * `project`: The project name, defaults to `repository-name`
 
@@ -138,6 +139,10 @@ Here is the list of used values:
 
 * `git-eventc.project-group`: used as `project-group`
 * `git-eventc.project`: used as `project`, defaults to `repository-name`
+* `git-eventc.repository`: used as `repository-name` (not meaningful in system configuration)
+* `git-eventc.repository-url`: URL template for the repository with one C-style string conversion specifier (`%s`):
+    * the specifier is for the repository name
+    * Examples: `http://cgit.example.com/%s` or `http://gitweb.example.com/?p=%s.git`
 * `git-eventc.branch-url`: URL template for a branch with two C-style string conversion specifier (`%s`):
     * the first one for the repository name
     * the second one for the branch name
@@ -150,7 +155,6 @@ Here is the list of used values:
     * the first one for the repository name
     * the second and third ones for the commit ids
     * Examples: `http://cgit.example.com/%s/diff/?id2=%s&id=%s` or `http://gitweb.example.com/?p=%s.git;a=commitdiff;hp=%s;h=%s`
-* `git-eventc.repository`: used as `repository-name` (not meaningful in system configuration)
 
 It also has some basic support for Gitolite environment variables:
 

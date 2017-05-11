@@ -43,6 +43,7 @@
 typedef struct {
     git_repository *repository;
     const gchar *repository_name;
+    gchar *repository_url;
     gchar *repository_guessed_name;
     const gchar *pusher;
     const char *project[2];
@@ -163,6 +164,7 @@ static void
 _git_eventc_post_receive_init(GitEventcPostReceiveContext *context, git_repository *repository)
 {
     int error;
+    const gchar *repository_url = NULL;
 
     context->repository = repository;
 
@@ -186,6 +188,7 @@ _git_eventc_post_receive_init(GitEventcPostReceiveContext *context, git_reposito
     {
         git_config_get_string(&context->project[0], config, PACKAGE_NAME ".project-group");
         git_config_get_string(&context->project[1], config, PACKAGE_NAME ".project");
+        git_config_get_string(&repository_url, config, PACKAGE_NAME ".repository-url");
         git_config_get_string(&context->branch_url, config, PACKAGE_NAME ".branch-url");
         git_config_get_string(&context->tag_url, config, PACKAGE_NAME ".tag-url");
         git_config_get_string(&context->commit_url, config, PACKAGE_NAME ".commit-url");
@@ -209,6 +212,9 @@ _git_eventc_post_receive_init(GitEventcPostReceiveContext *context, git_reposito
         }
         context->repository_name = context->repository_guessed_name;
     }
+
+    if ( repository_url != NULL )
+        context->repository_url = g_strdup_printf(repository_url, context->repository_name);
 }
 
 static void
@@ -227,12 +233,12 @@ _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gcha
         gchar *url = NULL;
         if ( context->branch_url != NULL )
             url = g_strdup_printf(context->branch_url, context->repository_name, branch);
-        git_eventc_send_branch_created(context->pusher, url, context->repository_name, branch, context->project);
+        git_eventc_send_branch_created(context->pusher, url, context->repository_name, context->repository_url, branch, context->project);
         g_free(url);
     }
     else if ( git_oid_iszero(to) )
     {
-        git_eventc_send_branch_deleted(context->pusher, context->repository_name, branch, context->project);
+        git_eventc_send_branch_deleted(context->pusher, context->repository_name, context->repository_url, branch, context->project);
         return;
     }
 
@@ -273,7 +279,7 @@ _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gcha
         if ( context->diff_url != NULL )
             url = g_strdup_printf(context->diff_url, context->repository_name, before, after);
 
-        git_eventc_send_commit_group(context->pusher, size, url, context->repository_name, branch, context->project);
+        git_eventc_send_commit_group(context->pusher, size, url, context->repository_name, context->repository_url, branch, context->project);
     }
     else
     {
@@ -293,7 +299,7 @@ _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gcha
             gchar *files;
             files = _git_eventc_commit_get_files(context->repository, commit);
 
-            git_eventc_send_commit(id, git_commit_message(commit), url, author->name, NULL, author->email, context->repository_name, branch, files, context->project);
+            git_eventc_send_commit(id, git_commit_message(commit), url, author->name, NULL, author->email, context->repository_name, context->repository_url, branch, files, context->project);
 
             g_free(files);
         }
@@ -326,7 +332,7 @@ _git_eventc_post_receive_tag(GitEventcPostReceiveContext *context, const gchar *
     int error;
 
     if ( ! git_oid_iszero(from) )
-        git_eventc_send_tag_deleted(context->pusher, context->repository_name, tag_name, context->project);
+        git_eventc_send_tag_deleted(context->pusher, context->repository_name, context->repository_url, tag_name, context->project);
 
     if ( ! git_oid_iszero(to) )
     {
@@ -392,7 +398,7 @@ _git_eventc_post_receive_tag(GitEventcPostReceiveContext *context, const gchar *
         if ( context->tag_url != NULL )
             url = g_strdup_printf(context->tag_url, context->repository_name, tag_name);
 
-        git_eventc_send_tag_created(context->pusher, url, context->repository_name, tag_name, previous_tag_name, context->project);
+        git_eventc_send_tag_created(context->pusher, url, context->repository_name, context->repository_url, tag_name, previous_tag_name, context->project);
         g_free(url);
     }
 }

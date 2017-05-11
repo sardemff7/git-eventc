@@ -434,7 +434,7 @@ _git_eventc_get_url(const gchar *url)
 }
 
 static void
-_git_eventc_send_branch(gboolean created, const gchar *pusher_name, const gchar *url, const gchar *repository_name, const gchar *branch, const gchar **project)
+_git_eventc_send_branch(gboolean created, const gchar *pusher_name, const gchar *url, const gchar *repository_name, const gchar *repository_url, const gchar *branch, const gchar **project)
 {
     EventdEvent *event;
 
@@ -445,6 +445,7 @@ _git_eventc_send_branch(gboolean created, const gchar *pusher_name, const gchar 
         eventd_event_add_data_string(event, g_strdup("url"), _git_eventc_get_url(url));
 
     eventd_event_add_data_string(event, g_strdup("repository-name"), g_strdup(repository_name));
+    eventd_event_add_data_string(event, g_strdup("repository-url"), g_strdup(repository_url));
     eventd_event_add_data_string(event, g_strdup("branch"), g_strdup(branch));
 
     if ( project[0] != NULL )
@@ -459,19 +460,19 @@ _git_eventc_send_branch(gboolean created, const gchar *pusher_name, const gchar 
 }
 
 void
-git_eventc_send_branch_created(const gchar *pusher_name, const gchar *url, const gchar *repository_name, const gchar *branch, const gchar **project)
+git_eventc_send_branch_created(const gchar *pusher_name, const gchar *url, const gchar *repository_name, const gchar *repository_url, const gchar *branch, const gchar **project)
 {
-    _git_eventc_send_branch(TRUE, pusher_name, url, repository_name, branch, project);
+    _git_eventc_send_branch(TRUE, pusher_name, url, repository_name, repository_url, branch, project);
 }
 
 void
-git_eventc_send_branch_deleted(const gchar *pusher_name, const gchar *repository_name, const gchar *branch, const gchar **project)
+git_eventc_send_branch_deleted(const gchar *pusher_name, const gchar *repository_name, const gchar *repository_url, const gchar *branch, const gchar **project)
 {
-    _git_eventc_send_branch(FALSE, pusher_name, NULL, repository_name, branch, project);
+    _git_eventc_send_branch(FALSE, pusher_name, NULL, repository_name, repository_url, branch, project);
 }
 
 static void
-_git_eventc_send_tag(gboolean created, const gchar *pusher_name, const gchar *url, const gchar *repository_name, const gchar *tag, const gchar *previous_tag, const gchar **project)
+_git_eventc_send_tag(gboolean created, const gchar *pusher_name, const gchar *url, const gchar *repository_name, const gchar *repository_url, const gchar *tag, const gchar *previous_tag, const gchar **project)
 {
     EventdEvent *event;
 
@@ -482,6 +483,7 @@ _git_eventc_send_tag(gboolean created, const gchar *pusher_name, const gchar *ur
         eventd_event_add_data_string(event, g_strdup("url"), _git_eventc_get_url(url));
 
     eventd_event_add_data_string(event, g_strdup("repository-name"), g_strdup(repository_name));
+    eventd_event_add_data_string(event, g_strdup("repository-url"), g_strdup(repository_url));
     eventd_event_add_data_string(event, g_strdup("tag"), g_strdup(tag));
     if ( previous_tag != NULL )
         eventd_event_add_data_string(event, g_strdup("previous-tag"), g_strdup(previous_tag));
@@ -498,19 +500,19 @@ _git_eventc_send_tag(gboolean created, const gchar *pusher_name, const gchar *ur
 }
 
 void
-git_eventc_send_tag_created(const gchar *pusher_name, const gchar *url, const gchar *repository_name, const gchar *tag, const gchar *previous_tag, const gchar **project)
+git_eventc_send_tag_created(const gchar *pusher_name, const gchar *url, const gchar *repository_name, const gchar *repository_url, const gchar *tag, const gchar *previous_tag, const gchar **project)
 {
-    _git_eventc_send_tag(TRUE, pusher_name, url, repository_name, tag, previous_tag, project);
+    _git_eventc_send_tag(TRUE, pusher_name, url, repository_name, repository_url, tag, previous_tag, project);
 }
 
 void
-git_eventc_send_tag_deleted(const gchar *pusher_name, const gchar *repository_name, const gchar *tag, const gchar **project)
+git_eventc_send_tag_deleted(const gchar *pusher_name, const gchar *repository_name, const gchar *repository_url, const gchar *tag, const gchar **project)
 {
-    _git_eventc_send_tag(FALSE, pusher_name, NULL, repository_name, tag, NULL, project);
+    _git_eventc_send_tag(FALSE, pusher_name, NULL, repository_name, repository_url, tag, NULL, project);
 }
 
 void
-git_eventc_send_commit_group(const gchar *pusher_name, guint size, const gchar *url, const gchar *repository_name, const gchar *branch, const gchar **project)
+git_eventc_send_commit_group(const gchar *pusher_name, guint size, const gchar *url, const gchar *repository_name, const gchar *repository_url, const gchar *branch, const gchar **project)
 {
     EventdEvent *event;
 
@@ -529,13 +531,14 @@ git_eventc_send_commit_group(const gchar *pusher_name, guint size, const gchar *
         eventd_event_add_data_string(event, g_strdup("project"), g_strdup(project[1]));
     else
         eventd_event_add_data_string(event, g_strdup("project"), g_strdup(repository_name));
+    eventd_event_add_data_string(event, g_strdup("repository-url"), g_strdup(repository_url));
 
     eventc_connection_event(client, event, NULL);
     eventd_event_unref(event);
 }
 
 void
-git_eventc_send_commit(const gchar *id, const gchar *base_message, const gchar *url, const gchar *author_name, const gchar *author_username, const gchar *author_email, const gchar *repository_name, const gchar *branch, const gchar *files, const gchar **project)
+git_eventc_send_commit(const gchar *id, const gchar *base_message, const gchar *url, const gchar *author_name, const gchar *author_username, const gchar *author_email, const gchar *repository_name, const gchar *repository_url, const gchar *branch, const gchar *files, const gchar **project)
 {
 #ifdef GIT_EVENTC_DEBUG
     g_debug("Send commit:"
@@ -546,6 +549,7 @@ git_eventc_send_commit(const gchar *id, const gchar *base_message, const gchar *
         "\nAuthor username: %s"
         "\nAuthor email: %s"
         "\nRepository: %s"
+        "\nRepository URL: %s"
         "\nBranch: %s"
         "\nFiles: %s"
         "\nProject: %s / %s",
@@ -556,6 +560,7 @@ git_eventc_send_commit(const gchar *id, const gchar *base_message, const gchar *
         author_username,
         author_email,
         repository_name,
+        repository_url,
         branch,
         files,
         project[0], project[1]);
@@ -639,6 +644,7 @@ git_eventc_send_commit(const gchar *id, const gchar *base_message, const gchar *
         eventd_event_add_data_string(event, g_strdup("author-username"), g_strdup(author_username));
 
     eventd_event_add_data_string(event, g_strdup("repository-name"), g_strdup(repository_name));
+    eventd_event_add_data_string(event, g_strdup("repository-url"), g_strdup(repository_url));
     eventd_event_add_data_string(event, g_strdup("branch"), g_strdup(branch));
 
     if ( files != NULL )
@@ -656,7 +662,7 @@ git_eventc_send_commit(const gchar *id, const gchar *base_message, const gchar *
 }
 
 void
-git_eventc_send_bugreport(const gchar *action, guint64 number, const gchar *title, const gchar *url, const gchar *author_name, const gchar *author_username, const gchar *author_email, GVariant *tags, const gchar *repository_name, const gchar **project)
+git_eventc_send_bugreport(const gchar *action, guint64 number, const gchar *title, const gchar *url, const gchar *author_name, const gchar *author_username, const gchar *author_email, GVariant *tags, const gchar *repository_name, const gchar *repository_url, const gchar **project)
 {
     EventdEvent *event;
 
@@ -676,6 +682,7 @@ git_eventc_send_bugreport(const gchar *action, guint64 number, const gchar *titl
         eventd_event_add_data(event, g_strdup("tags"), tags);
 
     eventd_event_add_data_string(event, g_strdup("repository-name"), g_strdup(repository_name));
+    eventd_event_add_data_string(event, g_strdup("repository-url"), g_strdup(repository_url));
 
     if ( project[0] != NULL )
         eventd_event_add_data_string(event, g_strdup("project-group"), g_strdup(project[0]));
