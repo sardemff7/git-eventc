@@ -299,7 +299,7 @@ _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gcha
             gchar *files;
             files = _git_eventc_commit_get_files(context->repository, commit);
 
-            git_eventc_send_commit(id, git_commit_message(commit), url, author->name, NULL, author->email, context->repository_name, context->repository_url, branch, files, context->project);
+            git_eventc_send_commit(id, git_commit_message(commit), url, context->pusher, author->name, NULL, author->email, context->repository_name, context->repository_url, branch, files, context->project);
 
             g_free(files);
         }

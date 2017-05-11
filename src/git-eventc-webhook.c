@@ -228,6 +228,7 @@ _git_eventc_webhook_payload_parse_github_branch(const gchar **project, JsonObjec
                 json_object_get_string_member(commit, "id"),
                 json_object_get_string_member(commit, "message"),
                 json_object_get_string_member(commit, "url"),
+                pusher_name,
                 json_object_get_string_member(author, "name"),
                 json_object_get_string_member(author, "username"),
                 json_object_get_string_member(author, "email"),

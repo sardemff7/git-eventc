@@ -538,13 +538,14 @@ git_eventc_send_commit_group(const gchar *pusher_name, guint size, const gchar *
 }
 
 void
-git_eventc_send_commit(const gchar *id, const gchar *base_message, const gchar *url, const gchar *author_name, const gchar *author_username, const gchar *author_email, const gchar *repository_name, const gchar *repository_url, const gchar *branch, const gchar *files, const gchar **project)
+git_eventc_send_commit(const gchar *id, const gchar *base_message, const gchar *url, const gchar *pusher_name, const gchar *author_name, const gchar *author_username, const gchar *author_email, const gchar *repository_name, const gchar *repository_url, const gchar *branch, const gchar *files, const gchar **project)
 {
 #ifdef GIT_EVENTC_DEBUG
     g_debug("Send commit:"
         "\nID: %s"
         "\nMessage: %s"
         "\nURL: %s"
+        "\nPusher name: %s"
         "\nAuthor name: %s"
         "\nAuthor username: %s"
         "\nAuthor email: %s"
@@ -556,6 +557,7 @@ git_eventc_send_commit(const gchar *id, const gchar *base_message, const gchar *
         id,
         base_message,
         url,
+        pusher_name,
         author_name,
         author_username,
         author_email,
@@ -638,6 +640,7 @@ git_eventc_send_commit(const gchar *id, const gchar *base_message, const gchar *
     if ( url != NULL )
         eventd_event_add_data_string(event, g_strdup("url"), _git_eventc_get_url(url));
 
+    eventd_event_add_data_string(event, g_strdup("pusher-name"), g_strdup(pusher_name));
     eventd_event_add_data_string(event, g_strdup("author-name"), g_strdup(author_name));
     eventd_event_add_data_string(event, g_strdup("author-email"), g_strdup(author_email));
     if ( author_username != NULL )
