@@ -18,6 +18,9 @@ Here is the list of common data provided by all events:
 * `repository-url`: The URL of the repository
 * `project-group`: The project group name (if set)
 * `project`: The project name, defaults to `repository-name`
+* `pusher-name`: The name of the pusher
+* `branch`: The updated branch name (not for `tag-` events)
+* `url`: An URL to see the change online (not for `-deleted` events)
 
 
 ### `commit`
@@ -30,11 +33,9 @@ Here is the list of provided data:
 * `subject`: The commit subject (first line of message)
 * `message`: The commit message (with subject and footer tags stripped, only if not empty)
 * `full-message`: The full commit message (verbatim)
-* `branch`: The updated branch name
 * `author-name`: The name of the author
 * `author-email`: The email of the author
 * `author-username`: The username of the author (if available)
-* `url`: An URL to see the change online
 * `files`: The list (as a string) of modified files, with some basic prefix detection
     <br />
     The `post-receive` hook also detects file renames and copies if asked so.
@@ -47,21 +48,12 @@ It will be generated if a push is adding a number of commits above a specified t
 <br />
 Here is the list of provided data:
 
-* `pusher-name`: The name of the pusher
-* `branch`: The updated branch name
 * `size`: The number of commits in this push
-* `url`: An URL to see the change online
 
 
 ### `branch-created` and `branch-deleted`
 
 This event correspond to the creation/deletion of a branch.
-<br />
-Here is the list of provided data:
-
-* `pusher-name`: The name of the pusher
-* `branch`: The updated branch name
-* `url`: An URL to see the change online (for `branch-created` only)
 
 
 ### `tag-created` and `tag-deleted`
@@ -70,9 +62,6 @@ This event correspond to the creation/deletion of a tag.
 <br />
 Here is the list of provided data:
 
-* `pusher-name`: The name of the pusher
-* `branch`: These two events will *not* have a branch name
-* `url`: An URL to see the change online (for `tag-created` only)
 * `previous-tag`: The latest tag in this tag history tree (for `tag-created` only)
 
 
