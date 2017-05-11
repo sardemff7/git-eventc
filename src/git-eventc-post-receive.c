@@ -227,19 +227,21 @@ static void
 _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gchar *ref_name, const gchar *branch, const gchar *before, const git_oid *from, const gchar *after, const git_oid *to)
 {
     int error;
+    GSList *commits = NULL;
+    gchar *diff_url = NULL;
 
     if ( git_oid_iszero(from) )
     {
-        gchar *url = NULL;
+        gchar *branch_url = NULL;
         if ( context->branch_url != NULL )
-            url = g_strdup_printf(context->branch_url, context->repository_name, branch);
-        git_eventc_send_branch_created(context->pusher, url, context->repository_name, context->repository_url, branch, context->project);
-        g_free(url);
+            branch_url = g_strdup_printf(context->branch_url, context->repository_name, branch);
+        git_eventc_send_branch_created(context->pusher, branch_url, context->repository_name, context->repository_url, branch, context->project);
+        g_free(branch_url);
     }
     else if ( git_oid_iszero(to) )
     {
         git_eventc_send_branch_deleted(context->pusher, context->repository_name, context->repository_url, branch, context->project);
-        return;
+        goto cleanup;
     }
 
     git_revwalk *walker;
@@ -247,7 +249,7 @@ _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gcha
     if ( error < 0 )
     {
         g_warning("Couldn't initialize revision walker: %s", giterr_last()->message);
-        return;
+        goto cleanup;
     }
     git_revwalk_sorting(walker, GIT_SORT_TOPOLOGICAL);
 
@@ -256,31 +258,27 @@ _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gcha
     if ( error < 0 )
     {
         g_warning("Couldn't push the revision list: %s", giterr_last()->message);
-        return;
+        goto cleanup;
     }
     git_oid id;
     guint size = 0;
-    GSList *commits = NULL;
     while ( ( ( error = git_revwalk_next(&id, walker) ) != GIT_ITEROVER ) && ( ! git_oid_equal(from, &id) ) )
     {
         if ( error < 0 )
         {
             g_warning("Couldn't walk the revision list: %s", giterr_last()->message);
-            return;
+            goto cleanup;
         }
         git_commit_lookup(&commit, context->repository, &id);
         ++size;
         commits = g_slist_prepend(commits, commit);
     }
 
-    gchar *url = NULL;
-    if ( git_eventc_is_above_threshold(size) )
-    {
-        if ( context->diff_url != NULL )
-            url = g_strdup_printf(context->diff_url, context->repository_name, before, after);
+    if ( context->diff_url != NULL )
+        diff_url = g_strdup_printf(context->diff_url, context->repository_name, before, after);
 
-        git_eventc_send_commit_group(context->pusher, size, url, context->repository_name, context->repository_url, branch, context->project);
-    }
+    if ( git_eventc_is_above_threshold(size) )
+        git_eventc_send_commit_group(context->pusher, size, diff_url, context->repository_name, context->repository_url, branch, context->project);
     else
     {
         char id[GIT_OID_HEXSZ+1];
@@ -289,22 +287,23 @@ _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gcha
         {
             const git_commit *commit = commit_->data;
             const git_signature *author = git_commit_author(commit);
+            gchar *commit_url = NULL;
 
             git_oid_tostr(id, GIT_OID_HEXSZ+1, git_commit_id(commit));
             if ( context->commit_url != NULL )
-            {
-                g_free(url);
-                url = g_strdup_printf(context->commit_url, context->repository_name, id);
-            }
+                commit_url = g_strdup_printf(context->commit_url, context->repository_name, id);
             gchar *files;
             files = _git_eventc_commit_get_files(context->repository, commit);
 
-            git_eventc_send_commit(id, git_commit_message(commit), url, context->pusher, author->name, NULL, author->email, context->repository_name, context->repository_url, branch, files, context->project);
+            git_eventc_send_commit(id, git_commit_message(commit), commit_url, context->pusher, author->name, NULL, author->email, context->repository_name, context->repository_url, branch, files, context->project);
 
+            g_free(commit_url);
             g_free(files);
         }
     }
-    g_free(url);
+
+cleanup:
+    g_free(diff_url);
     g_slist_free_full(commits, (GDestroyNotify) git_commit_free);
 }
 
