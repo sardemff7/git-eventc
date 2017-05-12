@@ -162,24 +162,14 @@ fail:
 }
 
 static void
-_git_eventc_post_receive_init(GitEventcPostReceiveContext *context, git_repository *repository)
+_git_eventc_post_receive_init(GitEventcPostReceiveContext *context)
 {
     int error;
     const gchar *repository_url = NULL;
 
-    context->repository = repository;
-
     /* Use Gitolite env */
     context->pusher = g_getenv("GL_USER");
     context->repository_name = g_getenv("GL_REPO");
-    context->repository_guessed_name = NULL;
-
-    context->project[0] = NULL;
-    context->project[1] = NULL;
-    context->branch_url = NULL;
-    context->commit_url = NULL;
-    context->tag_url = NULL;
-    context->diff_url = NULL;
 
     git_config *config;
     error = git_repository_config(&config, context->repository);
@@ -201,8 +191,8 @@ _git_eventc_post_receive_init(GitEventcPostReceiveContext *context, git_reposito
         context->pusher = "Jane Doe";
     if ( context->repository_name == NULL )
     {
-        const gchar *path = git_repository_path(repository);
-        if ( git_repository_is_bare(repository) )
+        const gchar *path = git_repository_path(context->repository);
+        if ( git_repository_is_bare(context->repository) )
             context->repository_guessed_name = g_path_get_basename(path);
         else
         {
@@ -525,8 +515,8 @@ main(int argc, char *argv[])
         }
         else
         {
-            GitEventcPostReceiveContext context;
-            _git_eventc_post_receive_init(&context, repository);
+            GitEventcPostReceiveContext context = { .repository = repository };
+            _git_eventc_post_receive_init(&context);
             /* Set some diff options */
             _git_eventc_diff_options.flags |= GIT_DIFF_INCLUDE_TYPECHANGE;
 
