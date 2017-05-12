@@ -178,6 +178,49 @@ _git_eventc_post_receive_get_config_string(git_config *config, const gchar *name
     return value;
 }
 
+static gboolean
+_git_eventc_post_receive_check_url_format(const gchar *name, const gchar *format, gsize expected)
+{
+    if ( format == NULL )
+        return TRUE;
+
+    gsize found = 0;
+    gboolean strings_only = TRUE;
+    const gchar *c;
+    for ( c = format ; strings_only && ( found <= expected ) && ( g_utf8_get_char(c) != '\0' ) ; c = g_utf8_next_char(c) )
+    {
+        if ( g_utf8_get_char(c) != '%' )
+            continue;
+        c = g_utf8_next_char(c);
+        switch ( g_utf8_get_char(c) )
+        {
+        case '%':
+        break;
+        case 's':
+            if ( ++found > expected )
+                g_warning("Wrong URL format %s: expecting only %zu modifiers", name, expected);
+        break;
+        default:
+            g_warning("Wrong URL format%s : expecting only string modifiers, got %%%c", name, g_utf8_get_char(c));
+            strings_only = FALSE;
+        }
+    }
+    return ( strings_only && ( found <= expected ) );
+}
+
+static gchar *
+_git_eventc_post_receive_get_config_url_format(git_config *config, const gchar *name, gsize expected)
+{
+    gchar *value;
+
+    value = _git_eventc_post_receive_get_config_string(config, name);
+
+    if ( ! _git_eventc_post_receive_check_url_format(name, value, expected) )
+        value = (g_free(value), NULL);
+
+    return value;
+}
+
 static void
 _git_eventc_post_receive_init(GitEventcPostReceiveContext *context)
 {
@@ -196,11 +239,11 @@ _git_eventc_post_receive_init(GitEventcPostReceiveContext *context)
     {
         context->project_group = _git_eventc_post_receive_get_config_string(config, PACKAGE_NAME ".project-group");
         context->project_name = _git_eventc_post_receive_get_config_string(config, PACKAGE_NAME ".project");
-        repository_url = _git_eventc_post_receive_get_config_string(config, PACKAGE_NAME ".repository-url");
-        context->branch_url = _git_eventc_post_receive_get_config_string(config, PACKAGE_NAME ".branch-url");
-        context->tag_url = _git_eventc_post_receive_get_config_string(config, PACKAGE_NAME ".tag-url");
-        context->commit_url = _git_eventc_post_receive_get_config_string(config, PACKAGE_NAME ".commit-url");
-        context->diff_url = _git_eventc_post_receive_get_config_string(config, PACKAGE_NAME ".diff-url");
+        repository_url = _git_eventc_post_receive_get_config_url_format(config, PACKAGE_NAME ".repository-url", 1);
+        context->branch_url = _git_eventc_post_receive_get_config_url_format(config, PACKAGE_NAME ".branch-url", 2);
+        context->tag_url = _git_eventc_post_receive_get_config_url_format(config, PACKAGE_NAME ".tag-url", 2);
+        context->commit_url = _git_eventc_post_receive_get_config_url_format(config, PACKAGE_NAME ".commit-url", 2);
+        context->diff_url = _git_eventc_post_receive_get_config_url_format(config, PACKAGE_NAME ".diff-url", 3);
         context->repository_name = _git_eventc_post_receive_get_config_string(config, PACKAGE_NAME ".repository");
 
         git_config_free(config);
