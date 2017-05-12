@@ -22,6 +22,7 @@
 
 #include "config.h"
 
+#include <locale.h>
 #include <string.h>
 
 #include <glib.h>
@@ -163,6 +164,8 @@ out:
 gboolean
 git_eventc_parse_options(gint *argc, gchar ***argv, GOptionEntry *extra_entries, const gchar *description, GitEventcKeyFileFunc extra_parsing, gboolean *print_version)
 {
+    setlocale(LC_ALL, "");
+
     *print_version = FALSE;
 
     const gchar *config_file;
