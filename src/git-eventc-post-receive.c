@@ -78,6 +78,7 @@ _git_eventc_diff_foreach_callback(const git_diff_delta *delta, float progress, v
             return 0;
         case GIT_DELTA_DELETED:
             new_path = old_path;
+            /* fallthrough */
         default:
             path = g_strdup(new_path);
         break;
@@ -442,6 +443,7 @@ _git_eventc_parse_percent_arg(const gchar *option_name, const gchar *value, guin
     case 3: /* strlen("10%") */
         if ( value[2] != '%' )
             break;
+        /* fallthrough */
     case 2: /* strlen("1%") || strlen("10") */
         if ( value[1] == '%' )
             v = g_ascii_digit_value(value[0]);
