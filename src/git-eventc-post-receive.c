@@ -46,11 +46,13 @@ typedef struct {
     gchar *repository_url;
     gchar *repository_guessed_name;
     const gchar *pusher;
-    const char *project[2];
-    const char *branch_url;
-    const char *commit_url;
-    const char *tag_url;
-    const char *diff_url;
+    const gchar *project[2];
+    gchar *project_group;
+    gchar *project_name;
+    gchar *branch_url;
+    gchar *commit_url;
+    gchar *tag_url;
+    gchar *diff_url;
 } GitEventcPostReceiveContext;
 
 static git_diff_options _git_eventc_diff_options;
@@ -161,31 +163,50 @@ fail:
     return files;
 }
 
+static gchar *
+_git_eventc_post_receive_get_config_string(git_config *config, const gchar *name)
+{
+    git_config_entry *entry;
+    if ( git_config_get_entry(&entry, config, name) < 0 )
+        return NULL;
+
+    gchar *value;
+
+    value = g_strdup(entry->value);
+
+    git_config_entry_free(entry);
+    return value;
+}
+
 static void
 _git_eventc_post_receive_init(GitEventcPostReceiveContext *context)
 {
     int error;
-    const gchar *repository_url = NULL;
+    gchar *repository_url = NULL;
 
     /* Use Gitolite env */
     context->pusher = g_getenv("GL_USER");
     context->repository_name = g_getenv("GL_REPO");
 
     git_config *config;
-    error = git_repository_config(&config, context->repository);
+    error = git_repository_config_snapshot(&config, context->repository);
     if ( error < 0 )
         g_warning("Couldn't get repository configuration: %s", giterr_last()->message);
     else
     {
-        git_config_get_string(&context->project[0], config, PACKAGE_NAME ".project-group");
-        git_config_get_string(&context->project[1], config, PACKAGE_NAME ".project");
-        git_config_get_string(&repository_url, config, PACKAGE_NAME ".repository-url");
-        git_config_get_string(&context->branch_url, config, PACKAGE_NAME ".branch-url");
-        git_config_get_string(&context->tag_url, config, PACKAGE_NAME ".tag-url");
-        git_config_get_string(&context->commit_url, config, PACKAGE_NAME ".commit-url");
-        git_config_get_string(&context->diff_url, config, PACKAGE_NAME ".diff-url");
-        git_config_get_string(&context->repository_name, config, PACKAGE_NAME ".repository");
+        context->project_group = _git_eventc_post_receive_get_config_string(config, PACKAGE_NAME ".project-group");
+        context->project_name = _git_eventc_post_receive_get_config_string(config, PACKAGE_NAME ".project");
+        repository_url = _git_eventc_post_receive_get_config_string(config, PACKAGE_NAME ".repository-url");
+        context->branch_url = _git_eventc_post_receive_get_config_string(config, PACKAGE_NAME ".branch-url");
+        context->tag_url = _git_eventc_post_receive_get_config_string(config, PACKAGE_NAME ".tag-url");
+        context->commit_url = _git_eventc_post_receive_get_config_string(config, PACKAGE_NAME ".commit-url");
+        context->diff_url = _git_eventc_post_receive_get_config_string(config, PACKAGE_NAME ".diff-url");
+        context->repository_name = _git_eventc_post_receive_get_config_string(config, PACKAGE_NAME ".repository");
+
+        git_config_free(config);
     }
+    context->project[0] = context->project_group;
+    context->project[1] = context->project_name;
 
     if ( context->pusher == NULL )
         context->pusher = "Jane Doe";
@@ -206,12 +227,19 @@ _git_eventc_post_receive_init(GitEventcPostReceiveContext *context)
 
     if ( repository_url != NULL )
         context->repository_url = g_strdup_printf(repository_url, context->repository_name);
+    g_free(repository_url);
 }
 
 static void
 _git_eventc_post_receive_clean(GitEventcPostReceiveContext *context)
 {
     g_free(context->repository_guessed_name);
+    g_free(context->diff_url);
+    g_free(context->tag_url);
+    g_free(context->commit_url);
+    g_free(context->branch_url);
+    g_free(context->project_name);
+    g_free(context->project_group);
 }
 
 static void
