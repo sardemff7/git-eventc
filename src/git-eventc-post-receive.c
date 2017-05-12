@@ -53,8 +53,8 @@ typedef struct {
     const char *diff_url;
 } GitEventcPostReceiveContext;
 
-static git_diff_options _git_eventc_diff_options = GIT_DIFF_OPTIONS_INIT;
-static git_diff_find_options _git_eventc_diff_find_options = GIT_DIFF_FIND_OPTIONS_INIT;
+static git_diff_options _git_eventc_diff_options;
+static git_diff_find_options _git_eventc_diff_find_options;
 
 static int
 _git_eventc_diff_foreach_callback(const git_diff_delta *delta, float progress, void *payload)
@@ -485,7 +485,13 @@ main(int argc, char *argv[])
 
     int retval = 1;
 
-    git_libgit2_init();
+    if ( git_libgit2_init() < 0 )
+        return retval;
+    if ( git_diff_init_options(&_git_eventc_diff_options, GIT_DIFF_OPTIONS_VERSION) < 0 )
+        return retval;
+    if ( git_diff_find_init_options(&_git_eventc_diff_find_options, GIT_DIFF_FIND_OPTIONS_VERSION) < 0 )
+        return retval;
+
 
     GOptionEntry entries[] =
     {
