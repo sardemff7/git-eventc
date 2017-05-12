@@ -542,6 +542,13 @@ _git_eventc_find_copies(const gchar *option_name, const gchar *value, gpointer d
     return TRUE;
 }
 
+static gboolean
+_git_eventc_post_receive_disconnect_idle(gpointer user_data)
+{
+    git_eventc_disconnect();
+    return G_SOURCE_REMOVE;
+}
+
 int
 main(int argc, char *argv[])
 {
@@ -572,7 +579,10 @@ main(int argc, char *argv[])
         goto end;
     }
 
-    if ( git_eventc_init(NULL, &retval) )
+    GMainLoop *loop;
+
+    loop = g_main_loop_new(NULL, FALSE);
+    if ( git_eventc_init(loop, &retval) )
     {
         int error;
         git_repository *repository = NULL;
@@ -620,6 +630,8 @@ main(int argc, char *argv[])
                 _git_eventc_post_receive(&context, before, after, ref);
             }
             free(line);
+            g_idle_add(_git_eventc_post_receive_disconnect_idle, NULL);
+            g_main_loop_run(loop);
             _git_eventc_post_receive_clean(&context);
         }
         giterr_clear();
@@ -627,6 +639,7 @@ main(int argc, char *argv[])
     }
     else
         retval = 2;
+    g_main_loop_unref(loop);
 
 end:
     git_eventc_uninit();
