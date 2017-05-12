@@ -445,7 +445,8 @@ _git_eventc_send_branch(gboolean created, const gchar *pusher_name, const gchar 
         eventd_event_add_data_string(event, g_strdup("url"), _git_eventc_get_url(url));
 
     eventd_event_add_data_string(event, g_strdup("repository-name"), g_strdup(repository_name));
-    eventd_event_add_data_string(event, g_strdup("repository-url"), g_strdup(repository_url));
+    if ( repository_url != NULL )
+        eventd_event_add_data_string(event, g_strdup("repository-url"), g_strdup(repository_url));
     eventd_event_add_data_string(event, g_strdup("branch"), g_strdup(branch));
 
     if ( project[0] != NULL )
@@ -483,7 +484,8 @@ _git_eventc_send_tag(gboolean created, const gchar *pusher_name, const gchar *ur
         eventd_event_add_data_string(event, g_strdup("url"), _git_eventc_get_url(url));
 
     eventd_event_add_data_string(event, g_strdup("repository-name"), g_strdup(repository_name));
-    eventd_event_add_data_string(event, g_strdup("repository-url"), g_strdup(repository_url));
+    if ( repository_url != NULL )
+        eventd_event_add_data_string(event, g_strdup("repository-url"), g_strdup(repository_url));
     eventd_event_add_data_string(event, g_strdup("tag"), g_strdup(tag));
     if ( previous_tag != NULL )
         eventd_event_add_data_string(event, g_strdup("previous-tag"), g_strdup(previous_tag));
@@ -523,6 +525,8 @@ git_eventc_send_commit_group(const gchar *pusher_name, guint size, const gchar *
     eventd_event_add_data_string(event, g_strdup("url"), _git_eventc_get_url(url));
 
     eventd_event_add_data_string(event, g_strdup("repository-name"), g_strdup(repository_name));
+    if ( repository_url != NULL )
+        eventd_event_add_data_string(event, g_strdup("repository-url"), g_strdup(repository_url));
     eventd_event_add_data_string(event, g_strdup("branch"), g_strdup(branch));
 
     if ( project[0] != NULL )
@@ -531,7 +535,6 @@ git_eventc_send_commit_group(const gchar *pusher_name, guint size, const gchar *
         eventd_event_add_data_string(event, g_strdup("project"), g_strdup(project[1]));
     else
         eventd_event_add_data_string(event, g_strdup("project"), g_strdup(repository_name));
-    eventd_event_add_data_string(event, g_strdup("repository-url"), g_strdup(repository_url));
 
     eventc_connection_event(client, event, NULL);
     eventd_event_unref(event);
@@ -647,7 +650,8 @@ git_eventc_send_commit(const gchar *id, const gchar *base_message, const gchar *
         eventd_event_add_data_string(event, g_strdup("author-username"), g_strdup(author_username));
 
     eventd_event_add_data_string(event, g_strdup("repository-name"), g_strdup(repository_name));
-    eventd_event_add_data_string(event, g_strdup("repository-url"), g_strdup(repository_url));
+    if ( repository_url != NULL )
+        eventd_event_add_data_string(event, g_strdup("repository-url"), g_strdup(repository_url));
     eventd_event_add_data_string(event, g_strdup("branch"), g_strdup(branch));
 
     if ( files != NULL )
@@ -675,6 +679,8 @@ git_eventc_send_push(const gchar *url, const gchar *pusher_name, const gchar *re
     eventd_event_add_data_string(event, g_strdup("url"), _git_eventc_get_url(url));
 
     eventd_event_add_data_string(event, g_strdup("repository-name"), g_strdup(repository_name));
+    if ( repository_url != NULL )
+        eventd_event_add_data_string(event, g_strdup("repository-url"), g_strdup(repository_url));
     eventd_event_add_data_string(event, g_strdup("branch"), g_strdup(branch));
 
     if ( project[0] != NULL )
@@ -683,7 +689,6 @@ git_eventc_send_push(const gchar *url, const gchar *pusher_name, const gchar *re
         eventd_event_add_data_string(event, g_strdup("project"), g_strdup(project[1]));
     else
         eventd_event_add_data_string(event, g_strdup("project"), g_strdup(repository_name));
-    eventd_event_add_data_string(event, g_strdup("repository-url"), g_strdup(repository_url));
 
     eventc_connection_event(client, event, NULL);
     eventd_event_unref(event);
@@ -710,7 +715,8 @@ git_eventc_send_bugreport(const gchar *action, guint64 number, const gchar *titl
         eventd_event_add_data(event, g_strdup("tags"), tags);
 
     eventd_event_add_data_string(event, g_strdup("repository-name"), g_strdup(repository_name));
-    eventd_event_add_data_string(event, g_strdup("repository-url"), g_strdup(repository_url));
+    if ( repository_url != NULL )
+        eventd_event_add_data_string(event, g_strdup("repository-url"), g_strdup(repository_url));
 
     if ( project[0] != NULL )
         eventd_event_add_data_string(event, g_strdup("project-group"), g_strdup(project[0]));
