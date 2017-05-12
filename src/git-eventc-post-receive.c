@@ -20,17 +20,10 @@
  *
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif /* HAVE_CONFIG_H */
+#include "config.h"
 
-#ifdef HAVE_STRING_H
 #include <string.h>
-#endif /* HAVE_STRING_H */
-
-#ifdef HAVE_STDIO_H
 #include <stdio.h>
-#endif /* HAVE_STDIO_H */
 
 #include <glib.h>
 #include <glib-object.h>

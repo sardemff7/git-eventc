@@ -20,13 +20,9 @@
  *
  */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif /* HAVE_CONFIG_H */
+#include "config.h"
 
-#ifdef HAVE_STRING_H
 #include <string.h>
-#endif /* HAVE_STRING_H */
 
 #include <glib.h>
 #include <glib/gstdio.h>
@@ -36,9 +32,7 @@
 #endif /* G_OS_UNIX */
 
 #ifdef ENABLE_SYSTEMD
-#ifdef HAVE_SYS_SOCKET_H
 #include <sys/socket.h>
-#endif /* HAVE_SYS_SOCKET_H */
 #include <systemd/sd-daemon.h>
 #define SYSTEMD_SOCKETS_HELP ", -1 (= none) if systemd sockets are detected"
 #else /* ! ENABLE_SYSTEMD */
