@@ -105,6 +105,7 @@ static guint merge_threshold = 5;
 static guint commit_id_size = 7;
 static gboolean shortener = FALSE;
 
+static gboolean should_reconnect = TRUE;
 static EventcConnection *client = NULL;
 static SoupSession *shortener_session = NULL;
 static guint retry_timeout = 0;
@@ -270,9 +271,17 @@ _git_eventc_reconnect(gpointer user_data)
 static void
 _git_eventc_disconnected(EventcConnection *client, gpointer user_data)
 {
+    GMainLoop *loop = user_data;
+
+    if ( ! should_reconnect )
+    {
+        g_main_loop_quit(user_data);
+        return;
+    }
+
     if ( retry_timeout != 0 )
         return;
-    retry_timeout = g_timeout_add_seconds(retry_timeout_seconds, _git_eventc_reconnect, user_data);
+    retry_timeout = g_timeout_add_seconds(retry_timeout_seconds, _git_eventc_reconnect, loop);
 }
 
 #ifdef G_OS_UNIX
@@ -333,6 +342,13 @@ git_eventc_init(GMainLoop *loop, gint *retval)
 #endif /* GIT_EVENTC_DEBUG */
 
     return TRUE;
+}
+
+void
+git_eventc_disconnect(void)
+{
+    should_reconnect = FALSE;
+    eventc_connection_close(client, NULL);
 }
 
 void
