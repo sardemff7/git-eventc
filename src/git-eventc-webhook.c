@@ -338,6 +338,39 @@ _git_eventc_webhook_payload_parse_github_issues(const gchar **project, JsonObjec
     json_object_unref(author);
 }
 
+static void
+_git_eventc_webhook_payload_parse_git_eventc_branch(const gchar **project, JsonObject *root, const gchar *branch)
+{
+    git_eventc_send_push(
+        json_object_get_string_member(root, "compare"),
+        json_object_get_string_member(root, "pusher_name"),
+        json_object_get_string_member(root, "repository_name"),
+        json_object_get_string_member(root, "repository_url"),
+        branch, project);
+}
+
+static void
+_git_eventc_webhook_payload_parse_git_eventc_tag(const gchar **project, JsonObject *root, const gchar *tag G_GNUC_UNUSED /* TODO: use me */)
+{
+    git_eventc_send_push(
+        json_object_get_string_member(root, "compare"),
+        json_object_get_string_member(root, "pusher_name"),
+        json_object_get_string_member(root, "repository_name"),
+        json_object_get_string_member(root, "repository_url"),
+        NULL, project);
+}
+
+static void
+_git_eventc_webhook_payload_parse_git_eventc_push(const gchar **project, JsonObject *root)
+{
+    const gchar *ref = json_object_get_string_member(root, "ref");
+
+    if ( g_str_has_prefix(ref, "refs/heads/") )
+        _git_eventc_webhook_payload_parse_git_eventc_branch(project, root, ref + strlen("refs/heads/"));
+    else if ( g_str_has_prefix(ref, "refs/tags/") )
+        _git_eventc_webhook_payload_parse_git_eventc_tag(project, root, ref + strlen("refs/tags/"));
+}
+
 static gboolean
 _git_eventc_webhook_parse_callback(gpointer user_data)
 {
@@ -406,6 +439,8 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
             const gchar *signature;
             signature = soup_message_headers_get_one(msg->request_headers, "X-Hub-Signature");
             if ( signature == NULL )
+                signature = soup_message_headers_get_one(msg->request_headers, "X-GitEventc-Signature");
+            if ( signature == NULL )
             {
                 g_warning("Signature mandatory but not found %s", user_agent);
                 goto cleanup;
@@ -470,6 +505,17 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
         else if ( g_strcmp0(event, "issues") == 0 )
         {
             parse_data.func = _git_eventc_webhook_payload_parse_github_issues;
+            status_code = SOUP_STATUS_OK;
+        }
+        else if ( g_strcmp0(event, "ping") == 0 )
+            status_code = SOUP_STATUS_OK;
+    }
+    else if ( g_str_has_prefix(user_agent, "GitEventc/") )
+    {
+        const gchar *event = soup_message_headers_get_one(msg->request_headers, "X-GitEventc-Event");
+        if ( g_strcmp0(event, "push") == 0 )
+        {
+            parse_data.func = _git_eventc_webhook_payload_parse_git_eventc_push;
             status_code = SOUP_STATUS_OK;
         }
         else if ( g_strcmp0(event, "ping") == 0 )
