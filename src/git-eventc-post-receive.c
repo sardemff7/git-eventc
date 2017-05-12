@@ -540,12 +540,22 @@ main(int argc, char *argv[])
                 gchar *s;
 
                 s = g_utf8_strchr(line, -1, ' ');
+                if ( s == NULL )
+                    /* Malformed line */
+                    continue;
                 *s = '\0';
                 after = ++s;
 
                 s = g_utf8_strchr(after, -1, ' ');
+                if ( s == NULL )
+                    /* Malformed line */
+                    continue;
                 *s = '\0';
                 ref = ++s;
+
+                if ( ! g_str_has_prefix(ref, "refs/") )
+                    /* Malformed line */
+                    continue;
 
                 _git_eventc_post_receive(&context, before, after, ref);
             }
