@@ -132,28 +132,28 @@ You can use it directly as a post-receive hook or in a wrapper script. Please ma
 It will use configuration directly from Git.
 You should configure most of them in your system configuration (`/etc/gitconfig`).
 <br />
-Here is the list of used values:
+Configuration value names are prefixed by `git-eventc.`. Here is the list of used values:
 
-* `git-eventc.project-group`: used as `project-group`
-* `git-eventc.project`: used as `project`, defaults to `repository-name`
-* `git-eventc.repository`: used as `repository-name` (not meaningful in system configuration)
-* `git-eventc.repository-url`: URL template for the repository with one C-style string conversion specifier (`%s`):
+* `project-group`: used as `project-group`
+* `project`: used as `project`, defaults to `repository-name`
+* `repository`: used as `repository-name` (not meaningful in system configuration)
+* `repository-url`: URL template for the repository with one C-style string conversion specifier (`%s`):
     * the specifier is for the repository name
     * Examples: `http://cgit.example.com/%s` or `http://gitweb.example.com/?p=%s.git`
-* `git-eventc.branch-url`: URL template for a branch with two C-style string conversion specifier (`%s`):
+* `branch-url`: URL template for a branch with two C-style string conversion specifier (`%s`):
     * the first one for the repository name
     * the second one for the branch name
     * Examples: `http://cgit.example.com/%s/log/?h=%s` or `http://gitweb.example.com/?p=%s.git;a=shortlog;h=refs/heads/%s`
-* `git-eventc.commit-url` and `git-eventc.tag-url`: URL template for a single commit/tag with two C-style string conversion specifier (`%s`):
+* `commit-url` and `tag-url`: URL template for a single commit/tag with two C-style string conversion specifier (`%s`):
     * the first one for the repository name
     * the second one for the commit id/tag name
     * Examples: `http://cgit.example.com/%s/commit/?id=%s` or `http://gitweb.example.com/?p=%s.git;a=commitdiff;h=%s`
-* `git-eventc.diff-url`: URL template for a diff between two commits with three C-style string conversion specifier (`%s`):
+* `diff-url`: URL template for a diff between two commits with three C-style string conversion specifier (`%s`):
     * the first one for the repository name
     * the second and third ones for the commit ids
     * Examples: `http://cgit.example.com/%s/diff/?id2=%s&id=%s` or `http://gitweb.example.com/?p=%s.git;a=commitdiff;hp=%s;h=%s`
 
-It also has some basic support for Gitolite environment variables:
+It also has support for Gitolite environment variables:
 
 * `GL_USER`: used as `pusher-name`
 * `GL_REPO`: used as `repository-name`
