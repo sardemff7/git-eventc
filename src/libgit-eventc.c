@@ -142,7 +142,7 @@ _git_eventc_parse_config_file(GKeyFile *key_file, GOptionEntry *entry, GError **
 
         switch ( entry->arg )
         {
-        get_entry(NONE, boolean, gboolean);
+        get_entry_with_code(NONE, boolean, gboolean, *((gboolean *) entry->arg_data) = ( entry->flags & G_OPTION_FLAG_REVERSE) ? !v : v);
         get_entry(STRING, string, gchar *);
         get_entry(FILENAME, string, gchar *);
         get_entry(STRING_ARRAY, string_list_alt, gchar **);
