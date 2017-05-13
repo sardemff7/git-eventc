@@ -339,7 +339,6 @@ _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gcha
 {
     int error;
     git_revwalk *walker = NULL;
-    GSList *commits = NULL;
     gchar *diff_url = NULL;
 
     if ( git_oid_iszero(from) )
@@ -368,9 +367,7 @@ _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gcha
         g_warning("Couldn't initialize revision walker: %s", giterr_last()->message);
         goto cleanup;
     }
-    git_revwalk_sorting(walker, GIT_SORT_TOPOLOGICAL);
 
-    git_commit *commit;
     error = git_revwalk_push(walker, to);
     if ( error < 0 )
     {
@@ -389,11 +386,7 @@ _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gcha
     git_oid id;
     guint size = 0;
     while ( ( error = git_revwalk_next(&id, walker) ) == 0 )
-    {
-        git_commit_lookup(&commit, context->repository, &id);
         ++size;
-        commits = g_slist_prepend(commits, commit);
-    }
     if ( error != GIT_ITEROVER )
     {
         g_warning("Couldn't walk the revision list: %s", giterr_last()->message);
@@ -414,11 +407,28 @@ _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gcha
         git_eventc_send_commit_group(context->pusher, size, diff_url, context->repository_name, context->repository_url, branch, context->project);
     else
     {
-        char idstr[GIT_OID_HEXSZ+1];
-        GSList *commit_;
-        for ( commit_ = commits ; commit_ != NULL ; commit_ = g_slist_next(commit_) )
+        git_revwalk_sorting(walker, GIT_SORT_TOPOLOGICAL | GIT_SORT_REVERSE);
+        error = git_revwalk_push(walker, to);
+        if ( error < 0 )
         {
-            const git_commit *commit = commit_->data;
+            g_warning("Couldn't push the revision list head: %s", giterr_last()->message);
+            goto cleanup;
+        }
+        if ( ! git_oid_iszero(from) )
+        {
+            error = git_revwalk_hide(walker, from);
+            if ( error < 0 )
+            {
+                g_warning("Couldn't hide the revision list queue: %s", giterr_last()->message);
+                goto cleanup;
+            }
+        }
+        char idstr[GIT_OID_HEXSZ+1];
+        while ( ( error = git_revwalk_next(&id, walker) ) == 0 )
+        {
+            git_commit *commit;
+            git_commit_lookup(&commit, context->repository, &id);
+
             const git_signature *author = git_commit_author(commit);
             gchar *commit_url = NULL;
 
@@ -438,7 +448,10 @@ _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gcha
 
             g_free(commit_url);
             g_free(files);
+            git_commit_free(commit);
         }
+        if ( error != GIT_ITEROVER )
+            g_warning("Couldn't walk the revision list: %s", giterr_last()->message);
     }
 
 send_push:
@@ -446,7 +459,6 @@ send_push:
 
 cleanup:
     g_free(diff_url);
-    g_slist_free_full(commits, (GDestroyNotify) git_commit_free);
     if ( walker != NULL )
         git_revwalk_free(walker);
 }
