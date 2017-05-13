@@ -48,6 +48,7 @@ typedef struct {
     NkTokenList *commit_url;
     NkTokenList *tag_url;
     NkTokenList *diff_url;
+    gboolean branch_created_commits;
 } GitEventcPostReceiveContext;
 
 typedef enum {
@@ -260,7 +261,7 @@ _git_eventc_post_receive_url_format_replace(const gchar *token, guint64 value, c
 }
 
 static void
-_git_eventc_post_receive_init(GitEventcPostReceiveContext *context)
+_git_eventc_post_receive_init(GitEventcPostReceiveContext *context, gboolean branch_created_commits)
 {
     int error;
     NkTokenList *repository_url = NULL;
@@ -316,6 +317,8 @@ _git_eventc_post_receive_init(GitEventcPostReceiveContext *context)
         context->repository_url = nk_token_list_replace(repository_url, _git_eventc_post_receive_url_format_replace, &data);
         nk_token_list_unref(repository_url);
     }
+
+    context->branch_created_commits = branch_created_commits;
 }
 
 static void
@@ -354,6 +357,9 @@ _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gcha
         }
         git_eventc_send_branch_created(context->pusher, branch_url, context->repository_name, context->repository_url, branch, context->project);
         g_free(branch_url);
+
+        if ( ! context->branch_created_commits )
+            goto send_push;
     }
     else if ( git_oid_iszero(to) )
     {
@@ -678,6 +684,7 @@ int
 main(int argc, char *argv[])
 {
     gboolean print_version;
+    gboolean branch_created_commits = TRUE;
 
     int retval = 1;
 
@@ -691,8 +698,9 @@ main(int argc, char *argv[])
 
     GOptionEntry entries[] =
     {
-        { "find-renames", 'M', G_OPTION_FLAG_OPTIONAL_ARG, G_OPTION_ARG_CALLBACK, &_git_eventc_find_renames, "See 'git help diff'", "<n>" },
-        { "find-copies",  'C', G_OPTION_FLAG_OPTIONAL_ARG, G_OPTION_ARG_CALLBACK, &_git_eventc_find_copies,  "See 'git help diff'", "<n>" },
+        { "find-renames",             'M', G_OPTION_FLAG_OPTIONAL_ARG, G_OPTION_ARG_CALLBACK, &_git_eventc_find_renames, "See 'git help diff'", "<n>" },
+        { "find-copies",              'C', G_OPTION_FLAG_OPTIONAL_ARG, G_OPTION_ARG_CALLBACK, &_git_eventc_find_copies,  "See 'git help diff'", "<n>" },
+        { "branch-create-no-commits", 'B', G_OPTION_FLAG_REVERSE,      G_OPTION_ARG_NONE,     &branch_created_commits,   "Do not send commit/commit-group events for new branches", NULL },
         { NULL }
     };
 
@@ -721,7 +729,7 @@ main(int argc, char *argv[])
         else
         {
             GitEventcPostReceiveContext context = { .repository = repository };
-            _git_eventc_post_receive_init(&context);
+            _git_eventc_post_receive_init(&context, branch_created_commits);
             /* Set some diff options */
             _git_eventc_diff_options.flags |= GIT_DIFF_INCLUDE_TYPECHANGE;
 
