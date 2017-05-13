@@ -1,0 +1,3 @@
+[submodule "subprojects/libnkutils"]
+	path = subprojects/libnkutils
+	url = https://github.com/sardemff7/libnkutils

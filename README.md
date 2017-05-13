@@ -137,21 +137,23 @@ Configuration value names are prefixed by `git-eventc.`. Here is the list of use
 * `project-group`: used as `project-group`
 * `project`: used as `project`, defaults to `repository-name`
 * `repository`: used as `repository-name` (not meaningful in system configuration)
-* `repository-url`: URL template for the repository with one C-style string conversion specifier (`%s`):
-    * the specifier is for the repository name
-    * Examples: `http://cgit.example.com/%s` or `http://gitweb.example.com/?p=%s.git`
-* `branch-url`: URL template for a branch with two C-style string conversion specifier (`%s`):
-    * the first one for the repository name
-    * the second one for the branch name
-    * Examples: `http://cgit.example.com/%s/log/?h=%s` or `http://gitweb.example.com/?p=%s.git;a=shortlog;h=refs/heads/%s`
-* `commit-url` and `tag-url`: URL template for a single commit/tag with two C-style string conversion specifier (`%s`):
-    * the first one for the repository name
-    * the second one for the commit id/tag name
-    * Examples: `http://cgit.example.com/%s/commit/?id=%s` or `http://gitweb.example.com/?p=%s.git;a=commitdiff;h=%s`
-* `diff-url`: URL template for a diff between two commits with three C-style string conversion specifier (`%s`):
-    * the first one for the repository name
-    * the second and third ones for the commit ids
-    * Examples: `http://cgit.example.com/%s/diff/?id2=%s&id=%s` or `http://gitweb.example.com/?p=%s.git;a=commitdiff;hp=%s;h=%s`
+* Several URL template strings:
+  all of them have the `${repository-name}` token.
+    * `repository-url`: URL template for the repository:
+        * Examples: `http://cgit.example.com/${repository-name}` or `http://gitweb.example.com/?p=${repository-name}.git`
+    * `branch-url`: URL template for a branch, available token:
+        * `${branch}`: the name of the branch
+        * Examples: `http://cgit.example.com/${repository-name}/log/?h=${branch}` or `http://gitweb.example.com/?p=${repository-name}.git;a=shortlog;h=refs/heads/${branch}`
+    * `commit-url`: URL template for a single commit, available token:
+        * `${commit}`: the commit id
+        * Examples: `http://cgit.example.com/${repository-name}/commit/?id=${commit}` or `http://gitweb.example.com/?p=${repository-name}.git;a=commitdiff;h=${commit}`
+    * `tag-url`: URL template for a tag, available token:
+        * `${tag}`: the tag name
+        * Examples: `http://cgit.example.com/${repository-name}/commit/?id=${tag}` or `http://gitweb.example.com/?p=${repository-name}.git;a=commitdiff;h=${tag}`
+    * `diff-url`: URL template for a diff between two commits, available tokens:
+        * `${old-commit}`: the old commit id
+        * `${new-commit}`: the new commit id
+        * Examples: `http://cgit.example.com/${repository-name}/diff/?id2=${old-commit}&id=${new-commit}` or `http://gitweb.example.com/?p=${repository-name}.git;a=commitdiff;hp=${old-commit};h=${new-commit}`
 
 It also has support for Gitolite environment variables:
 

@@ -6,7 +6,6 @@ project('git-eventc', 'c',
         'c_std=gnu11',
         'warning_level=2',
     ],
-    subproject_dir: 'src',
 )
 is_unix = host_machine.system() != 'windows'
 is_windows = not is_unix
@@ -71,6 +70,17 @@ foreach f : flags
     endif
 endforeach
 
+nk_modules = [
+    'token=true',
+]
+nk = subproject('libnkutils', default_options: nk_modules)
+nk_options = nk.get_variable('nk_options')
+foreach o : nk_modules + nk_options
+    if not nk_modules.contains(o) or not nk_options.contains(o)
+        error('You must not change libnkutils options @0@ != @1@'.format('|'.join(nk_modules), '|'.join(nk_options)))
+    endif
+endforeach
+
 libgit_eventc_lib = static_library('git-eventc', [
         'src/libgit-eventc.h',
         'src/libgit-eventc.c',
@@ -82,11 +92,12 @@ libgit_eventc_lib = static_library('git-eventc', [
 libgit_eventc = declare_dependency(link_with: libgit_eventc_lib, include_directories: include_directories('src'), dependencies: [ libsoup, libeventc, libeventd, glib ])
 
 if get_option('enable-hook') != 'false' and libgit2.found()
+    libnkutils = nk.get_variable('libnkutils')
     executable('git-eventc-post-receive', [
             'src/git-eventc-post-receive.c',
         ],
         c_args: [ '-DG_LOG_DOMAIN="git-eventc-post-receive"' ],
-        dependencies: [ libgit2, libgit_eventc ],
+        dependencies: [ libgit2, libnkutils, libgit_eventc ],
         install: true,
     )
 endif
