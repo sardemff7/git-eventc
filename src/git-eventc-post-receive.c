@@ -388,16 +388,16 @@ _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gcha
     }
     git_oid id;
     guint size = 0;
-    while ( ( error = git_revwalk_next(&id, walker) ) != GIT_ITEROVER )
+    while ( ( error = git_revwalk_next(&id, walker) ) == 0 )
     {
-        if ( error < 0 )
-        {
-            g_warning("Couldn't walk the revision list: %s", giterr_last()->message);
-            goto cleanup;
-        }
         git_commit_lookup(&commit, context->repository, &id);
         ++size;
         commits = g_slist_prepend(commits, commit);
+    }
+    if ( error != GIT_ITEROVER )
+    {
+        g_warning("Couldn't walk the revision list: %s", giterr_last()->message);
+        goto send_push;
     }
 
     if ( context->diff_url != NULL )
