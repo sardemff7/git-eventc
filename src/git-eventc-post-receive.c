@@ -405,7 +405,7 @@ _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gcha
         git_eventc_send_commit_group(context->pusher, size, diff_url, context->repository_name, context->repository_url, branch, context->project);
     else
     {
-        char id[GIT_OID_HEXSZ+1];
+        char idstr[GIT_OID_HEXSZ+1];
         GSList *commit_;
         for ( commit_ = commits ; commit_ != NULL ; commit_ = g_slist_next(commit_) )
         {
@@ -413,19 +413,19 @@ _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gcha
             const git_signature *author = git_commit_author(commit);
             gchar *commit_url = NULL;
 
-            git_oid_tostr(id, GIT_OID_HEXSZ+1, git_commit_id(commit));
+            git_oid_tostr(idstr, sizeof(idstr), git_commit_id(commit));
             if ( context->commit_url != NULL )
             {
                 GitEventcPostReceiveFormatData data = {
                     .context = context,
-                    .commit = id,
+                    .commit = idstr,
                 };
                 commit_url = nk_token_list_replace(context->commit_url, _git_eventc_post_receive_url_format_replace, &data);
             }
             gchar *files;
             files = _git_eventc_commit_get_files(context->repository, commit);
 
-            git_eventc_send_commit(id, git_commit_message(commit), commit_url, context->pusher, author->name, NULL, author->email, context->repository_name, context->repository_url, branch, files, context->project);
+            git_eventc_send_commit(idstr, git_commit_message(commit), commit_url, context->pusher, author->name, NULL, author->email, context->repository_name, context->repository_url, branch, files, context->project);
 
             g_free(commit_url);
             g_free(files);
