@@ -697,7 +697,8 @@ git_eventc_send_push(const gchar *url, const gchar *pusher_name, const gchar *re
     eventd_event_add_data_string(event, g_strdup("repository-name"), g_strdup(repository_name));
     if ( repository_url != NULL )
         eventd_event_add_data_string(event, g_strdup("repository-url"), g_strdup(repository_url));
-    eventd_event_add_data_string(event, g_strdup("branch"), g_strdup(branch));
+    if ( branch != NULL )
+        eventd_event_add_data_string(event, g_strdup("branch"), g_strdup(branch));
 
     if ( project[0] != NULL )
         eventd_event_add_data_string(event, g_strdup("project-group"), g_strdup(project[0]));
