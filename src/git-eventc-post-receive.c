@@ -451,14 +451,19 @@ _git_eventc_post_receive_is_tag(const char *name, git_oid *tag_id, void *payload
 {
     GitEventcPostReceiveTagSearch *search = payload;
     int error;
-    const git_oid *id = tag_id;
     git_tag *tag;
+    gboolean same;
 
-    error = git_tag_lookup(&tag, search->context->repository, id);
+    error = git_tag_lookup(&tag, search->context->repository, tag_id);
     if ( error == 0 )
-        id = git_tag_target_id(tag);
+    {
+        same = git_oid_equal(git_tag_target_id(tag), search->id);
+        git_tag_free(tag);
+    }
+    else
+        same = git_oid_equal(tag_id, search->id);
 
-    if ( ! git_oid_equal(id, search->id) )
+    if ( ! same )
         return 0;
 
     search->name = name + strlen("refs/tags/");
@@ -494,7 +499,10 @@ _git_eventc_post_receive_tag(GitEventcPostReceiveContext *context, const gchar *
         if ( error < 0 )
             error = git_commit_lookup(&commit, context->repository, to);
         else
+        {
             error = git_commit_lookup(&commit, context->repository, git_tag_target_id(tag));
+            git_tag_free(tag);
+        }
         if ( error < 0 )
             g_warning("Couldn't find tag commit: %s", giterr_last()->message);
         else if ( git_commit_parentcount(commit) > 0 )
@@ -547,6 +555,7 @@ _git_eventc_post_receive_tag(GitEventcPostReceiveContext *context, const gchar *
                     break;
                 }
             }
+            git_commit_free(commit);
         }
 
         git_eventc_send_tag_created(context->pusher, url, context->repository_name, context->repository_url, tag_name, previous_tag_name, context->project);
