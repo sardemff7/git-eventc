@@ -338,6 +338,7 @@ static void
 _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gchar *ref_name, const gchar *branch, const gchar *before, const git_oid *from, const gchar *after, const git_oid *to)
 {
     int error;
+    git_revwalk *walker = NULL;
     GSList *commits = NULL;
     gchar *diff_url = NULL;
 
@@ -361,7 +362,6 @@ _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gcha
         goto send_push;
     }
 
-    git_revwalk *walker;
     error = git_revwalk_new(&walker, context->repository);
     if ( error < 0 )
     {
@@ -374,12 +374,21 @@ _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gcha
     error = git_revwalk_push(walker, to);
     if ( error < 0 )
     {
-        g_warning("Couldn't push the revision list: %s", giterr_last()->message);
+        g_warning("Couldn't push the revision list head: %s", giterr_last()->message);
         goto cleanup;
+    }
+    if ( ! git_oid_iszero(from) )
+    {
+        error = git_revwalk_hide(walker, from);
+        if ( error < 0 )
+        {
+            g_warning("Couldn't hide the revision list queue: %s", giterr_last()->message);
+            goto cleanup;
+        }
     }
     git_oid id;
     guint size = 0;
-    while ( ( ( error = git_revwalk_next(&id, walker) ) != GIT_ITEROVER ) && ( ! git_oid_equal(from, &id) ) )
+    while ( ( error = git_revwalk_next(&id, walker) ) != GIT_ITEROVER )
     {
         if ( error < 0 )
         {
@@ -438,6 +447,8 @@ send_push:
 cleanup:
     g_free(diff_url);
     g_slist_free_full(commits, (GDestroyNotify) git_commit_free);
+    if ( walker != NULL )
+        git_revwalk_free(walker);
 }
 
 typedef struct {
