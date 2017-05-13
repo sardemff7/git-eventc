@@ -220,9 +220,6 @@ _git_eventc_post_receive_init(GitEventcPostReceiveContext *context)
     int error;
     gchar *repository_url = NULL;
 
-    /* Use Gitolite env */
-    context->pusher = g_getenv("GL_USER");
-    context->repository_name = g_getenv("GL_REPO");
 
     git_config *config;
     error = git_repository_config_snapshot(&config, context->repository);
@@ -243,6 +240,11 @@ _git_eventc_post_receive_init(GitEventcPostReceiveContext *context)
     }
     context->project[0] = context->project_group;
     context->project[1] = context->project_name;
+
+    /* Use Gitolite env */
+    context->pusher = g_getenv("GL_USER");
+    if ( context->repository_name == NULL )
+        context->repository_name = g_getenv("GL_REPO");
 
     if ( context->pusher == NULL )
         context->pusher = "Jane Doe";
