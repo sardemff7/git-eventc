@@ -657,7 +657,9 @@ _git_eventc_find_renames(const gchar *option_name, const gchar *value, gpointer 
         return FALSE;
     _git_eventc_diff_find_options.flags |= GIT_DIFF_FIND_RENAMES;
     _git_eventc_diff_find_options.rename_threshold = v;
-    g_print("-M%d%%\n", v);
+#ifdef GIT_EVENTC_DEBUG
+    g_debug("-M%d%%\n", v);
+#undef /* GIT_EVENTC_DEBUG */
     return TRUE;
 }
 
@@ -669,7 +671,9 @@ _git_eventc_find_copies(const gchar *option_name, const gchar *value, gpointer d
         return FALSE;
     _git_eventc_diff_find_options.flags |= GIT_DIFF_FIND_COPIES;
     _git_eventc_diff_find_options.copy_threshold = v;
-    g_print("-C%d%%\n", v);
+#ifdef GIT_EVENTC_DEBUG
+    g_debug("-C%d%%\n", v);
+#undef /* GIT_EVENTC_DEBUG */
     return TRUE;
 }
 
