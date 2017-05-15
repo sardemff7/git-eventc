@@ -26,6 +26,7 @@
 #include <stdio.h>
 
 #include <glib.h>
+#include <glib/gstdio.h>
 #include <glib-object.h>
 #include <gio/gio.h>
 
@@ -677,6 +678,9 @@ _git_eventc_post_receive_disconnect_idle(gpointer user_data)
 int
 main(int argc, char *argv[])
 {
+    GError *error = NULL;
+    gchar *input = NULL;
+    gsize length;
     gboolean print_version;
     gboolean branch_created_commits = TRUE;
 
@@ -707,6 +711,19 @@ main(int argc, char *argv[])
 
     retval = 0;
 
+    GIOChannel *in;
+
+    in = g_io_channel_unix_new(0);
+    if ( g_io_channel_read_to_end(in, &input, &length, &error) != G_IO_STATUS_NORMAL )
+    {
+        g_warning("Could not read input: %s", error->message);
+        g_clear_error(&error);
+        g_io_channel_unref(in);
+        retval = 3;
+        goto end;
+    }
+    g_io_channel_unref(in);
+
     GMainLoop *loop;
 
     loop = g_main_loop_new(NULL, FALSE);
@@ -728,23 +745,21 @@ main(int argc, char *argv[])
             /* Set some diff options */
             _git_eventc_diff_options.flags |= GIT_DIFF_INCLUDE_TYPECHANGE;
 
-            char *line = NULL;
-            size_t len = 0;
-            ssize_t r;
-            while ( ( r = getline(&line, &len, stdin) ) != -1 )
+            gchar *w = input, *n;
+            while ( ( n = g_utf8_strchr(w, length - ( w - input ), '\n') ) != NULL )
             {
-                const gchar *before = line, *after, *ref;
-                line[r-1] = '\0';
+                *n = '\0';
+                const gchar *before = w, *after, *ref;
                 gchar *s;
 
-                s = g_utf8_strchr(line, -1, ' ');
+                s = g_utf8_strchr(before, n - before, ' ');
                 if ( s == NULL )
                     /* Malformed line */
                     continue;
                 *s = '\0';
                 after = ++s;
 
-                s = g_utf8_strchr(after, -1, ' ');
+                s = g_utf8_strchr(after, n - after, ' ');
                 if ( s == NULL )
                     /* Malformed line */
                     continue;
@@ -757,7 +772,6 @@ main(int argc, char *argv[])
 
                 _git_eventc_post_receive(&context, before, after, ref);
             }
-            free(line);
             g_idle_add(_git_eventc_post_receive_disconnect_idle, NULL);
             g_main_loop_run(loop);
             _git_eventc_post_receive_clean(&context);
@@ -771,6 +785,7 @@ main(int argc, char *argv[])
 end:
     git_eventc_uninit();
     git_libgit2_shutdown();
+    g_free(input);
 
     return retval;
 }
