@@ -90,16 +90,16 @@ git_eventc_get_files(GList *paths)
 }
 
 typedef struct {
-    const gchar *name;
+    gchar       *name;
     const gchar *method;
-    const gchar *url;
-    const gchar *field_name;
-    const gchar *prefix;
+    gchar       *url;
+    gchar       *field_name;
+    gchar       *prefix;
     SoupStatus   status_code;
-    const gchar *header;
+    gchar       *header;
 } GitEventcShortener;
 
-static GitEventcShortener shorteners[] = {
+static GitEventcShortener _git_eventc_default_shorteners_high[] = {
     {
         .name        = "git.io",
         .method      = "POST",
@@ -109,6 +109,9 @@ static GitEventcShortener shorteners[] = {
         .status_code = SOUP_STATUS_CREATED,
         .header      = "Location",
     },
+};
+
+static GitEventcShortener _git_eventc_default_shorteners_low[] = {
     {
         .name        = "is.gd",
         .method      = "POST",
@@ -116,6 +119,8 @@ static GitEventcShortener shorteners[] = {
         .field_name  = "url",
     },
 };
+
+static GitEventcShortener *_git_eventc_shorteners;
 
 static gchar *host = NULL;
 static guint merge_threshold = 5;
@@ -179,6 +184,165 @@ out:
     return FALSE;
 }
 
+#undef get_entry
+#undef get_entry_with_code
+
+static const gchar *
+_git_eventc_shorteners_method_parse(const gchar *method)
+{
+    static const gchar *_git_eventc_shorteners_methods[] = {
+        NULL, /* POST */
+        NULL, /* GET */
+        NULL
+    };
+    if ( _git_eventc_shorteners_methods[0] == NULL )
+    {
+        _git_eventc_shorteners_methods[0] = SOUP_METHOD_POST;
+        _git_eventc_shorteners_methods[1] = SOUP_METHOD_GET;
+    }
+    gsize i;
+    for ( i = 0 ; _git_eventc_shorteners_methods[i] != NULL ; ++i )
+    {
+        if ( g_ascii_strcasecmp(method, _git_eventc_shorteners_methods[i]) == 0 )
+            return _git_eventc_shorteners_methods[i];
+    }
+    return NULL;
+}
+
+static void
+_git_eventc_shorteners_add_defaults(GitEventcShortener list[], gsize offset, gsize length)
+{
+    gsize i;
+    for ( i = 0 ; i < length ; ++i )
+    {
+#define dup_field(n) _git_eventc_shorteners[offset + i].n = g_strdup(list[i].n)
+        dup_field(name);
+        _git_eventc_shorteners[offset + i].method = _git_eventc_shorteners_method_parse(list[i].method);
+        dup_field(url);
+        dup_field(field_name);
+        dup_field(prefix);
+        _git_eventc_shorteners[offset + i].status_code = list[i].status_code;
+        dup_field(header);
+#undef dup_field
+    }
+}
+
+static gboolean
+_git_eventc_shorteners_parse_key_string(gchar **field, GKeyFile *key_file, const gchar *section, const gchar *key, GError **error)
+{
+    if ( ! g_key_file_has_key(key_file, section, key, error) )
+        return ( *error == NULL );
+
+    gchar *value;
+
+    value = g_key_file_get_string(key_file, section, key, error);
+    if ( value == NULL )
+        return FALSE;
+
+    *field = value;
+    return TRUE;
+}
+
+static gboolean
+_git_eventc_shorteners_parse_key_method(GitEventcShortener *shortener, GKeyFile *key_file, const gchar *section, GError **error)
+{
+    gchar *value = NULL;
+    if ( ! _git_eventc_shorteners_parse_key_string(&value, key_file, section, "method", error) )
+        return FALSE;
+    if ( value == NULL )
+        return TRUE;
+
+    shortener->method = _git_eventc_shorteners_method_parse(value);
+    if ( shortener->method == NULL )
+        g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE, "Wrong value for 'method': %s", value);
+    g_free(value);
+    return ( shortener->method != NULL );
+}
+
+static gboolean
+_git_eventc_shorteners_parse_key_status_code(GitEventcShortener *shortener, GKeyFile *key_file, const gchar *section, GError **error)
+{
+    if ( ! g_key_file_has_key(key_file, section, "status-code", error) )
+        return ( *error == NULL );
+
+    gint value;
+
+    value = g_key_file_get_integer(key_file, section, "status-code", error);
+    if ( *error != NULL )
+        return FALSE;
+
+    if ( ( ! SOUP_STATUS_IS_INFORMATIONAL(value) ) && ( ! SOUP_STATUS_IS_SUCCESSFUL(value) ) && ( ! SOUP_STATUS_IS_SUCCESSFUL(value) ) )
+    {
+        g_set_error(error, G_KEY_FILE_ERROR, G_KEY_FILE_ERROR_PARSE, "Wrong value for 'status-code': %d", value);
+        return FALSE;
+    }
+
+    shortener->status_code = value;
+    return TRUE;
+}
+
+#define get_str_field_with_name(n, k) G_STMT_START { \
+        if ( ! _git_eventc_shorteners_parse_key_string(&shortener->n, key_file, section, k, error) ) \
+            return FALSE; \
+    } G_STMT_END
+#define get_str_field(n) get_str_field_with_name(n, #n)
+
+static gboolean
+_git_eventc_shorteners_parse_section(GitEventcShortener *shortener, GKeyFile *key_file, const gchar *section, GError **error)
+{
+    if ( ! _git_eventc_shorteners_parse_key_method(shortener, key_file, section, error) )
+        return FALSE;
+    get_str_field(url);
+    get_str_field_with_name(field_name, "field-name");
+    get_str_field(prefix);
+    if ( ! _git_eventc_shorteners_parse_key_status_code(shortener, key_file, section, error) )
+        return FALSE;
+    get_str_field(header);
+    shortener->name = g_strdup(section + strlen("shortener "));
+    return TRUE;
+}
+
+#undef get_str_field
+#undef get_str_field_with_name
+
+static gboolean
+_git_eventc_shorteners_parse(GKeyFile *key_file, GError **error)
+{
+    gsize hl = G_N_ELEMENTS(_git_eventc_default_shorteners_high), l = 0, ll = G_N_ELEMENTS(_git_eventc_default_shorteners_low);
+    gchar **sections, **section, **list = NULL;
+
+    sections = g_key_file_get_groups(key_file, &l);
+    if ( sections != NULL )
+    {
+        list = g_newa(gchar *, l);
+        for ( section = sections, l = 0 ; *section != NULL ; ++section )
+        {
+            if ( g_str_has_prefix(*section, "shortener ") )
+                list[l++] = *section;
+            else
+                g_free(*section);
+        }
+        list[l] = NULL;
+        g_free(sections);
+    }
+
+    _git_eventc_shorteners = g_new0(GitEventcShortener, hl + l + ll + 1);
+
+    if ( l == 0 )
+        l = hl;
+    else
+    for ( section = list, l = hl ; *section != NULL ; ++section, ++l )
+    {
+        if ( ! _git_eventc_shorteners_parse_section(&_git_eventc_shorteners[l], key_file, *section, error) )
+            return FALSE;
+    }
+
+    _git_eventc_shorteners_add_defaults(_git_eventc_default_shorteners_high, 0, hl);
+    _git_eventc_shorteners_add_defaults(_git_eventc_default_shorteners_low, l, ll);
+
+    return TRUE;
+}
+
 gboolean
 git_eventc_parse_options(gint *argc, gchar ***argv, const gchar *group, GOptionEntry *extra_entries, const gchar *description, GitEventcKeyFileFunc extra_parsing, gboolean *print_version)
 {
@@ -231,6 +395,8 @@ git_eventc_parse_options(gint *argc, gchar ***argv, const gchar *group, GOptionE
             if ( ! _git_eventc_parse_config_file(key_file, group, extra_entries, &error) )
                 goto out;
         }
+        if ( ! _git_eventc_shorteners_parse(key_file, &error) )
+            goto out;
         if ( extra_parsing != NULL )
         {
             if ( ! extra_parsing(key_file, &error) )
@@ -372,6 +538,17 @@ git_eventc_uninit(void)
     if ( shortener_session != NULL )
         g_object_unref(shortener_session);
 
+    GitEventcShortener *shortener;
+    for ( shortener = _git_eventc_shorteners ; shortener->name != NULL ; ++shortener )
+    {
+        g_free(shortener->name);
+        g_free(shortener->url);
+        g_free(shortener->field_name);
+        g_free(shortener->prefix);
+        g_free(shortener->header);
+    }
+    g_free(_git_eventc_shorteners);
+
     if ( client != NULL )
         g_object_unref(client);
 
@@ -393,16 +570,15 @@ _git_eventc_get_url(gchar *url, gboolean copy)
     if ( shortener_session == NULL )
         shortener_session = g_object_new(SOUP_TYPE_SESSION, SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_CONTENT_DECODER, SOUP_SESSION_USER_AGENT, PACKAGE_NAME " ", NULL);
 
-    guint i;
     SoupURI *uri;
     SoupMessage *msg;
     gchar *escaped_url = NULL;
     gchar *data;
     gchar *short_url = NULL;
 
-    for ( i = 0 ; ( i < G_N_ELEMENTS(shorteners) ) && ( short_url == NULL ) ; ++i )
+    GitEventcShortener *shortener;
+    for ( shortener = _git_eventc_shorteners ; shortener->name != NULL ; ++shortener )
     {
-        GitEventcShortener *shortener = &shorteners[i];
         if ( ( shortener->prefix != NULL ) && ( ! g_str_has_prefix(url, shortener->prefix) ) )
             continue;
 
