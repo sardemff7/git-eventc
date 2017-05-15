@@ -411,19 +411,20 @@ _git_eventc_get_url(gchar *url, gboolean copy)
 
     for ( i = 0 ; ( i < G_N_ELEMENTS(shorteners) ) && ( short_url == NULL ) ; ++i )
     {
-        if ( ( shorteners[i].prefix != NULL ) && ( ! g_str_has_prefix(url, shorteners[i].prefix) ) )
+        GitEventcShortener *shortener = &shorteners[i];
+        if ( ( shortener->prefix != NULL ) && ( ! g_str_has_prefix(url, shortener->prefix) ) )
             continue;
 
-        uri = soup_uri_new(shorteners[i].url);
-        msg = soup_message_new_from_uri(shorteners[i].method, uri);
+        uri = soup_uri_new(shortener->url);
+        msg = soup_message_new_from_uri(shortener->method, uri);
         escaped_url = soup_uri_encode(url, NULL);
-        data = g_strdup_printf("%s=%s", shorteners[i].field_name, escaped_url);
+        data = g_strdup_printf("%s=%s", shortener->field_name, escaped_url);
         g_free(escaped_url);
         soup_message_set_request(msg, "application/x-www-form-urlencoded", SOUP_MEMORY_TAKE, data, strlen(data));
         soup_session_send_message(shortener_session, msg);
 
-        if ( shorteners[i].parse != NULL )
-            short_url = shorteners[i].parse(msg);
+        if ( shortener->parse != NULL )
+            short_url = shortener->parse(msg);
         else if ( SOUP_STATUS_IS_SUCCESSFUL(msg->status_code) )
             short_url = g_strndup(msg->response_body->data, msg->response_body->length);
 
