@@ -149,7 +149,7 @@ Configuration value names are prefixed by `git-eventc.`. Here is the list of use
         * Examples: `http://cgit.example.com/${repository-name}/commit/?id=${commit}` or `http://gitweb.example.com/?p=${repository-name}.git;a=commitdiff;h=${commit}`
     * `tag-url`: URL template for a tag, available token:
         * `${tag}`: the tag name
-        * Examples: `http://cgit.example.com/${repository-name}/commit/?id=${tag}` or `http://gitweb.example.com/?p=${repository-name}.git;a=commitdiff;h=${tag}`
+        * Examples: `http://cgit.example.com/${repository-name}/tag/?id=${tag}` or `http://gitweb.example.com/?p=${repository-name}.git;a=tag;h=${tag}`
     * `diff-url`: URL template for a diff between two commits, available tokens:
         * `${old-commit}`: the old commit id
         * `${new-commit}`: the new commit id
