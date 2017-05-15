@@ -396,7 +396,7 @@ _git_eventc_get_url(gchar *url, gboolean copy)
     guint i;
     SoupURI *uri;
     SoupMessage *msg;
-    gchar *escaped_url;
+    gchar *escaped_url = NULL;
     gchar *data;
     gchar *short_url = NULL;
 
@@ -408,9 +408,9 @@ _git_eventc_get_url(gchar *url, gboolean copy)
 
         uri = soup_uri_new(shortener->url);
         msg = soup_message_new_from_uri(shortener->method, uri);
-        escaped_url = soup_uri_encode(url, NULL);
+        if ( escaped_url == NULL )
+            escaped_url = soup_uri_encode(url, NULL);
         data = g_strdup_printf("%s=%s", shortener->field_name, escaped_url);
-        g_free(escaped_url);
         soup_message_set_request(msg, "application/x-www-form-urlencoded", SOUP_MEMORY_TAKE, data, strlen(data));
         soup_session_send_message(shortener_session, msg);
 
@@ -426,6 +426,7 @@ _git_eventc_get_url(gchar *url, gboolean copy)
         soup_uri_free(uri);
         g_object_unref(msg);
     }
+    g_free(escaped_url);
 
     if ( short_url == NULL )
     {
