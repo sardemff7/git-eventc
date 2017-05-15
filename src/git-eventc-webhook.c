@@ -185,12 +185,14 @@ _git_eventc_webhook_payload_parse_github_branch(const gchar **project, JsonObjec
     const gchar *repository_url = json_object_get_string_member(repository, "url");
     gchar *pusher_name = _git_eventc_webhook_payload_pusher_name_github(root);
 
+    gchar *diff_url;
+    diff_url = git_eventc_get_url_const(json_object_get_string_member(root, "compare"));
+
     if ( json_object_get_boolean_member(root, "created") )
     {
         gchar *url;
-        url = g_strdup_printf("%s/tree/%s", json_object_get_string_member(repository, "url"), branch);
+        url = git_eventc_get_url(g_strdup_printf("%s/tree/%s", json_object_get_string_member(repository, "url"), branch));
         git_eventc_send_branch_created(pusher_name, url, repository_name, repository_url, branch, project);
-        g_free(url);
     }
     else if ( json_object_get_boolean_member(root, "deleted") )
     {
@@ -203,7 +205,7 @@ _git_eventc_webhook_payload_parse_github_branch(const gchar **project, JsonObjec
         git_eventc_send_commit_group(
             pusher_name,
             size,
-            json_object_get_string_member(root, "compare"),
+            g_strdup(diff_url),
             repository_name, repository_url, branch, project);
     }
     else
@@ -215,13 +217,14 @@ _git_eventc_webhook_payload_parse_github_branch(const gchar **project, JsonObjec
             JsonObject *commit = json_node_get_object(commit_->data);
             JsonObject *author = json_object_get_object_member(commit, "author");
 
-            gchar *files;
+            gchar *url, *files;
+            url = git_eventc_get_url_const(json_object_get_string_member(commit, "url"));
             files = _git_eventc_webhook_payload_get_files_github(commit);
 
             git_eventc_send_commit(
                 json_object_get_string_member(commit, "id"),
                 json_object_get_string_member(commit, "message"),
-                json_object_get_string_member(commit, "url"),
+                url,
                 pusher_name,
                 json_object_get_string_member(author, "name"),
                 json_object_get_string_member(author, "username"),
@@ -236,7 +239,7 @@ _git_eventc_webhook_payload_parse_github_branch(const gchar **project, JsonObjec
     }
 
 send_push:
-    git_eventc_send_push(json_object_get_string_member(root, "compare"), pusher_name, repository_name, repository_url, branch, project);
+    git_eventc_send_push(diff_url, pusher_name, repository_name, repository_url, branch, project);
 
     g_free(pusher_name);
 }
@@ -260,17 +263,19 @@ _git_eventc_webhook_payload_parse_github_tag(const gchar **project, JsonObject *
         const gchar *previous_tag = NULL;
         gchar *url;
 
-        url = g_strdup_printf("%s/releases/tag/%s", json_object_get_string_member(repository, "url"), tag);
+        url = git_eventc_get_url(g_strdup_printf("%s/releases/tag/%s", json_object_get_string_member(repository, "url"), tag));
         if ( length > 1 )
             previous_tag = json_object_get_string_member(json_array_get_object_element(tags, 1), "name");
 
         git_eventc_send_tag_created(pusher_name, url, repository_name, repository_url, tag, previous_tag, project);
 
         json_array_unref(tags);
-        g_free(url);
     }
 
-    git_eventc_send_push(json_object_get_string_member(root, "compare"), pusher_name, repository_name, repository_url, NULL, project);
+    gchar *url;
+    url = git_eventc_get_url_const(json_object_get_string_member(root, "compare"));
+
+    git_eventc_send_push(url, pusher_name, repository_name, repository_url, NULL, project);
 
     g_free(pusher_name);
 }
@@ -319,10 +324,13 @@ _git_eventc_webhook_payload_parse_github_issues(const gchar **project, JsonObjec
         g_variant_builder_unref(builder);
     }
 
+    gchar *url;
+    url = git_eventc_get_url_const(json_object_get_string_member(issue, "html_url"));
+
     git_eventc_send_bugreport(action,
         json_object_get_int_member(issue, "number"),
         json_object_get_string_member(issue, "title"),
-        json_object_get_string_member(issue, "html_url"),
+        url,
         json_object_get_string_member(author, "name"),
         json_object_get_string_member(author, "login"),
         json_object_get_string_member(author, "email"),

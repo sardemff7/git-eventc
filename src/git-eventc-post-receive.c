@@ -353,10 +353,9 @@ _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gcha
                 .context = context,
                 .branch = branch,
             };
-            branch_url = nk_token_list_replace(context->branch_url, _git_eventc_post_receive_url_format_replace, &data);
+            branch_url = git_eventc_get_url(nk_token_list_replace(context->branch_url, _git_eventc_post_receive_url_format_replace, &data));
         }
         git_eventc_send_branch_created(context->pusher, branch_url, context->repository_name, context->repository_url, branch, context->project);
-        g_free(branch_url);
 
         if ( ! context->branch_created_commits )
             goto send_push;
@@ -406,11 +405,11 @@ _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gcha
             .old_commit = before,
             .new_commit = after,
         };
-        diff_url = nk_token_list_replace(context->diff_url, _git_eventc_post_receive_url_format_replace, &data);
+        diff_url = git_eventc_get_url(nk_token_list_replace(context->diff_url, _git_eventc_post_receive_url_format_replace, &data));
     }
 
     if ( git_eventc_is_above_threshold(size) )
-        git_eventc_send_commit_group(context->pusher, size, diff_url, context->repository_name, context->repository_url, branch, context->project);
+        git_eventc_send_commit_group(context->pusher, size, g_strdup(diff_url), context->repository_name, context->repository_url, branch, context->project);
     else
     {
         git_revwalk_sorting(walker, GIT_SORT_TOPOLOGICAL | GIT_SORT_REVERSE);
@@ -445,14 +444,13 @@ _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gcha
                     .context = context,
                     .commit = idstr,
                 };
-                commit_url = nk_token_list_replace(context->commit_url, _git_eventc_post_receive_url_format_replace, &data);
+                commit_url = git_eventc_get_url(nk_token_list_replace(context->commit_url, _git_eventc_post_receive_url_format_replace, &data));
             }
             gchar *files;
             files = _git_eventc_commit_get_files(context->repository, commit);
 
             git_eventc_send_commit(idstr, git_commit_message(commit), commit_url, context->pusher, author->name, NULL, author->email, context->repository_name, context->repository_url, branch, files, context->project);
 
-            g_free(commit_url);
             g_free(files);
             git_commit_free(commit);
         }
@@ -462,6 +460,7 @@ _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gcha
 
 send_push:
     git_eventc_send_push(diff_url, context->pusher, context->repository_name, context->repository_url, branch, context->project);
+    diff_url = NULL;
 
 cleanup:
     g_free(diff_url);
@@ -520,9 +519,8 @@ _git_eventc_post_receive_tag(GitEventcPostReceiveContext *context, const gchar *
                 .context = context,
                 .tag = tag_name,
             };
-            url = nk_token_list_replace(context->tag_url, _git_eventc_post_receive_url_format_replace, &data);
+            url = git_eventc_get_url(nk_token_list_replace(context->tag_url, _git_eventc_post_receive_url_format_replace, &data));
         }
-
 
         error = git_tag_lookup(&tag, context->repository, to);
         if ( error < 0 )
@@ -587,13 +585,11 @@ _git_eventc_post_receive_tag(GitEventcPostReceiveContext *context, const gchar *
             git_commit_free(commit);
         }
 
-        git_eventc_send_tag_created(context->pusher, url, context->repository_name, context->repository_url, tag_name, previous_tag_name, context->project);
+        git_eventc_send_tag_created(context->pusher, g_strdup(url), context->repository_name, context->repository_url, tag_name, previous_tag_name, context->project);
     }
 
 send_push:
     git_eventc_send_push(url, context->pusher, context->repository_name, context->repository_url, NULL, context->project);
-
-    g_free(url);
 }
 
 static void
