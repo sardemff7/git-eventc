@@ -388,12 +388,6 @@ static GitEventcShortener shorteners[] = {
         .parse      = _git_eventc_shortener_parse_gitio,
     },
     {
-        .name       = "tinyurl",
-        .method     = "GET",
-        .url        = "http://tinyurl.com/api-create.php",
-        .field_name = "url",
-    },
-    {
         .name       = "is.gd",
         .method     = "POST",
         .url        = "https://is.gd/create.php?format=simple",
