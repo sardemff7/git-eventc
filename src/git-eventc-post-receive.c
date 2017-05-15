@@ -689,7 +689,6 @@ main(int argc, char *argv[])
     if ( git_diff_find_init_options(&_git_eventc_diff_find_options, GIT_DIFF_FIND_OPTIONS_VERSION) < 0 )
         return retval;
 
-
     GOptionEntry entries[] =
     {
         { "find-renames",             'M', G_OPTION_FLAG_OPTIONAL_ARG, G_OPTION_ARG_CALLBACK, &_git_eventc_find_renames, "See 'git help diff'", "<n>" },
@@ -705,6 +704,8 @@ main(int argc, char *argv[])
         g_print(PACKAGE_NAME "-post-receive " PACKAGE_VERSION "\n");
         goto end;
     }
+
+    retval = 0;
 
     GMainLoop *loop;
 
@@ -762,7 +763,6 @@ main(int argc, char *argv[])
             _git_eventc_post_receive_clean(&context);
         }
         giterr_clear();
-        retval = 0;
     }
     else
         retval = 2;
