@@ -627,7 +627,7 @@ main(int argc, char *argv[])
         { NULL }
     };
 
-    if ( ! git_eventc_parse_options(&argc, &argv, entries, "- Git WebHook to eventd gateway", _git_eventc_webhook_extra_key_file_parsing, &print_version) )
+    if ( ! git_eventc_parse_options(&argc, &argv, "webhook", entries, "- Git WebHook to eventd gateway", _git_eventc_webhook_extra_key_file_parsing, &print_version) )
         goto end;
     if ( print_version )
     {

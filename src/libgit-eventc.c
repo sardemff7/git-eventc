@@ -134,13 +134,13 @@ static guint retry_timeout_seconds = 1;
     case G_OPTION_ARG_##arg_type: \
     G_STMT_START { \
         gboolean has; \
-        has = g_key_file_has_key(key_file, PACKAGE_NAME, entry->long_name, error); \
+        has = g_key_file_has_key(key_file, group, entry->long_name, error); \
         if ( *error != NULL ) \
             goto out; \
         if ( ! has ) \
             continue; \
         type v; \
-        v = g_key_file_get_##type_name(key_file, PACKAGE_NAME, entry->long_name, error); \
+        v = g_key_file_get_##type_name(key_file, group, entry->long_name, error); \
         if ( *error != NULL ) \
             goto out; \
         code; \
@@ -150,7 +150,7 @@ static guint retry_timeout_seconds = 1;
 #define get_entry(arg_type, type_name, type) get_entry_with_code(arg_type, type_name, type, *((type *) entry->arg_data) = v)
 
 static gboolean
-_git_eventc_parse_config_file(GKeyFile *key_file, GOptionEntry *entry, GError **error)
+_git_eventc_parse_config_file(GKeyFile *key_file, const gchar *group, GOptionEntry *entry, GError **error)
 {
     for ( ; entry->long_name != NULL ; ++entry )
     {
@@ -180,7 +180,7 @@ out:
 }
 
 gboolean
-git_eventc_parse_options(gint *argc, gchar ***argv, GOptionEntry *extra_entries, const gchar *description, GitEventcKeyFileFunc extra_parsing, gboolean *print_version)
+git_eventc_parse_options(gint *argc, gchar ***argv, const gchar *group, GOptionEntry *extra_entries, const gchar *description, GitEventcKeyFileFunc extra_parsing, gboolean *print_version)
 {
     setlocale(LC_ALL, "");
 
@@ -223,13 +223,13 @@ git_eventc_parse_options(gint *argc, gchar ***argv, GOptionEntry *extra_entries,
     {
         if ( g_key_file_has_group(key_file, PACKAGE_NAME) )
         {
-            if ( ! _git_eventc_parse_config_file(key_file, entries, &error) )
+            if ( ! _git_eventc_parse_config_file(key_file, PACKAGE_NAME, entries, &error) )
                 goto out;
-            if ( extra_entries != NULL )
-            {
-                if ( ! _git_eventc_parse_config_file(key_file, extra_entries, &error) )
-                    goto out;
-            }
+        }
+        if ( ( extra_entries != NULL ) && g_key_file_has_group(key_file, group) )
+        {
+            if ( ! _git_eventc_parse_config_file(key_file, group, extra_entries, &error) )
+                goto out;
         }
         if ( extra_parsing != NULL )
         {

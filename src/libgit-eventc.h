@@ -27,7 +27,7 @@ gsize git_eventc_get_path_prefix_length(const gchar *a, const gchar *b, gsize ma
 gchar *git_eventc_get_files(GList *paths);
 
 typedef gboolean (*GitEventcKeyFileFunc)(GKeyFile *key_file, GError **error);
-gboolean git_eventc_parse_options(gint *argc, gchar ***argv, GOptionEntry *extra_entries, const gchar *description, GitEventcKeyFileFunc extra_parsing, gboolean *print_version);
+gboolean git_eventc_parse_options(gint *argc, gchar ***argv, const gchar *group, GOptionEntry *extra_entries, const gchar *description, GitEventcKeyFileFunc extra_parsing, gboolean *print_version);
 gboolean git_eventc_init(GMainLoop *loop, gint *retval);
 void git_eventc_disconnect(void);
 void git_eventc_uninit(void);
