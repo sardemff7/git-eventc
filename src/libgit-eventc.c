@@ -329,12 +329,10 @@ git_eventc_init(GMainLoop *loop, gint *retval)
 #ifdef GIT_EVENTC_DEBUG
 #define bstring(b) ((b) ? "true" : "false")
     g_debug("Configuration:"
-        "\n    eventd host: %s"
         "\n    Merge threshold: %d"
         "\n    Commit id size: %d"
         "\n    Use shortener: %s"
         "\n",
-        host,
         merge_threshold,
         commit_id_size,
         bstring(shortener)
