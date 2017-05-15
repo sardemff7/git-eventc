@@ -24,6 +24,7 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <errno.h>
 
 #include <glib.h>
 #include <glib/gstdio.h>
@@ -682,6 +683,7 @@ main(int argc, char *argv[])
     gchar *input = NULL;
     gsize length;
     gboolean print_version;
+    gboolean should_fork = FALSE;
     gboolean branch_created_commits = TRUE;
 
     int retval = 1;
@@ -697,6 +699,7 @@ main(int argc, char *argv[])
     {
         { "find-renames",             'M', G_OPTION_FLAG_OPTIONAL_ARG, G_OPTION_ARG_CALLBACK, &_git_eventc_find_renames, "See 'git help diff'", "<n>" },
         { "find-copies",              'C', G_OPTION_FLAG_OPTIONAL_ARG, G_OPTION_ARG_CALLBACK, &_git_eventc_find_copies,  "See 'git help diff'", "<n>" },
+        { "fork",                     'F', G_OPTION_FLAG_NONE,         G_OPTION_ARG_NONE,     &should_fork,              "If git-eventc-post-receive should fork", NULL },
         { "branch-create-no-commits", 'B', G_OPTION_FLAG_REVERSE,      G_OPTION_ARG_NONE,     &branch_created_commits,   "Do not send commit/commit-group events for new branches", NULL },
         { NULL }
     };
@@ -723,6 +726,22 @@ main(int argc, char *argv[])
         goto end;
     }
     g_io_channel_unref(in);
+
+    /* We read what we needed, it’s time to fork to do our blocking operations */
+    if ( should_fork )
+    switch ( fork() )
+    {
+    case 0:
+        g_close(0, NULL);
+        g_close(1, NULL);
+        g_close(2, NULL);
+    break;
+    case -1:
+        g_warning("Error while forking: %s", g_strerror(errno));
+        retval = 4;
+    default:
+        goto end;
+    }
 
     GMainLoop *loop;
 
