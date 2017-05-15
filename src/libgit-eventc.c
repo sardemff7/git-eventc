@@ -89,16 +89,33 @@ git_eventc_get_files(GList *paths)
     return g_string_free(files, FALSE);
 }
 
-typedef gchar *(*GitEventcShortenerParse)(SoupMessage *msg);
-
 typedef struct {
     const gchar *name;
     const gchar *method;
     const gchar *url;
     const gchar *field_name;
     const gchar *prefix;
-    GitEventcShortenerParse parse;
+    SoupStatus   status_code;
+    const gchar *header;
 } GitEventcShortener;
+
+static GitEventcShortener shorteners[] = {
+    {
+        .name        = "git.io",
+        .method      = "POST",
+        .url         = "https://git.io/",
+        .field_name  = "url",
+        .prefix      = "https://github.com/",
+        .status_code = SOUP_STATUS_CREATED,
+        .header      = "Location",
+    },
+    {
+        .name        = "is.gd",
+        .method      = "POST",
+        .url         = "https://is.gd/create.php?format=simple",
+        .field_name  = "url",
+    },
+};
 
 static gchar *host = NULL;
 static guint merge_threshold = 5;
@@ -368,32 +385,6 @@ git_eventc_is_above_threshold(guint size)
 }
 
 static gchar *
-_git_eventc_shortener_parse_gitio(SoupMessage *msg)
-{
-    if ( msg->status_code != SOUP_STATUS_CREATED )
-        return NULL;
-
-    return g_strdup(soup_message_headers_get_one(msg->response_headers, "Location"));
-}
-
-static GitEventcShortener shorteners[] = {
-    {
-        .name       = "git.io",
-        .method     = "POST",
-        .url        = "https://git.io/",
-        .field_name = "url",
-        .prefix     = "https://github.com/",
-        .parse      = _git_eventc_shortener_parse_gitio,
-    },
-    {
-        .name       = "is.gd",
-        .method     = "POST",
-        .url        = "https://is.gd/create.php?format=simple",
-        .field_name = "url",
-    },
-};
-
-static gchar *
 _git_eventc_get_url(gchar *url, gboolean copy)
 {
     if ( ( ! shortener ) || ( url == NULL ) || ( *url == '\0') )
@@ -423,10 +414,14 @@ _git_eventc_get_url(gchar *url, gboolean copy)
         soup_message_set_request(msg, "application/x-www-form-urlencoded", SOUP_MEMORY_TAKE, data, strlen(data));
         soup_session_send_message(shortener_session, msg);
 
-        if ( shortener->parse != NULL )
-            short_url = shortener->parse(msg);
-        else if ( SOUP_STATUS_IS_SUCCESSFUL(msg->status_code) )
-            short_url = g_strndup(msg->response_body->data, msg->response_body->length);
+        if ( ( ( shortener->status_code != SOUP_STATUS_NONE ) && ( shortener->status_code != msg->status_code ) )
+             || ( ( shortener->status_code == SOUP_STATUS_NONE ) && SOUP_STATUS_IS_SUCCESSFUL(msg->status_code) ) )
+        {
+            if ( shortener->header != NULL )
+                short_url = g_strdup(soup_message_headers_get_one(msg->response_headers, shortener->header));
+            else
+                short_url = g_strndup(msg->response_body->data, msg->response_body->length);
+        }
 
         soup_uri_free(uri);
         g_object_unref(msg);
