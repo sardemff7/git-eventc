@@ -388,19 +388,31 @@ git_eventc_parse_options(gint *argc, gchar ***argv, const gchar *group, GOptionE
         if ( g_key_file_has_group(key_file, PACKAGE_NAME) )
         {
             if ( ! _git_eventc_parse_config_file(key_file, PACKAGE_NAME, entries, &error) )
+            {
+                g_warning("Config file parsing failed: %s\n", error->message);
                 goto out;
+            }
         }
         if ( ( extra_entries != NULL ) && g_key_file_has_group(key_file, group) )
         {
             if ( ! _git_eventc_parse_config_file(key_file, group, extra_entries, &error) )
+            {
+                g_warning("Config file parsing failed: %s\n", error->message);
                 goto out;
+            }
         }
         if ( ! _git_eventc_shorteners_parse(key_file, &error) )
+        {
+            g_warning("Config file parsing failed: %s\n", error->message);
             goto out;
+        }
         if ( extra_parsing != NULL )
         {
             if ( ! extra_parsing(key_file, &error) )
+            {
+                g_warning("Config file parsing failed: %s\n", error->message);
                 goto out;
+            }
         }
     }
 
