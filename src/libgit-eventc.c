@@ -591,7 +591,7 @@ _git_eventc_get_url(gchar *url, gboolean copy)
     gchar *short_url = NULL;
 
     GitEventcShortener *shortener;
-    for ( shortener = _git_eventc_shorteners ; shortener->name != NULL ; ++shortener )
+    for ( shortener = _git_eventc_shorteners ; ( shortener->name != NULL ) && ( short_url == NULL ) ; ++shortener )
     {
         if ( ( shortener->prefix != NULL ) && ( ! g_str_has_prefix(url, shortener->prefix) ) )
             continue;
