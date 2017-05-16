@@ -336,6 +336,7 @@ _git_eventc_shorteners_parse(GKeyFile *key_file, GError **error)
     {
         if ( ! _git_eventc_shorteners_parse_section(&_git_eventc_shorteners[l], key_file, *section, error) )
             return FALSE;
+        g_free(*section);
     }
 
     _git_eventc_shorteners_add_defaults(_git_eventc_default_shorteners_high, 0, hl);
