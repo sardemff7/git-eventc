@@ -309,9 +309,10 @@ static gboolean
 _git_eventc_shorteners_parse(GKeyFile *key_file, GError **error)
 {
     gsize hl = G_N_ELEMENTS(_git_eventc_default_shorteners_high), l = 0, ll = G_N_ELEMENTS(_git_eventc_default_shorteners_low);
-    gchar **sections, **section, **list = NULL;
+    gchar **sections = NULL, **section, **list = NULL;
 
-    sections = g_key_file_get_groups(key_file, &l);
+    if ( key_file != NULL )
+        sections = g_key_file_get_groups(key_file, &l);
     if ( sections != NULL )
     {
         list = g_newa(gchar *, l);
@@ -401,11 +402,6 @@ git_eventc_parse_options(gint *argc, gchar ***argv, const gchar *group, GOptionE
                 goto out;
             }
         }
-        if ( ! _git_eventc_shorteners_parse(key_file, &error) )
-        {
-            g_warning("Config file parsing failed: %s\n", error->message);
-            goto out;
-        }
         if ( extra_parsing != NULL )
         {
             if ( ! extra_parsing(key_file, &error) )
@@ -414,6 +410,11 @@ git_eventc_parse_options(gint *argc, gchar ***argv, const gchar *group, GOptionE
                 goto out;
             }
         }
+    }
+    if ( ! _git_eventc_shorteners_parse(key_file, &error) )
+    {
+        g_warning("Config file parsing failed: %s\n", error->message);
+        goto out;
     }
 
     option_context = g_option_context_new(description);
