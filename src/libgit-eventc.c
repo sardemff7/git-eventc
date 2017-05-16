@@ -604,7 +604,7 @@ _git_eventc_get_url(gchar *url, gboolean copy)
         soup_message_set_request(msg, "application/x-www-form-urlencoded", SOUP_MEMORY_TAKE, data, strlen(data));
         soup_session_send_message(shortener_session, msg);
 
-        if ( ( ( shortener->status_code != SOUP_STATUS_NONE ) && ( shortener->status_code != msg->status_code ) )
+        if ( ( ( shortener->status_code != SOUP_STATUS_NONE ) && ( shortener->status_code == msg->status_code ) )
              || ( ( shortener->status_code == SOUP_STATUS_NONE ) && SOUP_STATUS_IS_SUCCESSFUL(msg->status_code) ) )
         {
             if ( shortener->header != NULL )
