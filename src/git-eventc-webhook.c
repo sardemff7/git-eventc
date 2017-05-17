@@ -380,14 +380,14 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
     const gchar *content_type = soup_message_headers_get_one(msg->request_headers, "Content-Type");
     if ( content_type == NULL )
     {
-        g_warning("Bad request (no Content-Type header) from %s", user_agent);
+        g_warning("Bad request from %s: no Content-Type header", user_agent);
         goto cleanup;
     }
 
     project = g_strsplit(path+1, "/", 2);
     if ( project[0] == NULL )
     {
-        g_warning("Bad request (no project in path) from %s", user_agent);
+        g_warning("Bad request from %s: no project group in path '%s'", user_agent, path);
         goto cleanup;
     }
 
@@ -440,7 +440,7 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
 
         if ( data == NULL )
         {
-            g_warning("Bad POST (no data) from %s", user_agent);
+            g_warning("Bad POST from %s: no data", user_agent);
             goto cleanup;
         }
         payload = g_hash_table_lookup(data, "payload");
@@ -448,7 +448,7 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
 
     if ( payload == NULL )
     {
-        g_warning("Bad POST (no payload) from %s", user_agent);
+        g_warning("Bad POST from %s: no payload", user_agent);
         goto cleanup;
     }
     JsonParser *parser = json_parser_new();
