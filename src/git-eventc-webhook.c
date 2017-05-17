@@ -395,7 +395,12 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
     {
         status_code = SOUP_STATUS_UNAUTHORIZED;
 
-        const gchar *secret = g_hash_table_lookup(secrets, project[0]);
+        const gchar *secret = NULL;
+
+        if ( project[1] != NULL )
+            secret = g_hash_table_lookup(secrets, project[1]);
+        if ( secret == NULL )
+            secret = g_hash_table_lookup(secrets, project[0]);
 
         if ( secret == NULL )
         {
