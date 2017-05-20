@@ -512,7 +512,10 @@ _git_eventc_post_receive_tag(GitEventcPostReceiveContext *context, const gchar *
     if ( ! git_oid_iszero(to) )
     {
         git_commit *commit;
-        git_tag *tag;
+        git_tag *tag = NULL;
+        git_signature no_author = { .name = NULL, .email = NULL };
+        const git_signature *author = &no_author;
+        const gchar *message = NULL;
         const gchar *previous_tag_name = NULL;
 
         if ( context->tag_url != NULL )
@@ -529,8 +532,9 @@ _git_eventc_post_receive_tag(GitEventcPostReceiveContext *context, const gchar *
             error = git_commit_lookup(&commit, context->repository, to);
         else
         {
+            author = git_tag_tagger(tag);
+            message = git_tag_message(tag);
             error = git_commit_lookup(&commit, context->repository, git_tag_target_id(tag));
-            git_tag_free(tag);
         }
         if ( error < 0 )
             g_warning("Couldn't find tag commit: %s", giterr_last()->message);
@@ -541,7 +545,7 @@ _git_eventc_post_receive_tag(GitEventcPostReceiveContext *context, const gchar *
             if ( error < 0 )
             {
                 g_warning("Couldn't initialize revision walker: %s", giterr_last()->message);
-                goto send_push;
+                goto cleanup;
             }
             git_revwalk_sorting(walker, GIT_SORT_TOPOLOGICAL);
 
@@ -550,13 +554,13 @@ _git_eventc_post_receive_tag(GitEventcPostReceiveContext *context, const gchar *
             if ( error < 0 )
             {
                 g_warning("Couldn't get tag commit parent: %s", giterr_last()->message);
-                goto send_push;
+                goto cleanup;
             }
             error = git_revwalk_push(walker, git_commit_id(parent));
             if ( error < 0 )
             {
                 g_warning("Couldn't push the revision list: %s", giterr_last()->message);
-                goto send_push;
+                goto cleanup;
             }
 
             git_oid id;
@@ -587,10 +591,13 @@ _git_eventc_post_receive_tag(GitEventcPostReceiveContext *context, const gchar *
             git_commit_free(commit);
         }
 
-        git_eventc_send_tag_created(context->pusher, g_strdup(url), context->repository_name, context->repository_url, tag_name, previous_tag_name, context->project);
+        git_eventc_send_tag_created(context->pusher, g_strdup(url), context->repository_name, context->repository_url, tag_name, author->name, author->email, message, previous_tag_name, context->project);
+
+    cleanup:
+        if ( tag != NULL )
+            git_tag_free(tag);
     }
 
-send_push:
     git_eventc_send_push(url, context->pusher, context->repository_name, context->repository_url, NULL, context->project);
 }
 

@@ -63,6 +63,12 @@ This event correspond to the creation/deletion of a tag.
 Here is the list of additional data provided for `tag-created`:
 
 * `previous-tag`: The latest tag in this tag history tree
+* If the tag is an annotated tag:
+  * `subject`: The commit subject (first line of message)
+  * `message`: The commit message (with subject and footer tags stripped, only if not empty)
+  * `full-message`: The full commit message (verbatim)
+  * `author-name`: The name of the author
+  * `author-email`: The email of the author
 
 
 ### `push`

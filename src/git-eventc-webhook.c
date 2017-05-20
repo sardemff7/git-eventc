@@ -267,7 +267,7 @@ _git_eventc_webhook_payload_parse_github_tag(const gchar **project, JsonObject *
         if ( length > 1 )
             previous_tag = json_object_get_string_member(json_array_get_object_element(tags, 1), "name");
 
-        git_eventc_send_tag_created(pusher_name, url, repository_name, repository_url, tag, previous_tag, project);
+        git_eventc_send_tag_created(pusher_name, url, repository_name, repository_url, tag, NULL, NULL, NULL, previous_tag, project);
 
         json_array_unref(tags);
     }
