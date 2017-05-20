@@ -84,7 +84,7 @@ For a `commit` event:
     Name = commit
     [IMAccount freenode]
     Message = ${project-group}/^B${project}^O/^C07${branch}^O: ^C03${author-name}^O * ${id}: ${message} ^C05${url}^O ^C14${files}^0
-    Channels = #test;
+    Recipients = #test;
 
 For a `commit-group` event:
 
@@ -93,7 +93,7 @@ For a `commit-group` event:
     Name = commit-group
     [IMAccount freenode]
     Message = ${project-group}/^B${project}^O/^C07${branch}^O: ^C03${pusher-name}^O pushed ${size} commits ^C05${url}^O
-    Channels = #test;
+    Recipients = #test;
 
 For a `branch-created` event:
 
@@ -102,7 +102,7 @@ For a `branch-created` event:
     Name = branch-created
     [IMAccount freenode]
     Message = ${project-group}/^B${project}^O/^C07${branch}^O: ^C03${pusher-name}^O branch created ^C05${url}^O
-    Channels = #test;
+    Recipients = #test;
 
 For a `branch-deleted` event:
 
@@ -111,7 +111,7 @@ For a `branch-deleted` event:
     Name = branch-deleted
     [IMAccount freenode]
     Message = ${project-group}/^B${project}^O/^C07${branch}^O: ^C03${pusher-name}^O branch deleted ^C05${url}^O
-    Channels = #test;
+    Recipients = #test;
 
 
 
