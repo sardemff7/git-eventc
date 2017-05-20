@@ -60,9 +60,9 @@ This event correspond to the creation/deletion of a branch.
 
 This event correspond to the creation/deletion of a tag.
 <br />
-Here is the list of provided data:
+Here is the list of additional data provided for `tag-created`:
 
-* `previous-tag`: The latest tag in this tag history tree (for `tag-created` only)
+* `previous-tag`: The latest tag in this tag history tree
 
 
 ### `push`
