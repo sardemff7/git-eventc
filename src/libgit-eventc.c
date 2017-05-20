@@ -676,6 +676,74 @@ _git_eventc_event_add_data_string_null(EventdEvent *event, const gchar *name, co
 }
 
 static void
+_git_eventc_parse_message(const gchar *base_message, gchar **subject, gchar **message)
+{
+    *subject = NULL;
+    *message = NULL;
+    if ( base_message == NULL )
+        return;
+
+    gsize l = strlen(base_message);
+    const gchar *new_line = g_utf8_strchr(base_message, l, '\n');
+    if ( new_line != NULL )
+    {
+        const gchar *start = new_line, *end = base_message + l;
+
+        /* We strip extra new lines */
+        while ( g_utf8_get_char(start) == '\n' )
+            start = g_utf8_next_char(start);
+
+        /* Then we strip footer tags */
+        gboolean all_tags = TRUE;
+        const gchar *pe, *e;
+        for ( e = end, pe = e ; all_tags && ( pe > start ) ; pe = e, e = g_utf8_strrchr(start, pe - start, '\n') )
+        {
+            const gchar *line;
+            if ( e == NULL )
+                line = e = start;
+            else
+                line = g_utf8_next_char(e);
+
+            const gchar *t = line;
+            gunichar c;
+
+            if ( line == pe )
+            {
+                /* We found two \n in a row, so a group of tags */
+                end = e;
+                continue;
+            }
+
+            for ( c = g_utf8_get_char(t) ; g_unichar_isalnum(c) || ( c == '-' ) || ( c == '_' ) ; c = g_utf8_get_char(t) )
+                t = g_utf8_next_char(t);
+            if ( g_utf8_get_char(t) != ':' )
+            {
+                /* A line not starting with a tag, check for some other tags */
+                const gchar * const lazy_tags[] = {
+                    /* GitHub closing tags */
+                    "close", "closes", "closed",
+                    "fix", "fixes", "fixed",
+                    "resolve", "resolves", "resolved",
+                };
+
+                gboolean ok = FALSE;
+                gsize i;
+                for ( i = 0 ; ( ! ok ) && ( i < G_N_ELEMENTS(lazy_tags) ) ; ++i )
+                    ok = ( g_ascii_strncasecmp(line, lazy_tags[i], t - line) == 0 );
+                if ( ! ok )
+                    all_tags = FALSE;
+            }
+        }
+
+        *subject = g_strndup(base_message, ( new_line - base_message ));
+        if ( ! all_tags )
+            *message = g_strndup(start, ( end - start ));
+    }
+    else
+        *subject = g_strdup(base_message);
+}
+
+static void
 _git_eventc_send_branch(gboolean created, const gchar *pusher_name, gchar *url, const gchar *repository_name, const gchar *repository_url, const gchar *branch, const gchar **project)
 {
     EventdEvent *event;
@@ -795,65 +863,8 @@ git_eventc_send_commit(const gchar *id, const gchar *base_message, gchar *url, c
         project[0], project[1]);
 #endif /* GIT_EVENTC_DEBUG */
 
-    gsize l = strlen(base_message);
-    const gchar *new_line = g_utf8_strchr(base_message, l, '\n');
-    gchar *subject, *message = NULL;
-    if ( new_line != NULL )
-    {
-        const gchar *start = new_line, *end = base_message + l;
-
-        /* We strip extra new lines */
-        while ( g_utf8_get_char(start) == '\n' )
-            start = g_utf8_next_char(start);
-
-        /* Then we strip footer tags */
-        gboolean all_tags = TRUE;
-        const gchar *pe, *e;
-        for ( e = end, pe = e ; all_tags && ( pe > start ) ; pe = e, e = g_utf8_strrchr(start, pe - start, '\n') )
-        {
-            const gchar *line;
-            if ( e == NULL )
-                line = e = start;
-            else
-                line = g_utf8_next_char(e);
-
-            const gchar *t = line;
-            gunichar c;
-
-            if ( line == pe )
-            {
-                /* We found two \n in a row, so a group of tags */
-                end = e;
-                continue;
-            }
-
-            for ( c = g_utf8_get_char(t) ; g_unichar_isalnum(c) || ( c == '-' ) || ( c == '_' ) ; c = g_utf8_get_char(t) )
-                t = g_utf8_next_char(t);
-            if ( g_utf8_get_char(t) != ':' )
-            {
-                /* A line not starting with a tag, check for some other tags */
-                const gchar * const lazy_tags[] = {
-                    /* GitHub closing tags */
-                    "close", "closes", "closed",
-                    "fix", "fixes", "fixed",
-                    "resolve", "resolves", "resolved",
-                };
-
-                gboolean ok = FALSE;
-                gsize i;
-                for ( i = 0 ; ( ! ok ) && ( i < G_N_ELEMENTS(lazy_tags) ) ; ++i )
-                    ok = ( g_ascii_strncasecmp(line, lazy_tags[i], t - line) == 0 );
-                if ( ! ok )
-                    all_tags = FALSE;
-            }
-        }
-
-        subject = g_strndup(base_message, ( new_line - base_message ));
-        if ( ! all_tags )
-            message = g_strndup(start, ( end - start ));
-    }
-    else
-        subject = g_strdup(base_message);
+    gchar *subject, *message;
+    _git_eventc_parse_message(base_message, &subject, &message);
 
     EventdEvent *event;
 
