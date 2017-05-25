@@ -54,6 +54,7 @@ typedef struct {
 } GitEventcPostReceiveContext;
 
 typedef enum {
+    GIT_EVENTC_POST_RECEIVE_TOKEN_PROJECT_GROUP,
     GIT_EVENTC_POST_RECEIVE_TOKEN_REPOSITORY_NAME,
     GIT_EVENTC_POST_RECEIVE_TOKEN_BRANCH,
     GIT_EVENTC_POST_RECEIVE_TOKEN_TAG,
@@ -63,6 +64,7 @@ typedef enum {
 } GitEventcPostReceiveFormatTokens;
 
 typedef enum {
+    GIT_EVENTC_POST_RECEIVE_FLAG_PROJECT_GROUP = (1 << GIT_EVENTC_POST_RECEIVE_TOKEN_PROJECT_GROUP),
     GIT_EVENTC_POST_RECEIVE_FLAG_REPOSITORY_NAME = (1 << GIT_EVENTC_POST_RECEIVE_TOKEN_REPOSITORY_NAME),
     GIT_EVENTC_POST_RECEIVE_FLAG_BRANCH = (1 << GIT_EVENTC_POST_RECEIVE_TOKEN_BRANCH),
     GIT_EVENTC_POST_RECEIVE_FLAG_TAG = (1 << GIT_EVENTC_POST_RECEIVE_TOKEN_TAG),
@@ -72,6 +74,7 @@ typedef enum {
 } GitEventcPostReceiveFormatFlags;
 
 static const gchar *_git_eventc_post_receive_format_tokens[] = {
+    [GIT_EVENTC_POST_RECEIVE_TOKEN_PROJECT_GROUP] = "project-group",
     [GIT_EVENTC_POST_RECEIVE_TOKEN_REPOSITORY_NAME] = "repository-name",
     [GIT_EVENTC_POST_RECEIVE_TOKEN_BRANCH] = "branch",
     [GIT_EVENTC_POST_RECEIVE_TOKEN_TAG] = "tag",
@@ -245,6 +248,8 @@ _git_eventc_post_receive_url_format_replace(const gchar *token, guint64 value, c
     GitEventcPostReceiveFormatData *data = user_data;
     switch ( value )
     {
+    case GIT_EVENTC_POST_RECEIVE_TOKEN_PROJECT_GROUP:
+        return data->context->project_group;
     case GIT_EVENTC_POST_RECEIVE_TOKEN_REPOSITORY_NAME:
         return data->context->repository_name;
     case GIT_EVENTC_POST_RECEIVE_TOKEN_BRANCH:
@@ -277,11 +282,11 @@ _git_eventc_post_receive_init(GitEventcPostReceiveContext *context, gboolean bra
     {
         context->project_group = _git_eventc_post_receive_get_config_string(config, PACKAGE_NAME ".project-group");
         context->project_name = _git_eventc_post_receive_get_config_string(config, PACKAGE_NAME ".project");
-        repository_url = _git_eventc_post_receive_get_config_url_format(config, PACKAGE_NAME ".repository-url", GIT_EVENTC_POST_RECEIVE_FLAG_REPOSITORY_NAME);
-        context->branch_url = _git_eventc_post_receive_get_config_url_format(config, PACKAGE_NAME ".branch-url", GIT_EVENTC_POST_RECEIVE_FLAG_REPOSITORY_NAME | GIT_EVENTC_POST_RECEIVE_FLAG_BRANCH);
-        context->tag_url = _git_eventc_post_receive_get_config_url_format(config, PACKAGE_NAME ".tag-url", GIT_EVENTC_POST_RECEIVE_FLAG_REPOSITORY_NAME | GIT_EVENTC_POST_RECEIVE_FLAG_TAG);
-        context->commit_url = _git_eventc_post_receive_get_config_url_format(config, PACKAGE_NAME ".commit-url", GIT_EVENTC_POST_RECEIVE_FLAG_REPOSITORY_NAME | GIT_EVENTC_POST_RECEIVE_FLAG_COMMIT);
-        context->diff_url = _git_eventc_post_receive_get_config_url_format(config, PACKAGE_NAME ".diff-url", GIT_EVENTC_POST_RECEIVE_FLAG_REPOSITORY_NAME | GIT_EVENTC_POST_RECEIVE_FLAG_OLD_COMMIT | GIT_EVENTC_POST_RECEIVE_FLAG_NEW_COMMIT);
+        repository_url = _git_eventc_post_receive_get_config_url_format(config, PACKAGE_NAME ".repository-url", GIT_EVENTC_POST_RECEIVE_FLAG_PROJECT_GROUP | GIT_EVENTC_POST_RECEIVE_FLAG_REPOSITORY_NAME);
+        context->branch_url = _git_eventc_post_receive_get_config_url_format(config, PACKAGE_NAME ".branch-url", GIT_EVENTC_POST_RECEIVE_FLAG_PROJECT_GROUP | GIT_EVENTC_POST_RECEIVE_FLAG_REPOSITORY_NAME | GIT_EVENTC_POST_RECEIVE_FLAG_BRANCH);
+        context->tag_url = _git_eventc_post_receive_get_config_url_format(config, PACKAGE_NAME ".tag-url", GIT_EVENTC_POST_RECEIVE_FLAG_PROJECT_GROUP | GIT_EVENTC_POST_RECEIVE_FLAG_REPOSITORY_NAME | GIT_EVENTC_POST_RECEIVE_FLAG_TAG);
+        context->commit_url = _git_eventc_post_receive_get_config_url_format(config, PACKAGE_NAME ".commit-url", GIT_EVENTC_POST_RECEIVE_FLAG_PROJECT_GROUP | GIT_EVENTC_POST_RECEIVE_FLAG_REPOSITORY_NAME | GIT_EVENTC_POST_RECEIVE_FLAG_COMMIT);
+        context->diff_url = _git_eventc_post_receive_get_config_url_format(config, PACKAGE_NAME ".diff-url", GIT_EVENTC_POST_RECEIVE_FLAG_PROJECT_GROUP | GIT_EVENTC_POST_RECEIVE_FLAG_REPOSITORY_NAME | GIT_EVENTC_POST_RECEIVE_FLAG_OLD_COMMIT | GIT_EVENTC_POST_RECEIVE_FLAG_NEW_COMMIT);
         context->repository_name = _git_eventc_post_receive_get_config_string(config, PACKAGE_NAME ".repository");
 
         git_config_free(config);

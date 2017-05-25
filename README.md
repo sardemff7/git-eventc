@@ -144,7 +144,7 @@ Configuration value names are prefixed by `git-eventc.`. Here is the list of use
 * `project`: used as `project`, defaults to `repository-name`
 * `repository`: used as `repository-name` (not meaningful in system configuration)
 * Several URL template strings:
-  all of them have the `${repository-name}` token.
+  all of them have the `${project-group}` and `${repository-name}` tokens.
     * `repository-url`: URL template for the repository:
         * Examples: `http://cgit.example.com/${repository-name}` or `http://gitweb.example.com/?p=${repository-name}.git`
     * `branch-url`: URL template for a branch, available token:
