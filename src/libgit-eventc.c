@@ -760,7 +760,7 @@ _git_eventc_send_branch(gboolean created, const gchar *pusher_name, gchar *url, 
     _git_eventc_event_add_data_string_null(event, "project-group", project[0]);
     _git_eventc_event_add_data_string_fallback(event, "project", project[1], repository_name);
 
-    eventc_connection_event(client, event, NULL);
+    eventc_connection_send_event(client, event, NULL);
     eventd_event_unref(event);
 }
 
@@ -803,7 +803,7 @@ _git_eventc_send_tag(gboolean created, const gchar *pusher_name, gchar *url, con
     _git_eventc_event_add_data_string_null(event, "project-group", project[0]);
     _git_eventc_event_add_data_string_fallback(event, "project", project[1], repository_name);
 
-    eventc_connection_event(client, event, NULL);
+    eventc_connection_send_event(client, event, NULL);
     eventd_event_unref(event);
 }
 
@@ -837,7 +837,7 @@ git_eventc_send_commit_group(const gchar *pusher_name, guint size, gchar *url, c
     _git_eventc_event_add_data_string_null(event, "project-group", project[0]);
     _git_eventc_event_add_data_string_fallback(event, "project", project[1], repository_name);
 
-    eventc_connection_event(client, event, NULL);
+    eventc_connection_send_event(client, event, NULL);
     eventd_event_unref(event);
 }
 
@@ -899,7 +899,7 @@ git_eventc_send_commit(const gchar *id, const gchar *base_message, gchar *url, c
     _git_eventc_event_add_data_string_null(event, "project-group", project[0]);
     _git_eventc_event_add_data_string_fallback(event, "project", project[1], repository_name);
 
-    eventc_connection_event(client, event, NULL);
+    eventc_connection_send_event(client, event, NULL);
     eventd_event_unref(event);
 }
 
@@ -920,7 +920,7 @@ git_eventc_send_push(gchar *url, const gchar *pusher_name, const gchar *reposito
     _git_eventc_event_add_data_string_null(event, "project-group", project[0]);
     _git_eventc_event_add_data_string_fallback(event, "project", project[1], repository_name);
 
-    eventc_connection_event(client, event, NULL);
+    eventc_connection_send_event(client, event, NULL);
     eventd_event_unref(event);
 }
 
@@ -946,6 +946,6 @@ git_eventc_send_bugreport(const gchar *action, guint64 number, const gchar *titl
     _git_eventc_event_add_data_string_null(event, "project-group", project[0]);
     _git_eventc_event_add_data_string_fallback(event, "project", project[1], repository_name);
 
-    eventc_connection_event(client, event, NULL);
+    eventc_connection_send_event(client, event, NULL);
     eventd_event_unref(event);
 }
