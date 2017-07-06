@@ -15,7 +15,7 @@ gnome = import('gnome')
 glib_min_major='2'
 glib_min_minor='40'
 glib_min_version='.'.join([glib_min_major, glib_min_minor])
-eventd_min_version='0.21.90'
+eventd_min_version='0.23.90'
 libsoup_min_version='2.48'
 libgit2_min_version='0.23.0'
 
