@@ -45,6 +45,11 @@
 #include "libgit-eventc.h"
 #include "webhook-github.h"
 
+typedef enum {
+    GIT_EVENTC_WEBHOOK_SERVICE_UNKNOWN = 0,
+    GIT_EVENTC_WEBHOOK_SERVICE_GITHUB,
+} GitEventcWebhookService;
+
 typedef struct {
     gchar **project;
     JsonParser *parser;
@@ -104,6 +109,15 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
         goto cleanup;
     }
 
+    GitEventcWebhookService service = GIT_EVENTC_WEBHOOK_SERVICE_UNKNOWN;
+    if ( g_str_has_prefix(user_agent, "GitHub-Hookshot/") )
+        service = GIT_EVENTC_WEBHOOK_SERVICE_GITHUB;
+    else
+    {
+        g_warning("Unknown WebHook service: %s", user_agent);
+        goto cleanup;
+    }
+
     if ( secrets != NULL )
     {
         status_code = SOUP_STATUS_UNAUTHORIZED;
@@ -123,28 +137,37 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
 
         if ( *secret != '\0' )
         {
-            const gchar *signature;
-            signature = soup_message_headers_get_one(msg->request_headers, "X-Hub-Signature");
-            if ( signature == NULL )
+            switch ( service )
             {
-                g_warning("Signature mandatory but not found %s", user_agent);
-                goto cleanup;
+            case GIT_EVENTC_WEBHOOK_SERVICE_GITHUB:
+            {
+                const gchar *signature;
+                signature = soup_message_headers_get_one(msg->request_headers, "X-Hub-Signature");
+                if ( signature == NULL )
+                {
+                    g_warning("Signature mandatory but not found %s", user_agent);
+                    goto cleanup;
+                }
+
+                if ( ! g_str_has_prefix(signature, "sha1=") )
+                {
+                    g_warning("Signature of request from %s does not match", user_agent);
+                    goto cleanup;
+                }
+                signature += strlen("sha1=");
+
+                hmac = g_hmac_new(G_CHECKSUM_SHA1, (const guchar *) secret, strlen(secret));
+                g_hmac_update(hmac, (const guchar *) msg->request_body->data, msg->request_body->length);
+
+                if ( g_ascii_strcasecmp(signature, g_hmac_get_string(hmac)) != 0 )
+                {
+                    g_warning("Signature of request from %s does not match %s != %s", user_agent, signature, g_hmac_get_string(hmac));
+                    goto cleanup;
+                }
             }
-
-            if ( ! g_str_has_prefix(signature, "sha1=") )
-            {
-                g_warning("Signature of request from %s does not match", user_agent);
-                goto cleanup;
-            }
-            signature += strlen("sha1=");
-
-            hmac = g_hmac_new(G_CHECKSUM_SHA1, (const guchar *) secret, strlen(secret));
-            g_hmac_update(hmac, (const guchar *) msg->request_body->data, msg->request_body->length);
-
-            if ( g_ascii_strcasecmp(signature, g_hmac_get_string(hmac)) != 0 )
-            {
-                g_warning("Signature of request from %s does not match %s != %s", user_agent, signature, g_hmac_get_string(hmac));
-                goto cleanup;
+            break;
+            case GIT_EVENTC_WEBHOOK_SERVICE_UNKNOWN:
+                g_return_if_reached();
             }
         }
     }
@@ -185,7 +208,9 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
     };
 
     status_code = SOUP_STATUS_NOT_IMPLEMENTED;
-    if ( g_str_has_prefix(user_agent, "GitHub-Hookshot/") )
+    switch ( service )
+    {
+    case GIT_EVENTC_WEBHOOK_SERVICE_GITHUB:
     {
         const gchar *event = soup_message_headers_get_one(msg->request_headers, "X-GitHub-Event");
         if ( g_strcmp0(event, "push") == 0 )
@@ -201,8 +226,10 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
         else if ( g_strcmp0(event, "ping") == 0 )
             status_code = SOUP_STATUS_OK;
     }
-    else
-        g_warning("Unknown WebHook service: %s", user_agent);
+    break;
+    case GIT_EVENTC_WEBHOOK_SERVICE_UNKNOWN:
+        g_return_if_reached();
+    }
 
     if ( parse_data.func != NULL )
     {
