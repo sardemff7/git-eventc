@@ -44,10 +44,12 @@
 
 #include "libgit-eventc.h"
 #include "webhook-github.h"
+#include "webhook-travis.h"
 
 typedef enum {
     GIT_EVENTC_WEBHOOK_SERVICE_UNKNOWN = 0,
     GIT_EVENTC_WEBHOOK_SERVICE_GITHUB,
+    GIT_EVENTC_WEBHOOK_SERVICE_TRAVIS,
 } GitEventcWebhookService;
 
 typedef struct {
@@ -112,6 +114,8 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
     GitEventcWebhookService service = GIT_EVENTC_WEBHOOK_SERVICE_UNKNOWN;
     if ( g_str_has_prefix(user_agent, "GitHub-Hookshot/") )
         service = GIT_EVENTC_WEBHOOK_SERVICE_GITHUB;
+    else if ( g_str_has_prefix(user_agent, "Travis CI ") )
+        service = GIT_EVENTC_WEBHOOK_SERVICE_TRAVIS;
     else
     {
         g_warning("Unknown WebHook service: %s", user_agent);
@@ -162,6 +166,23 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
                 if ( g_ascii_strcasecmp(signature, g_hmac_get_string(hmac)) != 0 )
                 {
                     g_warning("Signature of request from %s does not match %s != %s", user_agent, signature, g_hmac_get_string(hmac));
+                    goto cleanup;
+                }
+            }
+            break;
+            case GIT_EVENTC_WEBHOOK_SERVICE_TRAVIS:
+            {
+                /* We do not have nice TLS Signature support in GLib/GIO
+                 * so we just use URL query "secret" */
+                const gchar *query_secret = g_hash_table_lookup(query, "secret");
+                if ( query_secret == NULL )
+                {
+                    g_warning("No secret in query (%s)", user_agent);
+                    goto cleanup;
+                }
+                if ( g_strcmp0(secret, query_secret) != 0 )
+                {
+                    g_warning("Wrong secret in query (%s): %s != %s", user_agent, secret, query_secret);
                     goto cleanup;
                 }
             }
@@ -226,6 +247,10 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
         else if ( g_strcmp0(event, "ping") == 0 )
             status_code = SOUP_STATUS_OK;
     }
+    break;
+    case GIT_EVENTC_WEBHOOK_SERVICE_TRAVIS:
+        parse_data.func = git_eventc_webhook_payload_parse_travis;
+        status_code = SOUP_STATUS_OK;
     break;
     case GIT_EVENTC_WEBHOOK_SERVICE_UNKNOWN:
         g_return_if_reached();

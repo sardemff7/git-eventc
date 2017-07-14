@@ -919,3 +919,35 @@ git_eventc_send_bugreport(const gchar *action, guint64 number, const gchar *titl
 
     _git_eventc_send_event(event, url,  repository_name, repository_url, project);
 }
+
+void
+git_eventc_send_ci_build(const gchar *action, guint64 number, const gchar *branch, guint64 duration, gchar *url, const gchar *repository_name, const gchar *repository_url, const gchar **project)
+{
+    EventdEvent *event;
+
+    event = eventd_event_new("ci-build", action);
+
+    eventd_event_add_data(event, g_strdup("number"), g_variant_new_uint64(number));
+    _git_eventc_event_add_data_string(event, g_strdup("branch"), branch);
+    eventd_event_add_data(event, g_strdup("duration"), g_variant_new_uint64(duration));
+
+    _git_eventc_send_event(event, url,  repository_name, repository_url, project);
+}
+
+void
+git_eventc_send_ci_build_for_pull_request(const gchar *action, guint64 number, const gchar *branch, guint64 duration, guint64 pr_number, const gchar *pr_title, gchar *pr_url, gchar *url, const gchar *repository_name, const gchar *repository_url, const gchar **project)
+{
+    EventdEvent *event;
+
+    event = eventd_event_new("ci-build", action);
+
+    eventd_event_add_data(event, g_strdup("number"), g_variant_new_uint64(number));
+    _git_eventc_event_add_data_string(event, g_strdup("branch"), branch);
+    eventd_event_add_data(event, g_strdup("duration"), g_variant_new_uint64(duration));
+
+    eventd_event_add_data(event, g_strdup("pr-number"), g_variant_new_uint64(number));
+    _git_eventc_event_add_data_string(event, g_strdup("pr-title"), pr_title);
+    _git_eventc_event_take_data_string(event, g_strdup("pr-url"), pr_url);
+
+    _git_eventc_send_event(event, url,  repository_name, repository_url, project);
+}

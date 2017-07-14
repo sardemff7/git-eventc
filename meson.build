@@ -123,6 +123,8 @@ if get_option('enable-webhook') != 'false' and json_glib.found()
             'src/webhook.c',
             'src/webhook-github.c',
             'src/webhook-github.h',
+            'src/webhook-travis.c',
+            'src/webhook-travis.h',
         ],
         c_args: [ '-DG_LOG_DOMAIN="git-eventc-webhook"' ],
         dependencies: [ libsystemd, json_glib, libgit_eventc ],
