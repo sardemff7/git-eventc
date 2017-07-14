@@ -171,7 +171,13 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
     }
     JsonParser *parser = json_parser_new();
 
-    json_parser_load_from_data(parser, payload, -1, NULL);
+    GError *error = NULL;
+    if ( ! json_parser_load_from_data(parser, payload, -1, &error) )
+    {
+        g_warning("Could not parse JSON: %s", error->message);
+        g_clear_error(&error);
+        goto cleanup;
+    }
 
     GitEventcWebhookParseData parse_data = {
         .project = project,
@@ -204,9 +210,7 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
         g_idle_add(_git_eventc_webhook_parse_callback, g_slice_dup(GitEventcWebhookParseData, &parse_data));
     }
     else
-    {
         g_object_unref(parser);
-    }
 
 cleanup:
     if ( data != NULL )
