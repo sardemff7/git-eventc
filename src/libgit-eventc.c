@@ -744,6 +744,21 @@ _git_eventc_parse_message(const gchar *base_message, gchar **subject, gchar **me
 }
 
 static void
+_git_eventc_send_event(EventdEvent *event, gchar *url, const gchar *repository_name, const gchar *repository_url, const gchar **project)
+{
+    _git_eventc_event_take_data_string_null(event, "url", url);
+
+    _git_eventc_event_add_data_string(event, "repository-name", repository_name);
+    _git_eventc_event_add_data_string_null(event, "repository-url", repository_url);
+
+    _git_eventc_event_add_data_string_null(event, "project-group", project[0]);
+    _git_eventc_event_add_data_string_fallback(event, "project", project[1], repository_name);
+
+    eventc_connection_send_event(client, event, NULL);
+    eventd_event_unref(event);
+}
+
+static void
 _git_eventc_send_branch(gboolean created, const gchar *pusher_name, gchar *url, const gchar *repository_name, const gchar *repository_url, const gchar *branch, const gchar **project)
 {
     EventdEvent *event;
@@ -751,17 +766,9 @@ _git_eventc_send_branch(gboolean created, const gchar *pusher_name, gchar *url, 
     event = eventd_event_new("scm", created ? "branch-created" : "branch-deleted");
 
     _git_eventc_event_add_data_string(event, "pusher-name", pusher_name);
-    _git_eventc_event_take_data_string_null(event, "url", url);
-
-    _git_eventc_event_add_data_string(event, "repository-name", repository_name);
-    _git_eventc_event_add_data_string_null(event, "repository-url", repository_url);
     _git_eventc_event_add_data_string(event, "branch", branch);
 
-    _git_eventc_event_add_data_string_null(event, "project-group", project[0]);
-    _git_eventc_event_add_data_string_fallback(event, "project", project[1], repository_name);
-
-    eventc_connection_send_event(client, event, NULL);
-    eventd_event_unref(event);
+    _git_eventc_send_event(event, url,  repository_name, repository_url, project);
 }
 
 void
@@ -793,18 +800,11 @@ _git_eventc_send_tag(gboolean created, const gchar *pusher_name, gchar *url, con
     _git_eventc_event_add_data_string(event, "pusher-name", pusher_name);
     _git_eventc_event_add_data_string_null(event, "author-name", author_name);
     _git_eventc_event_add_data_string_null(event, "author-email", author_email);
-    _git_eventc_event_take_data_string_null(event, "url", url);
 
-    _git_eventc_event_add_data_string(event, "repository-name", repository_name);
-    _git_eventc_event_add_data_string_null(event, "repository-url", repository_url);
     _git_eventc_event_add_data_string(event, "tag", tag);
     _git_eventc_event_add_data_string_null(event, "previous-tag", previous_tag);
 
-    _git_eventc_event_add_data_string_null(event, "project-group", project[0]);
-    _git_eventc_event_add_data_string_fallback(event, "project", project[1], repository_name);
-
-    eventc_connection_send_event(client, event, NULL);
-    eventd_event_unref(event);
+    _git_eventc_send_event(event, url,  repository_name, repository_url, project);
 }
 
 void
@@ -828,17 +828,10 @@ git_eventc_send_commit_group(const gchar *pusher_name, guint size, gchar *url, c
 
     _git_eventc_event_add_data_string(event, "pusher-name", pusher_name);
     eventd_event_add_data(event, g_strdup("size"), g_variant_new_uint64(size));
-    _git_eventc_event_take_data_string_null(event, "url", url);
 
-    _git_eventc_event_add_data_string(event, "repository-name", repository_name);
-    _git_eventc_event_add_data_string_null(event, "repository-url", repository_url);
     _git_eventc_event_add_data_string(event, "branch", branch);
 
-    _git_eventc_event_add_data_string_null(event, "project-group", project[0]);
-    _git_eventc_event_add_data_string_fallback(event, "project", project[1], repository_name);
-
-    eventc_connection_send_event(client, event, NULL);
-    eventd_event_unref(event);
+    _git_eventc_send_event(event, url,  repository_name, repository_url, project);
 }
 
 void
@@ -883,24 +876,17 @@ git_eventc_send_commit(const gchar *id, const gchar *base_message, gchar *url, c
     _git_eventc_event_take_data_string(event, "subject", subject);
     _git_eventc_event_take_data_string_null(event, "message", message);
     _git_eventc_event_add_data_string(event, "full-message", base_message);
-    _git_eventc_event_take_data_string_null(event, "url", url);
 
     _git_eventc_event_add_data_string(event, "pusher-name", pusher_name);
     _git_eventc_event_add_data_string(event, "author-name", author_name);
     _git_eventc_event_add_data_string(event, "author-email", author_email);
     _git_eventc_event_add_data_string_null(event, "author-username", author_username);
 
-    _git_eventc_event_add_data_string(event, "repository-name", repository_name);
-    _git_eventc_event_add_data_string_null(event, "repository-url", repository_url);
     _git_eventc_event_add_data_string(event, "branch", branch);
 
     _git_eventc_event_add_data_string_null(event, "files", files);
 
-    _git_eventc_event_add_data_string_null(event, "project-group", project[0]);
-    _git_eventc_event_add_data_string_fallback(event, "project", project[1], repository_name);
-
-    eventc_connection_send_event(client, event, NULL);
-    eventd_event_unref(event);
+    _git_eventc_send_event(event, url,  repository_name, repository_url, project);
 }
 
 void
@@ -911,17 +897,9 @@ git_eventc_send_push(gchar *url, const gchar *pusher_name, const gchar *reposito
     event = eventd_event_new("scm", "push");
 
     _git_eventc_event_add_data_string(event, "pusher-name", pusher_name);
-    _git_eventc_event_take_data_string_null(event, "url", url);
-
-    _git_eventc_event_add_data_string(event, "repository-name", repository_name);
-    _git_eventc_event_add_data_string_null(event, "repository-url", repository_url);
     _git_eventc_event_add_data_string_null(event, "branch", branch);
 
-    _git_eventc_event_add_data_string_null(event, "project-group", project[0]);
-    _git_eventc_event_add_data_string_fallback(event, "project", project[1], repository_name);
-
-    eventc_connection_send_event(client, event, NULL);
-    eventd_event_unref(event);
+    _git_eventc_send_event(event, url,  repository_name, repository_url, project);
 }
 
 void
@@ -936,16 +914,8 @@ git_eventc_send_bugreport(const gchar *action, guint64 number, const gchar *titl
     _git_eventc_event_add_data_string_null(event, "author-name", author_name);
     _git_eventc_event_add_data_string_null(event, "author-email", author_email);
     _git_eventc_event_add_data_string_null(event, "author-username", author_username);
-    _git_eventc_event_take_data_string_null(event, "url", url);
     if ( tags != NULL )
         eventd_event_add_data(event, g_strdup("tags"), tags);
 
-    _git_eventc_event_add_data_string(event, "repository-name", repository_name);
-    _git_eventc_event_add_data_string_null(event, "repository-url", repository_url);
-
-    _git_eventc_event_add_data_string_null(event, "project-group", project[0]);
-    _git_eventc_event_add_data_string_fallback(event, "project", project[1], repository_name);
-
-    eventc_connection_send_event(client, event, NULL);
-    eventd_event_unref(event);
+    _git_eventc_send_event(event, url,  repository_name, repository_url, project);
 }
