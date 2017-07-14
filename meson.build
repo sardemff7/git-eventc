@@ -94,7 +94,7 @@ libgit_eventc = declare_dependency(link_with: libgit_eventc_lib, include_directo
 if get_option('enable-hook') != 'false' and libgit2.found()
     libnkutils = nk.get_variable('libnkutils')
     executable('git-eventc-post-receive', [
-            'src/git-eventc-post-receive.c',
+            'src/post-receive.c',
         ],
         c_args: [ '-DG_LOG_DOMAIN="git-eventc-post-receive"' ],
         dependencies: [ libgit2, libnkutils, libgit_eventc ],
@@ -120,7 +120,7 @@ if get_option('enable-webhook') != 'false' and json_glib.found()
         )
     endif
     executable('git-eventc-webhook', [
-            'src/git-eventc-webhook.c',
+            'src/webhook.c',
         ],
         c_args: [ '-DG_LOG_DOMAIN="git-eventc-webhook"' ],
         dependencies: [ libsystemd, json_glib, libgit_eventc ],
