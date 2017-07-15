@@ -10,7 +10,7 @@ Most people will need the eventd `im` plugin to act as an IRC commit bot.
 Events
 ------
 
-git-eventc will provide events in the `scm` event group: `commit`, `commit-group`, `branch-creation`, `branch-deletion`, `tag-creation`, `tag-deletion`, `push`.
+git-eventc will provide events in the `scm` event category: `commit`, `commit-group`, `branch-creation`, `branch-deletion`, `tag-creation`, `tag-deletion`, `push`.
 <br />
 Here is the list of common data provided by all events:
 
