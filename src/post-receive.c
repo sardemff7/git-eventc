@@ -221,9 +221,14 @@ _git_eventc_post_receive_get_config_url_format(git_config *config, const gchar *
 
     NkTokenList *value;
     guint64 used_tokens;
-    value = nk_token_list_parse_enum(string, _git_eventc_post_receive_format_tokens, G_N_ELEMENTS(_git_eventc_post_receive_format_tokens), &used_tokens);
+    GError *error = NULL;
+    value = nk_token_list_parse_enum(string, _git_eventc_post_receive_format_tokens, G_N_ELEMENTS(_git_eventc_post_receive_format_tokens), &used_tokens, &error);
     if ( value == NULL )
+    {
+        g_warning("Could not parse URL template: %s", error->message);
+        g_clear_error(&error);
         return NULL;
+    }
 
     if ( ( used_tokens & tokens ) == used_tokens )
         return value;
