@@ -72,6 +72,7 @@ endforeach
 
 nk_modules = [
     'token=true',
+    'enum=true',
 ]
 nk = subproject('libnkutils', default_options: nk_modules)
 nk_options = nk.get_variable('nk_options')
@@ -127,7 +128,7 @@ if get_option('enable-webhook') != 'false' and json_glib.found()
             'src/webhook-travis.h',
         ],
         c_args: [ '-DG_LOG_DOMAIN="git-eventc-webhook"' ],
-        dependencies: [ libsystemd, json_glib, libgit_eventc ],
+        dependencies: [ libsystemd, json_glib, libnkutils, libgit_eventc ],
         install: true,
     )
 endif
