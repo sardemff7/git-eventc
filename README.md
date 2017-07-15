@@ -10,7 +10,7 @@ Most people will need the eventd `im` plugin to act as an IRC commit bot.
 Events
 ------
 
-git-eventc will provide events in the `scm` event group: `commit`, `commit-group`, `branch-created`, `branch-deleted`, `tag-created`, `tag-deleted`.
+git-eventc will provide events in the `scm` event group: `commit`, `commit-group`, `branch-creation`, `branch-deletion`, `tag-creation`, `tag-deletion`.
 <br />
 Here is the list of common data provided by all events:
 
@@ -20,7 +20,7 @@ Here is the list of common data provided by all events:
 * `project`: The project name, defaults to `repository-name`
 * `pusher-name`: The name of the pusher
 * `branch`: The updated branch name (not for `tag-` events, and the related `push` event)
-* `url`: An URL to see the change online (not for `-deleted` events)
+* `url`: An URL to see the change online (not for `-deletion` events)
 
 
 ### `commit`
@@ -51,16 +51,16 @@ Here is the list of provided data:
 * `size`: The number of commits in this push
 
 
-### `branch-created` and `branch-deleted`
+### `branch-creation` and `branch-deletion`
 
 This event correspond to the creation/deletion of a branch.
 
 
-### `tag-created` and `tag-deleted`
+### `tag-creation` and `tag-deletion`
 
 This event correspond to the creation/deletion of a tag.
 <br />
-Here is the list of additional data provided for `tag-created`:
+Here is the list of additional data provided for `tag-creation`:
 
 * `previous-tag`: The latest tag in this tag history tree
 * If the tag is an annotated tag:
@@ -101,20 +101,20 @@ For a `commit-group` event:
     Message = ${project-group}/^B${project}^O/^C07${branch}^O: ^C03${pusher-name}^O pushed ${size} commits ^C05${url}^O
     Recipients = #test;
 
-For a `branch-created` event:
+For a `branch-creation` event:
 
     [Event]
     Category = scm
-    Name = branch-created
+    Name = branch-creation
     [IMAccount freenode]
     Message = ${project-group}/^B${project}^O/^C07${branch}^O: ^C03${pusher-name}^O branch created ^C05${url}^O
     Recipients = #test;
 
-For a `branch-deleted` event:
+For a `branch-deletion` event:
 
     [Event]
     Category = scm
-    Name = branch-deleted
+    Name = branch-deletion
     [IMAccount freenode]
     Message = ${project-group}/^B${project}^O/^C07${branch}^O: ^C03${pusher-name}^O branch deleted ^C05${url}^O
     Recipients = #test;

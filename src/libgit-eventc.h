@@ -37,11 +37,11 @@ gboolean git_eventc_is_above_threshold(guint size);
 gchar *git_eventc_get_url(gchar *url);
 gchar *git_eventc_get_url_const(const gchar *url);
 
-void git_eventc_send_branch_created(const gchar *pusher_name, gchar *url, const gchar *repository_name, const gchar *repository_url, const gchar *branch, const gchar **project);
-void git_eventc_send_branch_deleted(const gchar *pusher_name, const gchar *repository_name, const gchar *repository_url, const gchar *branch, const gchar **project);
+void git_eventc_send_branch_creation(const gchar *pusher_name, gchar *url, const gchar *repository_name, const gchar *repository_url, const gchar *branch, const gchar **project);
+void git_eventc_send_branch_deletion(const gchar *pusher_name, const gchar *repository_name, const gchar *repository_url, const gchar *branch, const gchar **project);
 
-void git_eventc_send_tag_created(const gchar *pusher_name, gchar *url, const gchar *repository_name, const gchar *repository_url, const gchar *tag, const gchar *author_name, const gchar *author_email, const gchar *message, const gchar *previous_tag, const gchar **project);
-void git_eventc_send_tag_deleted(const gchar *pusher_name, const gchar *repository_name, const gchar *repository_url, const gchar *tag, const gchar **project);
+void git_eventc_send_tag_creation(const gchar *pusher_name, gchar *url, const gchar *repository_name, const gchar *repository_url, const gchar *tag, const gchar *author_name, const gchar *author_email, const gchar *message, const gchar *previous_tag, const gchar **project);
+void git_eventc_send_tag_deletion(const gchar *pusher_name, const gchar *repository_name, const gchar *repository_url, const gchar *tag, const gchar **project);
 
 void git_eventc_send_commit_group(const gchar *pusher_name, guint size, gchar *url, const gchar *repository_name, const gchar *repository_url, const gchar *branch, const gchar **project);
 void git_eventc_send_commit(const gchar *id, const gchar *base_message, gchar *url, const gchar *pusher_name, const gchar *author_name, const gchar *author_username, const gchar *author_email, const gchar *repository_name, const gchar *repository_url, const gchar *branch, const gchar *files, const gchar **project);

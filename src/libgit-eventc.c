@@ -763,7 +763,7 @@ _git_eventc_send_branch(gboolean created, const gchar *pusher_name, gchar *url, 
 {
     EventdEvent *event;
 
-    event = eventd_event_new("scm", created ? "branch-created" : "branch-deleted");
+    event = eventd_event_new("scm", created ? "branch-creation" : "branch-deletion");
 
     _git_eventc_event_add_data_string(event, "pusher-name", pusher_name);
     _git_eventc_event_add_data_string(event, "branch", branch);
@@ -772,13 +772,13 @@ _git_eventc_send_branch(gboolean created, const gchar *pusher_name, gchar *url, 
 }
 
 void
-git_eventc_send_branch_created(const gchar *pusher_name, gchar *url, const gchar *repository_name, const gchar *repository_url, const gchar *branch, const gchar **project)
+git_eventc_send_branch_creation(const gchar *pusher_name, gchar *url, const gchar *repository_name, const gchar *repository_url, const gchar *branch, const gchar **project)
 {
     _git_eventc_send_branch(TRUE, pusher_name, url, repository_name, repository_url, branch, project);
 }
 
 void
-git_eventc_send_branch_deleted(const gchar *pusher_name, const gchar *repository_name, const gchar *repository_url, const gchar *branch, const gchar **project)
+git_eventc_send_branch_deletion(const gchar *pusher_name, const gchar *repository_name, const gchar *repository_url, const gchar *branch, const gchar **project)
 {
     _git_eventc_send_branch(FALSE, pusher_name, NULL, repository_name, repository_url, branch, project);
 }
@@ -788,7 +788,7 @@ _git_eventc_send_tag(gboolean created, const gchar *pusher_name, gchar *url, con
 {
     EventdEvent *event;
 
-    event = eventd_event_new("scm", created ? "tag-created" : "tag-deleted");
+    event = eventd_event_new("scm", created ? "tag-creation" : "tag-deletion");
 
     gchar *subject, *message;
     _git_eventc_parse_message(base_message, &subject, &message);
@@ -808,13 +808,13 @@ _git_eventc_send_tag(gboolean created, const gchar *pusher_name, gchar *url, con
 }
 
 void
-git_eventc_send_tag_created(const gchar *pusher_name, gchar *url, const gchar *repository_name, const gchar *repository_url, const gchar *tag, const gchar *author_name, const gchar *author_email, const gchar *message, const gchar *previous_tag, const gchar **project)
+git_eventc_send_tag_creation(const gchar *pusher_name, gchar *url, const gchar *repository_name, const gchar *repository_url, const gchar *tag, const gchar *author_name, const gchar *author_email, const gchar *message, const gchar *previous_tag, const gchar **project)
 {
     _git_eventc_send_tag(TRUE, pusher_name, url, repository_name, repository_url, tag, author_name, author_email, message, previous_tag, project);
 }
 
 void
-git_eventc_send_tag_deleted(const gchar *pusher_name, const gchar *repository_name, const gchar *repository_url, const gchar *tag, const gchar **project)
+git_eventc_send_tag_deletion(const gchar *pusher_name, const gchar *repository_name, const gchar *repository_url, const gchar *tag, const gchar **project)
 {
     _git_eventc_send_tag(FALSE, pusher_name, NULL, repository_name, repository_url, tag, NULL, NULL, NULL, NULL, project);
 }

@@ -50,7 +50,7 @@ typedef struct {
     NkTokenList *commit_url;
     NkTokenList *tag_url;
     NkTokenList *diff_url;
-    gboolean branch_created_commits;
+    gboolean branch_creation_commits;
 } GitEventcPostReceiveContext;
 
 typedef enum {
@@ -273,7 +273,7 @@ _git_eventc_post_receive_url_format_replace(const gchar *token, guint64 value, c
 }
 
 static void
-_git_eventc_post_receive_init(GitEventcPostReceiveContext *context, gboolean branch_created_commits)
+_git_eventc_post_receive_init(GitEventcPostReceiveContext *context, gboolean branch_creation_commits)
 {
     int error;
     NkTokenList *repository_url = NULL;
@@ -330,7 +330,7 @@ _git_eventc_post_receive_init(GitEventcPostReceiveContext *context, gboolean bra
         nk_token_list_unref(repository_url);
     }
 
-    context->branch_created_commits = branch_created_commits;
+    context->branch_creation_commits = branch_creation_commits;
 }
 
 static void
@@ -367,14 +367,14 @@ _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gcha
             };
             branch_url = git_eventc_get_url(nk_token_list_replace(context->branch_url, _git_eventc_post_receive_url_format_replace, &data));
         }
-        git_eventc_send_branch_created(context->pusher, branch_url, context->repository_name, context->repository_url, branch, context->project);
+        git_eventc_send_branch_creation(context->pusher, branch_url, context->repository_name, context->repository_url, branch, context->project);
 
-        if ( ! context->branch_created_commits )
+        if ( ! context->branch_creation_commits )
             goto send_push;
     }
     else if ( git_oid_iszero(to) )
     {
-        git_eventc_send_branch_deleted(context->pusher, context->repository_name, context->repository_url, branch, context->project);
+        git_eventc_send_branch_deletion(context->pusher, context->repository_name, context->repository_url, branch, context->project);
         goto send_push;
     }
 
@@ -517,7 +517,7 @@ _git_eventc_post_receive_tag(GitEventcPostReceiveContext *context, const gchar *
     gchar *url = NULL;
 
     if ( ! git_oid_iszero(from) )
-        git_eventc_send_tag_deleted(context->pusher, context->repository_name, context->repository_url, tag_name, context->project);
+        git_eventc_send_tag_deletion(context->pusher, context->repository_name, context->repository_url, tag_name, context->project);
 
     if ( ! git_oid_iszero(to) )
     {
@@ -601,7 +601,7 @@ _git_eventc_post_receive_tag(GitEventcPostReceiveContext *context, const gchar *
             git_commit_free(commit);
         }
 
-        git_eventc_send_tag_created(context->pusher, g_strdup(url), context->repository_name, context->repository_url, tag_name, author->name, author->email, message, previous_tag_name, context->project);
+        git_eventc_send_tag_creation(context->pusher, g_strdup(url), context->repository_name, context->repository_url, tag_name, author->name, author->email, message, previous_tag_name, context->project);
 
     cleanup:
         if ( tag != NULL )
@@ -701,7 +701,7 @@ main(int argc, char *argv[])
     gsize length;
     gboolean print_version;
     gboolean should_fork = FALSE;
-    gboolean branch_created_commits = TRUE;
+    gboolean branch_creation_commits = TRUE;
 
     int retval = 1;
 
@@ -714,10 +714,10 @@ main(int argc, char *argv[])
 
     GOptionEntry entries[] =
     {
-        { "find-renames",             'M', G_OPTION_FLAG_OPTIONAL_ARG, G_OPTION_ARG_CALLBACK, &_git_eventc_find_renames, "See 'git help diff'", "<n>" },
-        { "find-copies",              'C', G_OPTION_FLAG_OPTIONAL_ARG, G_OPTION_ARG_CALLBACK, &_git_eventc_find_copies,  "See 'git help diff'", "<n>" },
-        { "fork",                     'F', G_OPTION_FLAG_NONE,         G_OPTION_ARG_NONE,     &should_fork,              "If git-eventc-post-receive should fork", NULL },
-        { "branch-create-no-commits", 'B', G_OPTION_FLAG_REVERSE,      G_OPTION_ARG_NONE,     &branch_created_commits,   "Do not send commit/commit-group events for new branches", NULL },
+        { "find-renames",               'M', G_OPTION_FLAG_OPTIONAL_ARG, G_OPTION_ARG_CALLBACK, &_git_eventc_find_renames, "See 'git help diff'", "<n>" },
+        { "find-copies",                'C', G_OPTION_FLAG_OPTIONAL_ARG, G_OPTION_ARG_CALLBACK, &_git_eventc_find_copies,  "See 'git help diff'", "<n>" },
+        { "fork",                       'F', G_OPTION_FLAG_NONE,         G_OPTION_ARG_NONE,     &should_fork,              "If git-eventc-post-receive should fork", NULL },
+        { "branch-creation-no-commits", 'B', G_OPTION_FLAG_REVERSE,      G_OPTION_ARG_NONE,     &branch_creation_commits,   "Do not send commit/commit-group events for new branches", NULL },
         { NULL }
     };
 
@@ -777,7 +777,7 @@ main(int argc, char *argv[])
         else
         {
             GitEventcPostReceiveContext context = { .repository = repository };
-            _git_eventc_post_receive_init(&context, branch_created_commits);
+            _git_eventc_post_receive_init(&context, branch_creation_commits);
             /* Set some diff options */
             _git_eventc_diff_options.flags |= GIT_DIFF_INCLUDE_TYPECHANGE;
 
