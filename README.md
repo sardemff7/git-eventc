@@ -85,36 +85,52 @@ This event is useful for mirroring purpose.
 
 For a `commit` event:
 
-    [Event]
-    Category = scm
-    Name = commit
+    # scm-commit.event
+    [Event scm commit]
+    Actions = scm-commit;
+
+    # scm-commit.action
+    [Action]
+    Name = scm-commit
     [IMAccount freenode]
     Message = ${project-group}/^B${project}^O/^C07${branch}^O: ^C03${author-name}^O * ${id}: ${message} ^C05${url}^O ^C14${files}^0
     Recipients = #test;
 
 For a `commit-group` event:
 
-    [Event]
-    Category = scm
-    Name = commit-group
+    # scm-commit-group.event
+    [Event scm commit-group]
+    Actions = scm-commit-group;
+
+    # scm-commit-group.action
+    [Action]
+    Name = scm-commit-group
     [IMAccount freenode]
     Message = ${project-group}/^B${project}^O/^C07${branch}^O: ^C03${pusher-name}^O pushed ${size} commits ^C05${url}^O
     Recipients = #test;
 
 For a `branch-creation` event:
 
-    [Event]
-    Category = scm
-    Name = branch-creation
+    # scm-branch-creation.event
+    [Event scm branch-creation]
+    Actions = scm-branch-creation;
+
+    # scm-branch-creation.action
+    [Action]
+    Name = scm-branch-creation
     [IMAccount freenode]
     Message = ${project-group}/^B${project}^O/^C07${branch}^O: ^C03${pusher-name}^O branch created ^C05${url}^O
     Recipients = #test;
 
 For a `branch-deletion` event:
 
-    [Event]
-    Category = scm
-    Name = branch-deletion
+    # scm-branch-deletion.event
+    [Event scm branch-deletion]
+    Actions = scm-branch-deletion;
+
+    # scm-branch-deletion.action
+    [Action]
+    Name = scm-branch-deletion
     [IMAccount freenode]
     Message = ${project-group}/^B${project}^O/^C07${branch}^O: ^C03${pusher-name}^O branch deleted ^C05${url}^O
     Recipients = #test;
