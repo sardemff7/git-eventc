@@ -142,7 +142,7 @@ Executables
 
 
 You can specify configuration either directly on the command-line, or in a file `~/.config/git-eventc.conf`, in the `key=value` format.
-All keys must be in a `[git-eventc]` group and use the same name as their command-line argument.
+All keys must be in a `[git-eventc]` section and use the same name as their command-line argument.
 
 ### git-eventc-post-receive
 
