@@ -44,11 +44,13 @@
 
 #include "libgit-eventc.h"
 #include "webhook-github.h"
+#include "webhook-gitlab.h"
 #include "webhook-travis.h"
 
 typedef enum {
     GIT_EVENTC_WEBHOOK_SERVICE_UNKNOWN = 0,
     GIT_EVENTC_WEBHOOK_SERVICE_GITHUB,
+    GIT_EVENTC_WEBHOOK_SERVICE_GITLAB,
     GIT_EVENTC_WEBHOOK_SERVICE_TRAVIS,
 } GitEventcWebhookService;
 
@@ -174,6 +176,8 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
         service = GIT_EVENTC_WEBHOOK_SERVICE_GITHUB;
     else if ( g_str_has_prefix(user_agent, "Travis CI ") )
         service = GIT_EVENTC_WEBHOOK_SERVICE_TRAVIS;
+    else if ( soup_message_headers_get_one(msg->request_headers, "X-Gitlab-Event") != NULL )
+        service = GIT_EVENTC_WEBHOOK_SERVICE_GITLAB;
     else
     {
         g_warning("Unknown WebHook service: %s", user_agent);
@@ -224,6 +228,21 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
                 if ( g_ascii_strcasecmp(signature, g_hmac_get_string(hmac)) != 0 )
                 {
                     g_warning("Signature of request from %s does not match %s != %s", user_agent, signature, g_hmac_get_string(hmac));
+                    goto cleanup;
+                }
+            }
+            break;
+            case GIT_EVENTC_WEBHOOK_SERVICE_GITLAB:
+            {
+                const gchar *query_secret = soup_message_headers_get_one(msg->request_headers, "X-Gitlab-Token");
+                if ( query_secret == NULL )
+                {
+                    g_warning("No secret in query (%s)", user_agent);
+                    goto cleanup;
+                }
+                if ( g_strcmp0(secret, query_secret) != 0 )
+                {
+                    g_warning("Wrong secret in query (%s): %s != %s", user_agent, secret, query_secret);
                     goto cleanup;
                 }
             }
@@ -304,6 +323,16 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
         }
         else if ( g_strcmp0(event, "ping") == 0 )
             status_code = SOUP_STATUS_OK;
+    }
+    break;
+    case GIT_EVENTC_WEBHOOK_SERVICE_GITLAB:
+    {
+        const gchar *event = soup_message_headers_get_one(msg->request_headers, "X-Gitlab-Event");
+        if ( g_strcmp0(event, "Push Hook") == 0 )
+        {
+            parse_data.func = git_eventc_webhook_payload_parse_gitlab_branch;
+            status_code = SOUP_STATUS_OK;
+        }
     }
     break;
     case GIT_EVENTC_WEBHOOK_SERVICE_TRAVIS:

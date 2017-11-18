@@ -125,6 +125,8 @@ if get_option('enable-webhook') != 'false' and json_glib.found()
             'src/webhook.h',
             'src/webhook-github.c',
             'src/webhook-github.h',
+            'src/webhook-gitlab.c',
+            'src/webhook-gitlab.h',
             'src/webhook-travis.c',
             'src/webhook-travis.h',
         ],
