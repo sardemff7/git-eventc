@@ -37,6 +37,12 @@
 
 #include "libgit-eventc.h"
 
+const gchar * const git_eventc_ci_build_actions[GIT_EVENTC_CI_BUILD_NUM_ACTION] = {
+    [GIT_EVENTC_CI_BUILD_ACTION_SUCCESS]  = "success",
+    [GIT_EVENTC_CI_BUILD_ACTION_FAILURE]  = "failure",
+    [GIT_EVENTC_CI_BUILD_ACTION_ERROR] = "error",
+};
+
 gsize
 git_eventc_get_path_prefix_length(const gchar *a, const gchar *b, gsize max_length)
 {

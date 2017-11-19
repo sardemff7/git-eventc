@@ -23,6 +23,15 @@
 #ifndef __GIT_EVENTC_LIBGIT_EVENTC_H__
 #define __GIT_EVENTC_LIBGIT_EVENTC_H__
 
+typedef enum {
+    GIT_EVENTC_CI_BUILD_ACTION_SUCCESS,
+    GIT_EVENTC_CI_BUILD_ACTION_FAILURE,
+    GIT_EVENTC_CI_BUILD_ACTION_ERROR,
+    GIT_EVENTC_CI_BUILD_NUM_ACTION,
+} GitEventCiBuildAction;
+
+extern const gchar * const git_eventc_ci_build_actions[GIT_EVENTC_CI_BUILD_NUM_ACTION];
+
 gsize git_eventc_get_path_prefix_length(const gchar *a, const gchar *b, gsize max_length);
 gchar *git_eventc_get_files(GList *paths);
 
