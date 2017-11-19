@@ -10,20 +10,26 @@ Most people will need the eventd `im` plugin to act as an IRC commit bot.
 Events
 ------
 
-git-eventc will provide events in the `scm` event category: `commit`, `commit-group`, `branch-creation`, `branch-deletion`, `tag-creation`, `tag-deletion`, `push`.
-<br />
-Here is the list of common data provided by all events:
+All events from git-eventc have the following common data:
 
 * `repository-name`: The name of the repository
 * `repository-url`: The URL of the repository
 * `project-group`: The project group name (if set)
 * `project`: The project name, defaults to `repository-name`
-* `pusher-name`: The name of the pusher
-* `branch`: The updated branch name (not for `tag-` events, and the related `push` event)
 * `url`: An URL to see the change online (not for `-deletion` events)
 
 
-### `commit`
+### `scm` event category
+
+git-eventc will provide events in the `scm` event category: `commit`, `commit-group`, `branch-creation`, `branch-deletion`, `tag-creation`, `tag-deletion`, `push`.
+<br />
+Here is the list of common data provided by all `scm` events:
+
+* `pusher-name`: The name of the pusher
+* `branch`: The updated branch name (not for `tag-` events, and the related `push` event)
+
+
+#### `commit`
 
 This event correspond to a single commit.
 <br />
@@ -41,7 +47,7 @@ Here is the list of provided data:
     The `post-receive` hook also detects file renames and copies if asked so.
 
 
-### `commit-group`
+#### `commit-group`
 
 This event correspond to a group of commit.
 It will be generated if a push is adding a number of commits above a specified threshold (see `--help`).
@@ -51,12 +57,12 @@ Here is the list of provided data:
 * `size`: The number of commits in this push
 
 
-### `branch-creation` and `branch-deletion`
+#### `branch-creation` and `branch-deletion`
 
 This event correspond to the creation/deletion of a branch.
 
 
-### `tag-creation` and `tag-deletion`
+#### `tag-creation` and `tag-deletion`
 
 This event correspond to the creation/deletion of a tag.
 <br />
@@ -71,12 +77,41 @@ Here is the list of additional data provided for `tag-creation`:
   * `author-email`: The email of the author
 
 
-### `push`
+#### `push`
 
 This event correspond to a push.
 It will be generated after a set of `commit` events, or any of other events events.
 <br />
 This event is useful for mirroring purpose.
+
+
+### `bug-report` event category
+
+git-eventc will provide events in the `bug-report` event category: `opening`, `closing`, `reopening`.
+<br />
+Here is the list of common data provided by all `bug-report` events:
+
+* `id`: The id/number of the bug report
+* `title`: The title of the report
+* `author-name`: The name of the author
+* `author-email`: The email of the author
+* `author-username`: The username of the author (if available)
+* `tags`: A list of tags/labels associated with the bug report (if available)
+
+
+### `ci-build` event category
+
+git-eventc will provide events in the `ci-build` event category: `success`, `failure`, `error`.
+<br />
+Here is the list of common data provided by all `ci-build` events:
+
+* `id`: The id/number of the build
+* `branch`: The branch the build is associated with
+* `duration`: The duration of the build
+* If the build is associated with a merge request:
+  * `mr-id`: The id/number of the merge request
+  * `mr-title`: The title of the merge request
+  * `nm-url`: The URL of the merge request
 
 
 ### Example event file
