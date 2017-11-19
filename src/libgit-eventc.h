@@ -47,9 +47,9 @@ void git_eventc_send_commit_group(const gchar *pusher_name, guint size, gchar *u
 void git_eventc_send_commit(const gchar *id, const gchar *base_message, gchar *url, const gchar *pusher_name, const gchar *author_name, const gchar *author_username, const gchar *author_email, const gchar *repository_name, const gchar *repository_url, const gchar *branch, const gchar *files, const gchar **project);
 void git_eventc_send_push(gchar *url, const gchar *pusher_name, const gchar *repository_name, const gchar *repository_url, const gchar *branch, const gchar **project);
 
-void git_eventc_send_bugreport(const gchar *action, guint64 number, const gchar *title, gchar *url, const gchar *author_name, const gchar *author_username, const gchar *author_email, GVariant *tags, const gchar *repository_name, const gchar *repository_url, const gchar **project);
+void git_eventc_send_bugreport(const gchar *action, guint64 id, const gchar *title, gchar *url, const gchar *author_name, const gchar *author_username, const gchar *author_email, GVariant *tags, const gchar *repository_name, const gchar *repository_url, const gchar **project);
 
-void git_eventc_send_ci_build(const gchar *action, guint64 number, const gchar *branch, guint64 duration, gchar *url, const gchar *repository_name, const gchar *repository_url, const gchar **project);
-void git_eventc_send_ci_build_for_merge_request(const gchar *action, guint64 number, const gchar *branch, guint64 duration, guint64 mr_number, const gchar *mr_title, gchar *mr_url, gchar *url, const gchar *repository_name, const gchar *repository_url, const gchar **project);
+void git_eventc_send_ci_build(const gchar *action, guint64 id, const gchar *branch, guint64 duration, gchar *url, const gchar *repository_name, const gchar *repository_url, const gchar **project);
+void git_eventc_send_ci_build_for_merge_request(const gchar *action, guint64 id, const gchar *branch, guint64 duration, guint64 mr_id, const gchar *mr_title, gchar *mr_url, gchar *url, const gchar *repository_name, const gchar *repository_url, const gchar **project);
 
 #endif /* __GIT_EVENTC_LIBGIT_EVENTC_H__ */
