@@ -33,6 +33,7 @@
 #include <libsoup/soup.h>
 #include <json-glib/json-glib.h>
 
+#include "nkutils-enum.h"
 #include "libgit-eventc.h"
 #include "webhook-github.h"
 
@@ -275,16 +276,19 @@ git_eventc_webhook_payload_parse_github_push(const gchar **project, JsonObject *
         _git_eventc_webhook_payload_parse_github_tag(project, root, ref + strlen("refs/tags/"));
 }
 
+static const gchar * const _git_eventc_webhook_github_issue_action_name[] = {
+    [GIT_EVENTC_BUG_REPORT_ACTION_OPENING]  = "opened",
+    [GIT_EVENTC_BUG_REPORT_ACTION_CLOSING]  = "closed",
+    [GIT_EVENTC_BUG_REPORT_ACTION_REOPENING] = "reopened",
+};
+
 void
 git_eventc_webhook_payload_parse_github_issues(const gchar **project, JsonObject *root)
 {
-    const gchar *action = json_object_get_string_member(root, "action");
+    const gchar *action_str = json_object_get_string_member(root, "action");
+    guint64 action;
 
-    if ( ( g_strcmp0(action, "opened") == 0 )
-         || ( g_strcmp0(action, "closed") == 0 )
-         || ( g_strcmp0(action, "reopened") == 0 ) )
-    { /* Pass these ones directly */ }
-    else
+    if ( ! nk_enum_parse(action_str, _git_eventc_webhook_github_issue_action_name, GIT_EVENTC_BUG_REPORT_NUM_ACTION, TRUE, FALSE, &action) )
         return;
 
     JsonObject *repository = json_object_get_object_member(root, "repository");
@@ -311,7 +315,7 @@ git_eventc_webhook_payload_parse_github_issues(const gchar **project, JsonObject
     gchar *url;
     url = git_eventc_get_url_const(json_object_get_string_member(issue, "html_url"));
 
-    git_eventc_send_bugreport(action,
+    git_eventc_send_bugreport(git_eventc_bug_report_actions[action],
         json_object_get_int_member(issue, "number"),
         json_object_get_string_member(issue, "title"),
         url,

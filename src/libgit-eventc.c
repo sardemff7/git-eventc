@@ -37,6 +37,12 @@
 
 #include "libgit-eventc.h"
 
+const gchar * const git_eventc_bug_report_actions[GIT_EVENTC_BUG_REPORT_NUM_ACTION] = {
+    [GIT_EVENTC_BUG_REPORT_ACTION_OPENING]  = "opening",
+    [GIT_EVENTC_BUG_REPORT_ACTION_CLOSING]  = "closing",
+    [GIT_EVENTC_BUG_REPORT_ACTION_REOPENING] = "reopening",
+};
+
 const gchar * const git_eventc_ci_build_actions[GIT_EVENTC_CI_BUILD_NUM_ACTION] = {
     [GIT_EVENTC_CI_BUILD_ACTION_SUCCESS]  = "success",
     [GIT_EVENTC_CI_BUILD_ACTION_FAILURE]  = "failure",
