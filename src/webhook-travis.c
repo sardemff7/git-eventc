@@ -80,7 +80,7 @@ git_eventc_webhook_payload_parse_travis(const gchar **project, JsonObject *root)
     url = git_eventc_get_url_const(json_object_get_string_member(root, "build_url"));
 
     if ( json_object_get_boolean_member(root, "pull_request") )
-        git_eventc_send_ci_build_for_pull_request(_git_eventc_webhook_travis_state_actions[action], number, branch, duration,
+        git_eventc_send_ci_build_for_merge_request(_git_eventc_webhook_travis_state_actions[action], number, branch, duration,
             json_object_get_int_member(root, "pull_request_number"),
             json_object_get_string_member(root, "pull_request_title"),
             git_eventc_get_url_const(json_object_get_string_member(root, "compare_url")),
