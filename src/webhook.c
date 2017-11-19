@@ -333,6 +333,11 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
             parse_data.func = git_eventc_webhook_payload_parse_gitlab_branch;
             status_code = SOUP_STATUS_OK;
         }
+        else if ( g_strcmp0(event, "Tag Push Hook") == 0 )
+        {
+            parse_data.func = git_eventc_webhook_payload_parse_gitlab_tag;
+            status_code = SOUP_STATUS_OK;
+        }
     }
     break;
     case GIT_EVENTC_WEBHOOK_SERVICE_TRAVIS:

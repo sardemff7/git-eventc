@@ -24,5 +24,6 @@
 #define __GIT_EVENTC_WEBHOOK_GITLAB_H__
 
 void git_eventc_webhook_payload_parse_gitlab_branch(const gchar **project, JsonObject *root);
+void git_eventc_webhook_payload_parse_gitlab_tag(const gchar **project, JsonObject *root);
 
 #endif /* __GIT_EVENTC_WEBHOOK_GITLAB_H__ */

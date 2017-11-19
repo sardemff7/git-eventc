@@ -33,9 +33,55 @@
 #include <libsoup/soup.h>
 #include <json-glib/json-glib.h>
 
+#include "nkutils-enum.h"
 #include "libgit-eventc.h"
 #include "webhook.h"
 #include "webhook-gitlab.h"
+
+static JsonNode *
+_git_eventc_webhook_gitlab_api_get(JsonObject *root, const gchar *suffix, gsize length)
+{
+    JsonObject *project = json_object_get_object_member(root, "project");
+    const gchar *web_url = json_object_get_string_member(project, "web_url");
+    const gchar *path_with_namespace = json_object_get_string_member(project, "path_with_namespace");
+    gsize pl, l;
+    gchar *url;
+
+    pl = strlen(web_url) - strlen(path_with_namespace);
+    l = pl + strlen("api/v4") + length + 1;
+    url = g_alloca(sizeof(gchar) * l);
+    g_snprintf(url, l, "%.*sapi/v4%s", (gint) pl, web_url, suffix);
+
+    return git_eventc_webhook_api_get(url);
+}
+
+static JsonNode *
+_git_eventc_webhook_gitlab_api_get_project(JsonObject *root, const gchar *suffix, gsize length)
+{
+    gint64 id = json_object_get_int_member(root, "project_id");
+    gsize l;
+    gchar *url;
+
+    l = strlen("projects/") + 20 /* max int64 */ + length + 1;
+    url = g_alloca(sizeof(gchar) * l);
+    g_snprintf(url, l, "/projects/%" G_GINT64_FORMAT"%s", id, suffix);
+
+    return _git_eventc_webhook_gitlab_api_get(root, url, l - 1);
+}
+
+static JsonArray *
+_git_eventc_webhook_gitlab_get_tags(JsonObject *root)
+{
+    JsonNode *node;
+    JsonArray *tags;
+
+    node = _git_eventc_webhook_gitlab_api_get_project(root, "/repository/tags", strlen("/repository/tags"));
+
+    tags = json_array_ref(json_node_get_array(node));
+    json_node_free(node);
+
+    return tags;
+}
 
 static gchar *
 _git_eventc_webhook_payload_pusher_name_gitlab(JsonObject *root)
@@ -143,6 +189,46 @@ git_eventc_webhook_payload_parse_gitlab_branch(const gchar **project, JsonObject
 
 send_push:
     git_eventc_send_push(diff_url, pusher_name, repository_name, repository_url, branch, project);
+
+    g_free(pusher_name);
+}
+
+void
+git_eventc_webhook_payload_parse_gitlab_tag(const gchar **project, JsonObject *root)
+{
+    const gchar *tag = json_object_get_string_member(root, "ref") + strlen("refs/tags/");
+
+    JsonObject *repository = json_object_get_object_member(root, "project");
+
+    const gchar *repository_name = json_object_get_string_member(repository, "name");
+    const gchar *repository_url = json_object_get_string_member(repository, "git_http_url");
+    gchar *pusher_name = _git_eventc_webhook_payload_pusher_name_gitlab(root);
+
+    const gchar *web_url = json_object_get_string_member(repository, "web_url");
+    const gchar *before = json_object_get_string_member(root, "before");
+    const gchar *after = json_object_get_string_member(root, "after");
+
+    gchar *url;
+    url = git_eventc_get_url(g_strdup_printf("%s/tags/%s", web_url, tag));
+
+    if ( g_strcmp0(before, "0000000000000000000000000000000000000000") != 0 )
+            git_eventc_send_tag_deletion(pusher_name, repository_name, repository_url, tag, project);
+
+    if ( g_strcmp0(after, "0000000000000000000000000000000000000000") != 0 )
+    {
+        JsonArray *tags = _git_eventc_webhook_gitlab_get_tags(repository);
+        guint length = json_array_get_length(tags);
+        const gchar *previous_tag = NULL;
+
+        if ( length > 1 )
+            previous_tag = json_object_get_string_member(json_array_get_object_element(tags, 1), "name");
+
+        git_eventc_send_tag_creation(pusher_name, g_strdup(url), repository_name, repository_url, tag, NULL, NULL, NULL, previous_tag, project);
+
+        json_array_unref(tags);
+    }
+
+    git_eventc_send_push(url, pusher_name, repository_name, repository_url, NULL, project);
 
     g_free(pusher_name);
 }
