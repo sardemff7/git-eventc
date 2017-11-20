@@ -94,7 +94,7 @@ Here is the list of common data provided by all `bug-report` events:
 * `id`: The id/number of the bug report
 * `title`: The title of the report
 * `author-name`: The name of the author
-* `author-email`: The email of the author
+* `author-email`: The email of the author (if available)
 * `author-username`: The username of the author (if available)
 * `tags`: A list of tags/labels associated with the bug report (if available)
 
