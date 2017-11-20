@@ -321,6 +321,11 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
             parse_data.func = git_eventc_webhook_payload_parse_github_issues;
             status_code = SOUP_STATUS_OK;
         }
+        else if ( g_strcmp0(event, "pull_request") == 0 )
+        {
+            parse_data.func = git_eventc_webhook_payload_parse_github_pull_request;
+            status_code = SOUP_STATUS_OK;
+        }
         else if ( g_strcmp0(event, "ping") == 0 )
             status_code = SOUP_STATUS_OK;
     }
