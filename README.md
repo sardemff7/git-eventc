@@ -240,6 +240,7 @@ git-eventc-webhook will split the URL path in two:
 Here is the list of supported services.
 
 * GitHub
+* Gitlab
 * Travis CI
 
 Example URLs:
