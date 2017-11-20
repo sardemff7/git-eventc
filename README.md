@@ -249,18 +249,6 @@ Example URLs:
     https://example.com:8080/TestProjectGroup/TestProject
     https://example.com/webhook/TestProjectGroup/TestProject (behind Apache ProxyPass)
 
-#### Travis CI
-
-git-eventc-webhook can produce events for Travis CI builds.
-These events will be of the `ci-build` category, and are: `success`, `failure`, `error`.
-
-They share the base set of data of the `scm` events.
-Builds triggered from a Pull Request will have the following additional data:
-
-* `pr-number`: The number of the Pull Request
-* `pr-title`: The title of the Pull Request
-* `pr-url`: The URL of the Pull Request
-
 #### Secrets
 
 git-eventc-webhook has secret support. In your GitHub WebHook configuration, you can specify a secret.
