@@ -302,3 +302,55 @@ git_eventc_webhook_payload_parse_gitlab_issue(const gchar **project, JsonObject 
         tags,
         repository_name, repository_url, project);
 }
+
+static const gchar * const _git_eventc_webhook_gitlab_merge_request_action_name[] = {
+    [GIT_EVENTC_MERGE_REQUEST_ACTION_OPENING]  = "open",
+    [GIT_EVENTC_MERGE_REQUEST_ACTION_CLOSING]  = "close",
+    [GIT_EVENTC_MERGE_REQUEST_ACTION_REOPENING] = "reopen",
+    [GIT_EVENTC_MERGE_REQUEST_ACTION_MERGE] = "merge",
+};
+
+void
+git_eventc_webhook_payload_parse_gitlab_merge_request(const gchar **project, JsonObject *root)
+{
+    JsonObject *mr = json_object_get_object_member(root, "object_attributes");
+    const gchar *action_str = json_object_get_string_member(mr, "action");
+    guint64 action;
+
+    if ( ! nk_enum_parse(action_str, _git_eventc_webhook_gitlab_merge_request_action_name, GIT_EVENTC_MERGE_REQUEST_NUM_ACTION, TRUE, FALSE, &action) )
+        return;
+
+    JsonObject *author = _git_eventc_webhook_gitlab_get_user(root, json_object_get_int_member(mr, "author_id"));
+
+    JsonObject *repository = json_object_get_object_member(root, "repository");
+    const gchar *repository_name = json_object_get_string_member(repository, "name");
+    const gchar *repository_url = json_object_get_string_member(repository, "url");
+    const gchar *branch = json_object_get_string_member(mr, "target_branch");
+
+    JsonArray *tags_array = json_object_get_array_member(root, "labels");
+    guint length = json_array_get_length(tags_array);
+    GVariant *tags = NULL;
+    if ( length > 0 )
+    {
+        GVariantBuilder *builder;
+        guint i;
+        builder = g_variant_builder_new(G_VARIANT_TYPE_STRING_ARRAY);
+        for ( i = 0 ; i < length ; ++i )
+            g_variant_builder_add_value(builder, g_variant_new_string(json_object_get_string_member(json_array_get_object_element(tags_array, i), "title")));
+        tags = g_variant_builder_end(builder);
+        g_variant_builder_unref(builder);
+    }
+
+    gchar *url;
+    url = git_eventc_get_url_const(json_object_get_string_member(mr, "url"));
+
+    git_eventc_send_merge_request(git_eventc_merge_request_actions[action],
+        json_object_get_int_member(mr, "iid"),
+        json_object_get_string_member(mr, "title"),
+        url,
+        json_object_get_string_member(author, "name"),
+        json_object_get_string_member(author, "username"),
+        NULL,
+        tags,
+        repository_name, repository_url, branch, project);
+}
