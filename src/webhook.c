@@ -60,6 +60,64 @@ typedef struct {
 
 static GHashTable *secrets = NULL;
 
+JsonNode *
+git_eventc_webhook_api_get(const gchar *url)
+{
+    static SoupSession *session = NULL;
+    GError *error = NULL;
+
+    if ( session == NULL )
+        session = soup_session_new_with_options(SOUP_SESSION_USER_AGENT, PACKAGE_NAME " " PACKAGE_VERSION, NULL);
+
+    SoupRequestHTTP *req;
+    req = soup_session_request_http(session, "GET", url, &error);
+    if ( req == NULL )
+    {
+        g_warning("Couldn't get %s: %s", url, error->message);
+        g_clear_error(&error);
+        return NULL;
+    }
+
+    SoupMessage *msg;
+    guint code;
+
+    msg = soup_request_http_get_message(req);
+    code = soup_session_send_message(session, msg);
+
+    if ( code != SOUP_STATUS_OK )
+    {
+        g_warning("Couldn't get %s: %s", url, soup_status_get_phrase(code));
+        return NULL;
+    }
+
+    JsonParser *parser;
+    parser = json_parser_new();
+    if ( ! json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, &error) )
+    {
+        g_warning("Couldn't parse answer to %s: %s", url, error->message);
+        g_clear_error(&error);
+        return NULL;
+    }
+
+    JsonNode *node;
+    node = json_node_copy(json_parser_get_root(parser));
+
+    g_object_unref(parser);
+
+    return node;
+}
+
+GList *
+git_eventc_webhook_node_list_to_string_list(GList *list)
+{
+    /* Retrieve the actual strings */
+    GList *node;
+    for ( node = list ; node != NULL ; node = g_list_next(node) )
+        node->data = (gpointer) json_node_get_string(node->data);
+
+    return list;
+}
+
 static gboolean
 _git_eventc_webhook_parse_callback(gpointer user_data)
 {

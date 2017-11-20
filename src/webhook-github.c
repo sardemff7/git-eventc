@@ -35,61 +35,15 @@
 
 #include "nkutils-enum.h"
 #include "libgit-eventc.h"
+#include "webhook.h"
 #include "webhook-github.h"
-
-static JsonNode *
-_git_eventc_webhook_github_get(const gchar *url)
-{
-    static SoupSession *session = NULL;
-    GError *error = NULL;
-
-    if ( session == NULL )
-        session = soup_session_new_with_options(SOUP_SESSION_USER_AGENT, PACKAGE_NAME " " PACKAGE_VERSION, NULL);
-
-    SoupRequestHTTP *req;
-    req = soup_session_request_http(session, "GET", url, &error);
-    if ( req == NULL )
-    {
-        g_warning("Couldn't get %s: %s", url, error->message);
-        g_clear_error(&error);
-        return NULL;
-    }
-
-    SoupMessage *msg;
-    guint code;
-
-    msg = soup_request_http_get_message(req);
-    code = soup_session_send_message(session, msg);
-
-    if ( code != SOUP_STATUS_OK )
-    {
-        g_warning("Couldn't get %s: %s", url, soup_status_get_phrase(code));
-        return NULL;
-    }
-
-    JsonParser *parser;
-    parser = json_parser_new();
-    if ( ! json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, &error) )
-    {
-        g_warning("Couldn't parse answer to %s: %s", url, error->message);
-        g_clear_error(&error);
-        return NULL;
-    }
-
-    JsonNode *node;
-    node = json_node_copy(json_parser_get_root(parser));
-
-    g_object_unref(parser);
-
-    return node;
-}
 
 static JsonObject *
 _git_eventc_webhook_github_get_user(JsonObject *user)
 {
     JsonNode *node;
 
-    node = _git_eventc_webhook_github_get(json_object_get_string_member(user, "url"));
+    node = git_eventc_webhook_api_get(json_object_get_string_member(user, "url"));
     if ( node == NULL )
         return json_object_ref(user);
 
@@ -105,21 +59,12 @@ _git_eventc_webhook_github_get_tags(JsonObject *repository)
     JsonNode *node;
     JsonArray *tags;
 
-    node = _git_eventc_webhook_github_get(json_object_get_string_member(repository, "tags"));
+    node = git_eventc_webhook_api_get(json_object_get_string_member(repository, "tags"));
 
     tags = json_array_ref(json_node_get_array(node));
     json_node_free(node);
 
     return tags;
-}
-
-static void
-_git_eventc_webhook_node_list_to_string_list(GList *list)
-{
-    /* Retrieve the actual strings */
-    GList *node;
-    for ( node = list ; node != NULL ; node = g_list_next(node) )
-        node->data = (gpointer) json_node_get_string(node->data);
 }
 
 static gchar *
@@ -153,7 +98,7 @@ _git_eventc_webhook_payload_get_files_github(JsonObject *commit)
     paths = g_list_concat(paths, json_array_get_elements(modified_files));
     paths = g_list_concat(paths, json_array_get_elements(removed_files));
 
-    _git_eventc_webhook_node_list_to_string_list(paths);
+    git_eventc_webhook_node_list_to_string_list(paths);
 
     return git_eventc_get_files(paths);
 }
@@ -294,13 +239,13 @@ git_eventc_webhook_payload_parse_github_issues(const gchar **project, JsonObject
     JsonObject *repository = json_object_get_object_member(root, "repository");
     JsonObject *issue = json_object_get_object_member(root, "issue");
     JsonObject *author = _git_eventc_webhook_github_get_user(json_object_get_object_member(issue, "user"));
-    JsonArray *tags_array = json_object_get_array_member(issue, "labels");
 
     const gchar *repository_name = json_object_get_string_member(repository, "name");
     const gchar *repository_url = json_object_get_string_member(repository, "url");
+
+    JsonArray *tags_array = json_object_get_array_member(issue, "labels");
     guint length = json_array_get_length(tags_array);
     GVariant *tags = NULL;
-
     if ( length > 0 )
     {
         GVariantBuilder *builder;

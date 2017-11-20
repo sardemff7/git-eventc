@@ -122,6 +122,7 @@ if get_option('enable-webhook') != 'false' and json_glib.found()
     endif
     executable('git-eventc-webhook', [
             'src/webhook.c',
+            'src/webhook.h',
             'src/webhook-github.c',
             'src/webhook-github.h',
             'src/webhook-travis.c',
