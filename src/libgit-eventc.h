@@ -31,6 +31,14 @@ typedef enum {
 } GitEventBugReportAction;
 
 typedef enum {
+    GIT_EVENTC_MERGE_REQUEST_ACTION_OPENING,
+    GIT_EVENTC_MERGE_REQUEST_ACTION_CLOSING,
+    GIT_EVENTC_MERGE_REQUEST_ACTION_REOPENING,
+    GIT_EVENTC_MERGE_REQUEST_ACTION_MERGE,
+    GIT_EVENTC_MERGE_REQUEST_NUM_ACTION,
+} GitEventMergeRequestAction;
+
+typedef enum {
     GIT_EVENTC_CI_BUILD_ACTION_SUCCESS,
     GIT_EVENTC_CI_BUILD_ACTION_FAILURE,
     GIT_EVENTC_CI_BUILD_ACTION_ERROR,
@@ -38,6 +46,7 @@ typedef enum {
 } GitEventCiBuildAction;
 
 extern const gchar * const git_eventc_bug_report_actions[GIT_EVENTC_BUG_REPORT_NUM_ACTION];
+extern const gchar * const git_eventc_merge_request_actions[GIT_EVENTC_MERGE_REQUEST_NUM_ACTION];
 extern const gchar * const git_eventc_ci_build_actions[GIT_EVENTC_CI_BUILD_NUM_ACTION];
 
 gsize git_eventc_get_path_prefix_length(const gchar *a, const gchar *b, gsize max_length);
@@ -65,6 +74,7 @@ void git_eventc_send_commit(const gchar *id, const gchar *base_message, gchar *u
 void git_eventc_send_push(gchar *url, const gchar *pusher_name, const gchar *repository_name, const gchar *repository_url, const gchar *branch, const gchar **project);
 
 void git_eventc_send_bugreport(const gchar *action, guint64 id, const gchar *title, gchar *url, const gchar *author_name, const gchar *author_username, const gchar *author_email, GVariant *tags, const gchar *repository_name, const gchar *repository_url, const gchar **project);
+void git_eventc_send_merge_request(const gchar *action, guint64 id, const gchar *title, gchar *url, const gchar *author_name, const gchar *author_username, const gchar *author_email, GVariant *tags, const gchar *repository_name, const gchar *repository_url, const gchar *branch, const gchar **project);
 
 void git_eventc_send_ci_build(const gchar *action, guint64 id, const gchar *branch, guint64 duration, gchar *url, const gchar *repository_name, const gchar *repository_url, const gchar **project);
 void git_eventc_send_ci_build_for_merge_request(const gchar *action, guint64 id, const gchar *branch, guint64 duration, guint64 mr_id, const gchar *mr_title, gchar *mr_url, gchar *url, const gchar *repository_name, const gchar *repository_url, const gchar **project);

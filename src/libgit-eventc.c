@@ -43,6 +43,13 @@ const gchar * const git_eventc_bug_report_actions[GIT_EVENTC_BUG_REPORT_NUM_ACTI
     [GIT_EVENTC_BUG_REPORT_ACTION_REOPENING] = "reopening",
 };
 
+const gchar * const git_eventc_merge_request_actions[GIT_EVENTC_MERGE_REQUEST_NUM_ACTION] = {
+    [GIT_EVENTC_MERGE_REQUEST_ACTION_OPENING]  = "opening",
+    [GIT_EVENTC_MERGE_REQUEST_ACTION_CLOSING]  = "closing",
+    [GIT_EVENTC_MERGE_REQUEST_ACTION_REOPENING] = "reopening",
+    [GIT_EVENTC_MERGE_REQUEST_ACTION_MERGE] = "merge",
+};
+
 const gchar * const git_eventc_ci_build_actions[GIT_EVENTC_CI_BUILD_NUM_ACTION] = {
     [GIT_EVENTC_CI_BUILD_ACTION_SUCCESS]  = "success",
     [GIT_EVENTC_CI_BUILD_ACTION_FAILURE]  = "failure",
@@ -928,6 +935,25 @@ git_eventc_send_bugreport(const gchar *action, guint64 id, const gchar *title, g
     _git_eventc_event_add_data_string_null(event, "author-username", author_username);
     if ( tags != NULL )
         eventd_event_add_data(event, g_strdup("tags"), tags);
+
+    _git_eventc_send_event(event, url,  repository_name, repository_url, project);
+}
+
+void
+git_eventc_send_merge_request(const gchar *action, guint64 id, const gchar *title, gchar *url, const gchar *author_name, const gchar *author_username, const gchar *author_email, GVariant *tags, const gchar *repository_name, const gchar *repository_url, const gchar *branch, const gchar **project)
+{
+    EventdEvent *event;
+
+    event = eventd_event_new("merge-request", action);
+
+    eventd_event_add_data(event, g_strdup("id"), g_variant_new_uint64(id));
+    _git_eventc_event_add_data_string(event, "title", title);
+    _git_eventc_event_add_data_string_null(event, "author-name", author_name);
+    _git_eventc_event_add_data_string_null(event, "author-email", author_email);
+    _git_eventc_event_add_data_string_null(event, "author-username", author_username);
+    if ( tags != NULL )
+        eventd_event_add_data(event, g_strdup("tags"), tags);
+    _git_eventc_event_add_data_string_null(event, "branch", branch);
 
     _git_eventc_send_event(event, url,  repository_name, repository_url, project);
 }
