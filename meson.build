@@ -24,8 +24,8 @@ libeventd = dependency('libeventd', version: '>=@0@'.format(eventd_min_version))
 libeventc = dependency('libeventc', version: '>=@0@'.format(eventd_min_version))
 libsoup = dependency('libsoup-2.4', version: '>=@0@'.format(libsoup_min_version))
 
-libgit2 = dependency('libgit2', version: '>=@0@'.format(libgit2_min_version), required: get_option('enable-hook') != 'false')
-json_glib = dependency('json-glib-1.0', required: get_option('enable-webhook') != 'false')
+libgit2 = dependency('libgit2', version: '>=@0@'.format(libgit2_min_version), required: get_option('hook') != 'false')
+json_glib = dependency('json-glib-1.0', required: get_option('webhook') != 'false')
 
 headers = [
     'locale.h',
@@ -50,8 +50,8 @@ header_conf.set('G_LOG_USE_STRUCTURED', true)
 header_conf.set_quoted('SYSCONFDIR', join_paths(get_option('prefix'), get_option('sysconfdir')))
 other_conf.set('bindir', join_paths(get_option('prefix'), get_option('bindir')))
 
-header_conf.set('ENABLE_SYSTEMD', get_option('enable-systemd'))
-header_conf.set('GIT_EVENTC_DEBUG', get_option('enable-debug'))
+header_conf.set('ENABLE_SYSTEMD', get_option('systemd'))
+header_conf.set('GIT_EVENTC_DEBUG', get_option('debug'))
 
 config_h = configure_file(output: 'config.h', configuration: header_conf)
 
@@ -92,7 +92,7 @@ libgit_eventc_lib = static_library('git-eventc', [
 
 libgit_eventc = declare_dependency(link_with: libgit_eventc_lib, include_directories: include_directories('src'), dependencies: [ libsoup, libeventc, libeventd, glib ])
 
-if get_option('enable-hook') != 'false' and libgit2.found()
+if get_option('hook') != 'false' and libgit2.found()
     libnkutils = nk.get_variable('libnkutils')
     executable('git-eventc-post-receive', [
             'src/post-receive.c',
@@ -103,9 +103,9 @@ if get_option('enable-hook') != 'false' and libgit2.found()
     )
 endif
 
-if get_option('enable-webhook') != 'false' and json_glib.found()
+if get_option('webhook') != 'false' and json_glib.found()
     libsystemd = []
-    if get_option('enable-systemd')
+    if get_option('systemd')
         systemd = dependency('systemd')
         libsystemd = dependency('libsystemd', version: '>= 209')
         systemdsystemunit_install_dir = get_option('systemdsystemunitdir')
