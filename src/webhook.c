@@ -65,6 +65,8 @@ static GHashTable *secrets = NULL;
 JsonNode *
 git_eventc_webhook_api_get(const gchar *url)
 {
+    g_return_val_if_fail(url != NULL, NULL);
+
     static SoupSession *session = NULL;
     GError *error = NULL;
 
