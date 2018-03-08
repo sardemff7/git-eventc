@@ -59,7 +59,7 @@ _git_eventc_webhook_github_get_tags(JsonObject *repository)
     JsonNode *node;
     JsonArray *tags;
 
-    node = git_eventc_webhook_api_get(json_object_get_string_member(repository, "tags"));
+    node = git_eventc_webhook_api_get(json_object_get_string_member(repository, "tags_url"));
 
     tags = json_array_ref(json_node_get_array(node));
     json_node_free(node);
