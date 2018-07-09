@@ -35,7 +35,7 @@ This event correspond to a single commit.
 <br />
 Here is the list of provided data:
 
-* `id`: The commit id (short version, see `--help`)
+* `id`: The commit id
 * `subject`: The commit subject (first line of message)
 * `message`: The commit message (with subject and footer tags stripped, only if not empty)
 * `full-message`: The full commit message (verbatim)

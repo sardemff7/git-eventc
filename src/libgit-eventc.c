@@ -143,7 +143,6 @@ static GitEventcShortener *_git_eventc_shorteners;
 
 static gchar *host = NULL;
 static guint merge_threshold = 5;
-static guint commit_id_size = 7;
 static gboolean shortener = FALSE;
 
 static gboolean should_reconnect = TRUE;
@@ -398,7 +397,6 @@ git_eventc_parse_options(gint *argc, gchar ***argv, const gchar *group, GOptionE
     {
         { "host",            'h', 0, G_OPTION_ARG_STRING,   &host,            "eventd host to connect to",                                  "<host>" },
         { "merge-threshold", 'm', 0, G_OPTION_ARG_INT,      &merge_threshold, "Number of commits to start merging (defaults to 5)",         "<threshold>" },
-        { "commit-id-size",   0,  0, G_OPTION_ARG_INT,      &commit_id_size,  "Number of chars to limmit the commit id to (defaults to 7)", "<limit>" },
         { "use-shortener",   's', 0, G_OPTION_ARG_NONE,     &shortener,       "Use a URL shortener service)",                               NULL },
         { "version",         'V', 0, G_OPTION_ARG_NONE,     print_version,    "Print version",                                              NULL },
         { NULL }
@@ -546,11 +544,9 @@ git_eventc_init(GMainLoop *loop, gint *retval)
 #define bstring(b) ((b) ? "true" : "false")
     g_debug("Configuration:"
         "\n    Merge threshold: %d"
-        "\n    Commit id size: %d"
         "\n    Use shortener: %s"
         "\n",
         merge_threshold,
-        commit_id_size,
         bstring(shortener)
     );
 #endif /* GIT_EVENTC_DEBUG */
@@ -894,7 +890,7 @@ git_eventc_send_commit(const gchar *id, const gchar *base_message, gchar *url, c
 
     event = eventd_event_new("scm", "commit");
 
-    eventd_event_add_data_string(event, g_strdup("id"), g_strndup(id, commit_id_size));
+    eventd_event_add_data_string(event, g_strdup("id"), g_strdup(id));
     _git_eventc_event_take_data_string(event, "subject", subject);
     _git_eventc_event_take_data_string_null(event, "message", message);
     _git_eventc_event_add_data_string(event, "full-message", base_message);
