@@ -144,6 +144,8 @@ static void
 _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg, const char *path, GHashTable *query, SoupClientContext *client, gpointer user_data)
 {
     const gchar *user_agent = soup_message_headers_get_one(msg->request_headers, "User-Agent");
+    if ( user_agent == NULL )
+        user_agent = "";
 
     gchar **project = NULL;
     GHmac *hmac = NULL;
