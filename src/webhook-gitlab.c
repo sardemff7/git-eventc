@@ -263,6 +263,10 @@ void
 git_eventc_webhook_payload_parse_gitlab_issue(const gchar **project, JsonObject *root)
 {
     JsonObject *issue = json_object_get_object_member(root, "object_attributes");
+
+    if ( ! json_object_has_member(issue, "action") )
+        return;
+
     const gchar *action_str = json_object_get_string_member(issue, "action");
     guint64 action;
 
