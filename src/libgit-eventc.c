@@ -615,6 +615,9 @@ _git_eventc_get_url(gchar *url, gboolean copy)
         if ( ( shortener->prefix != NULL ) && ( ! g_str_has_prefix(url, shortener->prefix) ) )
             continue;
 
+        if ( shortener->url == NULL )
+            return copy ? g_strdup(url) : url;
+
         uri = soup_uri_new(shortener->url);
         msg = soup_message_new_from_uri(shortener->method, uri);
         if ( escaped_url == NULL )
