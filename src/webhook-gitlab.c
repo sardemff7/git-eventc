@@ -236,7 +236,7 @@ git_eventc_webhook_payload_parse_gitlab_tag(const gchar **project, JsonObject *r
 
     if ( g_strcmp0(after, "0000000000000000000000000000000000000000") != 0 )
     {
-        JsonArray *tags = _git_eventc_webhook_gitlab_get_tags(repository);
+        JsonArray *tags = _git_eventc_webhook_gitlab_get_tags(root);
         guint length = json_array_get_length(tags);
         const gchar *previous_tag = NULL;
 
