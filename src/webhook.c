@@ -305,6 +305,13 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
         goto cleanup;
     }
 
+    JsonNode *root = json_parser_get_root(parser);
+    if ( root == NULL )
+    {
+        g_warning("Bad POST from %s: Empty payload", user_agent);
+        goto cleanup;
+    }
+
     GitEventcWebhookParseData parse_data = {
         .project = project,
         .parser = parser,
