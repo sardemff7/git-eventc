@@ -39,11 +39,10 @@
 #include "webhook-gitlab.h"
 
 static JsonNode *
-_git_eventc_webhook_gitlab_api_get(JsonObject *root, const gchar *suffix, gsize length)
+_git_eventc_webhook_gitlab_api_get(JsonObject *repository, const gchar *suffix, gsize length)
 {
-    JsonObject *project = json_object_get_object_member(root, "project");
-    const gchar *web_url = json_object_get_string_member(project, "web_url");
-    const gchar *path_with_namespace = json_object_get_string_member(project, "path_with_namespace");
+    const gchar *web_url = json_object_get_string_member(repository, "web_url");
+    const gchar *path_with_namespace = json_object_get_string_member(repository, "path_with_namespace");
     gsize pl, l;
     gchar *url;
 
@@ -56,9 +55,9 @@ _git_eventc_webhook_gitlab_api_get(JsonObject *root, const gchar *suffix, gsize 
 }
 
 static JsonNode *
-_git_eventc_webhook_gitlab_api_get_project(JsonObject *root, const gchar *suffix, gsize length)
+_git_eventc_webhook_gitlab_api_get_project(JsonObject *repository, const gchar *suffix, gsize length)
 {
-    gint64 id = json_object_get_int_member(root, "project_id");
+    gint64 id = json_object_get_int_member(repository, "id");
     gsize l;
     gchar *url;
 
@@ -66,11 +65,11 @@ _git_eventc_webhook_gitlab_api_get_project(JsonObject *root, const gchar *suffix
     url = g_alloca(sizeof(gchar) * l);
     g_snprintf(url, l, "/projects/%" G_GINT64_FORMAT"%s", id, suffix);
 
-    return _git_eventc_webhook_gitlab_api_get(root, url, l - 1);
+    return _git_eventc_webhook_gitlab_api_get(repository, url, l - 1);
 }
 
 static JsonObject *
-_git_eventc_webhook_gitlab_get_user(JsonObject *root, gint64 id)
+_git_eventc_webhook_gitlab_get_user(JsonObject *repository, gint64 id)
 {
     gsize l;
     gchar *url;
@@ -82,7 +81,7 @@ _git_eventc_webhook_gitlab_get_user(JsonObject *root, gint64 id)
 
     JsonNode *node;
     JsonObject *user;
-    node = _git_eventc_webhook_gitlab_api_get(root, url, l - 1);
+    node = _git_eventc_webhook_gitlab_api_get(repository, url, l - 1);
     user = json_object_ref(json_node_get_object(node));
     json_node_free(node);
 
@@ -90,12 +89,12 @@ _git_eventc_webhook_gitlab_get_user(JsonObject *root, gint64 id)
 }
 
 static JsonArray *
-_git_eventc_webhook_gitlab_get_tags(JsonObject *root)
+_git_eventc_webhook_gitlab_get_tags(JsonObject *repository)
 {
     JsonNode *node;
     JsonArray *tags;
 
-    node = _git_eventc_webhook_gitlab_api_get_project(root, "/repository/tags", strlen("/repository/tags"));
+    node = _git_eventc_webhook_gitlab_api_get_project(repository, "/repository/tags", strlen("/repository/tags"));
 
     tags = json_array_ref(json_node_get_array(node));
     json_node_free(node);
@@ -236,7 +235,7 @@ git_eventc_webhook_payload_parse_gitlab_tag(const gchar **project, JsonObject *r
 
     if ( g_strcmp0(after, "0000000000000000000000000000000000000000") != 0 )
     {
-        JsonArray *tags = _git_eventc_webhook_gitlab_get_tags(root);
+        JsonArray *tags = _git_eventc_webhook_gitlab_get_tags(repository);
         guint length = json_array_get_length(tags);
         const gchar *previous_tag = NULL;
 
@@ -273,11 +272,11 @@ git_eventc_webhook_payload_parse_gitlab_issue(const gchar **project, JsonObject 
     if ( ! nk_enum_parse(action_str, _git_eventc_webhook_gitlab_issue_action_name, GIT_EVENTC_BUG_REPORT_NUM_ACTION, TRUE, FALSE, &action) )
         return;
 
-    JsonObject *author = _git_eventc_webhook_gitlab_get_user(root, json_object_get_int_member(issue, "author_id"));
-
     JsonObject *repository = json_object_get_object_member(root, "project");
     const gchar *repository_name = json_object_get_string_member(repository, "name");
     const gchar *repository_url = json_object_get_string_member(repository, "git_http_url");
+
+    JsonObject *author = _git_eventc_webhook_gitlab_get_user(repository, json_object_get_int_member(issue, "author_id"));
 
     JsonArray *tags_array = json_object_get_array_member(root, "labels");
     guint length = json_array_get_length(tags_array);
@@ -324,12 +323,12 @@ git_eventc_webhook_payload_parse_gitlab_merge_request(const gchar **project, Jso
     if ( ! nk_enum_parse(action_str, _git_eventc_webhook_gitlab_merge_request_action_name, GIT_EVENTC_MERGE_REQUEST_NUM_ACTION, TRUE, FALSE, &action) )
         return;
 
-    JsonObject *author = _git_eventc_webhook_gitlab_get_user(root, json_object_get_int_member(mr, "author_id"));
-
     JsonObject *repository = json_object_get_object_member(root, "project");
     const gchar *repository_name = json_object_get_string_member(repository, "name");
     const gchar *repository_url = json_object_get_string_member(repository, "git_http_url");
     const gchar *branch = json_object_get_string_member(mr, "target_branch");
+
+    JsonObject *author = _git_eventc_webhook_gitlab_get_user(repository, json_object_get_int_member(mr, "author_id"));
 
     JsonArray *tags_array = json_object_get_array_member(root, "labels");
     guint length = json_array_get_length(tags_array);
