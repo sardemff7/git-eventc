@@ -357,3 +357,34 @@ git_eventc_webhook_payload_parse_gitlab_merge_request(const gchar **project, Jso
         tags,
         repository_name, repository_url, branch, project);
 }
+
+static const gchar * const _git_eventc_webhook_gitlab_pipeline_state_name[] = {
+    [GIT_EVENTC_CI_BUILD_ACTION_SUCCESS]  = "success",
+    [GIT_EVENTC_CI_BUILD_ACTION_FAILURE]  = "failed",
+    [GIT_EVENTC_CI_BUILD_ACTION_ERROR] = "error",
+};
+
+void
+git_eventc_webhook_payload_parse_gitlab_pipeline(const gchar **project, JsonObject *root)
+{
+    JsonObject *pipeline = json_object_get_object_member(root, "object_attributes");
+    const gchar *state = json_object_get_string_member(pipeline, "status");
+    guint64 action;
+
+    if ( ! nk_enum_parse(state, _git_eventc_webhook_gitlab_pipeline_state_name, GIT_EVENTC_CI_BUILD_NUM_ACTION, TRUE, FALSE, &action) )
+        return;
+
+    JsonObject *repository = json_object_get_object_member(root, "project");
+    const gchar *repository_name = json_object_get_string_member(repository, "name");
+    const gchar *repository_url = json_object_get_string_member(repository, "git_http_url");
+
+    guint64 number = json_object_get_int_member(pipeline, "id");
+    const gchar *branch = json_object_get_string_member(pipeline, "ref");
+    guint64 duration = json_object_get_int_member(pipeline, "duration");
+
+    gchar *url;
+    url = g_strdup_printf("%s/pipelines/%"G_GINT64_FORMAT, json_object_get_string_member(repository, "web_url"), number);
+    url = git_eventc_get_url(url);
+
+    git_eventc_send_ci_build(git_eventc_ci_build_actions[action], number, branch, duration, url, repository_name, repository_url, project);
+}

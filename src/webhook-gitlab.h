@@ -27,5 +27,6 @@ void git_eventc_webhook_payload_parse_gitlab_branch(const gchar **project, JsonO
 void git_eventc_webhook_payload_parse_gitlab_tag(const gchar **project, JsonObject *root);
 void git_eventc_webhook_payload_parse_gitlab_issue(const gchar **project, JsonObject *root);
 void git_eventc_webhook_payload_parse_gitlab_merge_request(const gchar **project, JsonObject *root);
+void git_eventc_webhook_payload_parse_gitlab_pipeline(const gchar **project, JsonObject *root);
 
 #endif /* __GIT_EVENTC_WEBHOOK_GITLAB_H__ */
