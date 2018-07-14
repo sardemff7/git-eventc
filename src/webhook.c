@@ -274,6 +274,7 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
         }
     }
 
+    status_code = SOUP_STATUS_BAD_REQUEST;
     const gchar *payload = NULL;
     if ( g_strcmp0(content_type, "application/json") == 0 )
         payload = msg->request_body->data;
