@@ -212,6 +212,7 @@ Configuration value names are prefixed by `git-eventc.`. Here is the list of use
         * `${old-commit}`: the old commit id
         * `${new-commit}`: the new commit id
         * Examples: `http://cgit.example.com/${repository-name}/diff/?id2=${old-commit}&id=${new-commit}` or `http://gitweb.example.com/?p=${repository-name}.git;a=commitdiff;hp=${old-commit};h=${new-commit}`
+* `extra-data`: all sub-values will be added as `extra-data` to the event
 
 It also has support for Gitolite environment variables:
 

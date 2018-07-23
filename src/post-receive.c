@@ -51,6 +51,7 @@ typedef struct {
     NkTokenList *tag_url;
     NkTokenList *diff_url;
     gboolean branch_creation_commits;
+    GVariant *extra_data;
 } GitEventcPostReceiveContext;
 
 typedef enum {
@@ -234,6 +235,45 @@ _git_eventc_post_receive_get_config_url_format(git_config *config, const gchar *
     return NULL;
 }
 
+static GVariant *
+_git_eventc_post_receive_get_config_hash_table(git_config *config, const gchar *prefix)
+{
+    gchar *name;
+    gsize l = strlen(prefix) + 1;
+    name = g_newa(gchar, l + 2);
+    g_snprintf(name, l + 2, "%s.*", prefix);
+
+    git_config_iterator *iter;
+    git_config_entry *entry;
+    if ( git_config_iterator_glob_new(&iter, config, name) < 0 )
+        return NULL;
+
+    GVariantBuilder builder;
+    GError *error = NULL;
+    int r;
+    g_variant_builder_init(&builder, G_VARIANT_TYPE_VARDICT);
+    while ( ( r = git_config_next(&entry, iter) ) == 0 )
+    {
+        GVariant *value;
+        value = g_variant_parse(NULL, entry->value, NULL, NULL, &error);
+        if ( value == NULL )
+        {
+            g_warning("Could not parse extra data '%s'='%s': %s", entry->name + l, entry->value, error->message);
+            break;
+        }
+        g_variant_builder_add(&builder, "{sv}", entry->name + l, value);
+    }
+    git_config_iterator_free(iter);
+    if ( error != NULL )
+        g_clear_error(&error);
+    else if ( r != GIT_ITEROVER )
+        g_warning("Could not get extra data: %s", giterr_last()->message);
+    else
+        return g_variant_builder_end(&builder);
+    g_variant_builder_clear(&builder);
+    return NULL;
+}
+
 typedef struct {
     GitEventcPostReceiveContext *context;
     const gchar *branch;
@@ -289,6 +329,7 @@ _git_eventc_post_receive_init(GitEventcPostReceiveContext *context, gboolean bra
         context->commit_url = _git_eventc_post_receive_get_config_url_format(config, PACKAGE_NAME ".commit-url", GIT_EVENTC_POST_RECEIVE_FLAG_PROJECT_GROUP | GIT_EVENTC_POST_RECEIVE_FLAG_REPOSITORY_NAME | GIT_EVENTC_POST_RECEIVE_FLAG_COMMIT);
         context->diff_url = _git_eventc_post_receive_get_config_url_format(config, PACKAGE_NAME ".diff-url", GIT_EVENTC_POST_RECEIVE_FLAG_PROJECT_GROUP | GIT_EVENTC_POST_RECEIVE_FLAG_REPOSITORY_NAME | GIT_EVENTC_POST_RECEIVE_FLAG_OLD_COMMIT | GIT_EVENTC_POST_RECEIVE_FLAG_NEW_COMMIT);
         context->repository_name = _git_eventc_post_receive_get_config_string(config, PACKAGE_NAME ".repository");
+        context->extra_data = _git_eventc_post_receive_get_config_hash_table(config, PACKAGE_NAME ".extra-data");
 
         git_config_free(config);
     }
@@ -332,6 +373,8 @@ _git_eventc_post_receive_init(GitEventcPostReceiveContext *context, gboolean bra
 static void
 _git_eventc_post_receive_clean(GitEventcPostReceiveContext *context)
 {
+    if ( context->extra_data != NULL )
+        g_variant_unref(context->extra_data);
     g_free(context->repository_guessed_name);
     if ( context->diff_url != NULL )
         nk_token_list_unref(context->diff_url);
@@ -352,6 +395,7 @@ _git_eventc_post_receive_context_to_event_base(GitEventcPostReceiveContext *cont
         .project = context->project,
         .repository_name = context->repository_name,
         .repository_url = context->repository_url,
+        .extra_data = context->extra_data,
     };
     return base;
 }
