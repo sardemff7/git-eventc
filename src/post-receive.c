@@ -209,10 +209,6 @@ _git_eventc_post_receive_get_config_string(git_config *config, const gchar *name
 static NkTokenList *
 _git_eventc_post_receive_get_config_url_format(git_config *config, const gchar *name, GitEventcPostReceiveFormatFlags tokens)
 {
-    git_config_entry *entry;
-    if ( git_config_get_entry(&entry, config, name) < 0 )
-        return NULL;
-
     gchar *string;
 
     string = _git_eventc_post_receive_get_config_string(config, name);
