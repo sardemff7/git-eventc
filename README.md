@@ -239,6 +239,11 @@ git-eventc-webhook will split the URL path in two:
     <br />
     The second part is optional and will default to `repository-name`
 
+git-eventc-webhook will use the some parts of the query string:
+
+* `secret`: will be used for Travis CI until we get TLS signature verification
+* `data[key]`: all these will be added to the event `extra-data` hash table
+
 Here is the list of supported services.
 
 * GitHub
@@ -250,6 +255,7 @@ Example URLs:
     http://example.com:8080/TestProjectGroup
     https://example.com:8080/TestProjectGroup/TestProject
     https://example.com/webhook/TestProjectGroup/TestProject (behind Apache ProxyPass)
+    https://example.com/webhook/TestProjectGroup/TestProject?data\[mirror\]=false
 
 #### Secrets
 

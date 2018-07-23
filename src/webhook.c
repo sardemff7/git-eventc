@@ -56,6 +56,7 @@ typedef enum {
 
 typedef struct {
     gchar **project;
+    GVariant *extra_data;
     JsonParser *parser;
     void (*func)(GitEventcEventBase *base, JsonObject *root);
 } GitEventcWebhookParseData;
@@ -122,12 +123,60 @@ git_eventc_webhook_node_list_to_string_list(GList *list)
     return list;
 }
 
+static GVariant *
+_git_eventc_webhook_extra_data_parsing(GHashTable *query)
+{
+    if ( query == NULL )
+        return;
+
+    GVariantBuilder builder;
+    gboolean has_data = FALSE;
+    g_variant_builder_init(&builder, G_VARIANT_TYPE_VARDICT);
+
+    GHashTableIter iter;
+    gchar *key, *value_;
+    g_hash_table_iter_init(&iter, query);
+    while ( g_hash_table_iter_next(&iter, (gpointer *) &key, (gpointer *) &value_) )
+    {
+        if ( ! g_str_has_prefix(key, "data[") )
+            continue;
+
+        gchar *e = g_utf8_prev_char(key + strlen(key));
+        if ( g_utf8_get_char(e) != ']' )
+            continue;
+        GVariant *value;
+
+        gchar *b = key + strlen("data[");
+        gsize l = ( e - b ) + 1;
+        if ( l < 2 )
+            continue;
+
+        gchar *name;
+        name = g_newa(gchar, l);
+        g_snprintf(name, l, "%.*s", (gint) l, b);
+
+        value = g_variant_parse(NULL, value_, NULL, NULL, NULL);
+        if ( value == NULL )
+            continue;
+
+        has_data = TRUE;
+        g_variant_builder_add(&builder, "{sv}", name, value);
+    }
+
+    if ( has_data )
+        return g_variant_builder_end(&builder);
+
+    g_variant_builder_clear(&builder);
+    return NULL;
+}
+
 static gboolean
 _git_eventc_webhook_parse_callback(gpointer user_data)
 {
     GitEventcWebhookParseData *data = user_data;
     GitEventcEventBase base = {
         .project = (const gchar **) data->project,
+        .extra_data = data->extra_data,
     };
 
     JsonNode *root_node = json_parser_get_root(data->parser);
@@ -135,6 +184,8 @@ _git_eventc_webhook_parse_callback(gpointer user_data)
 
     data->func(&base, root);
 
+    if ( data->extra_data != NULL )
+        g_variant_unref(data->extra_data);
     g_strfreev(data->project);
     g_object_unref(data->parser);
 
@@ -388,6 +439,7 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
     if ( parse_data.func != NULL )
     {
         project = NULL;
+        parse_data.extra_data = _git_eventc_webhook_extra_data_parsing(query);
         g_idle_add(_git_eventc_webhook_parse_callback, g_slice_dup(GitEventcWebhookParseData, &parse_data));
     }
     else
