@@ -57,7 +57,7 @@ typedef enum {
 typedef struct {
     gchar **project;
     JsonParser *parser;
-    void (*func)(const gchar **project, JsonObject *root);
+    void (*func)(GitEventcEventBase *base, JsonObject *root);
 } GitEventcWebhookParseData;
 
 static GHashTable *secrets = NULL;
@@ -126,11 +126,14 @@ static gboolean
 _git_eventc_webhook_parse_callback(gpointer user_data)
 {
     GitEventcWebhookParseData *data = user_data;
+    GitEventcEventBase base = {
+        .project = (const gchar **) data->project,
+    };
 
     JsonNode *root_node = json_parser_get_root(data->parser);
     JsonObject *root = json_node_get_object(root_node);
 
-    data->func((const gchar **) data->project, root);
+    data->func(&base, root);
 
     g_strfreev(data->project);
     g_object_unref(data->parser);

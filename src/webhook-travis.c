@@ -41,7 +41,7 @@ static const gchar * const _git_eventc_webhook_travis_state_name[] = {
 };
 
 void
-git_eventc_webhook_payload_parse_travis(const gchar **project, JsonObject *root)
+git_eventc_webhook_payload_parse_travis(GitEventcEventBase *base, JsonObject *root)
 {
     const gchar *state = json_object_get_string_member(root, "state");
     guint64 action;
@@ -56,23 +56,22 @@ git_eventc_webhook_payload_parse_travis(const gchar **project, JsonObject *root)
 
     const gchar *branch = json_object_get_string_member(root, "branch");
     guint64 duration = json_object_get_int_member(root, "duration");
-    const gchar *repository_name = json_object_get_string_member(repository, "name");
-    const gchar *repository_url = json_object_get_string_member(repository, "url");
+    base->repository_name = json_object_get_string_member(repository, "name");
+    base->repository_url = json_object_get_string_member(repository, "url");
 
     errno = 0;
     number = g_ascii_strtoull(number_str, &e, 10);
     if ( ( number_str == e ) || ( *e != '\0' ) || ( errno != 0 ) )
         return;
 
-    gchar *url;
-    url = git_eventc_get_url_const(json_object_get_string_member(root, "build_url"));
+    base->url = git_eventc_get_url_const(json_object_get_string_member(root, "build_url"));
 
     if ( json_object_get_boolean_member(root, "pull_request") )
-        git_eventc_send_ci_build_for_merge_request(git_eventc_ci_build_actions[action], number, branch, duration,
+        git_eventc_send_ci_build_for_merge_request(base,
+            git_eventc_ci_build_actions[action], number, branch, duration,
             json_object_get_int_member(root, "pull_request_number"),
             json_object_get_string_member(root, "pull_request_title"),
-            git_eventc_get_url_const(json_object_get_string_member(root, "compare_url")),
-            url, repository_name, repository_url, project);
+            git_eventc_get_url_const(json_object_get_string_member(root, "compare_url")));
     else
-        git_eventc_send_ci_build(git_eventc_ci_build_actions[action], number, branch, duration, url, repository_name, repository_url, project);
+        git_eventc_send_ci_build(base, git_eventc_ci_build_actions[action], number, branch, duration);
 }

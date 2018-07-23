@@ -136,7 +136,7 @@ _git_eventc_webhook_payload_get_files_gitlab(JsonObject *commit)
 }
 
 void
-git_eventc_webhook_payload_parse_gitlab_branch(const gchar **project, JsonObject *root)
+git_eventc_webhook_payload_parse_gitlab_branch(GitEventcEventBase *base, JsonObject *root)
 {
     const gchar *branch = json_object_get_string_member(root, "ref") + strlen("refs/heads/");
 
@@ -145,8 +145,8 @@ git_eventc_webhook_payload_parse_gitlab_branch(const gchar **project, JsonObject
     JsonArray *commits = json_object_get_array_member(root, "commits");
     guint size = json_array_get_length(commits);
 
-    const gchar *repository_name = json_object_get_string_member(repository, "name");
-    const gchar *repository_url = json_object_get_string_member(repository, "git_http_url");
+    base->repository_name = json_object_get_string_member(repository, "name");
+    base->repository_url = json_object_get_string_member(repository, "git_http_url");
     gchar *pusher_name = _git_eventc_webhook_payload_pusher_name_gitlab(root);
 
     const gchar *web_url = json_object_get_string_member(repository, "web_url");
@@ -158,23 +158,22 @@ git_eventc_webhook_payload_parse_gitlab_branch(const gchar **project, JsonObject
 
     if ( g_strcmp0(before, "0000000000000000000000000000000000000000") == 0 )
     {
-        gchar *url;
-        url = git_eventc_get_url(g_strdup_printf("%s/tree/%s", web_url, branch));
-        git_eventc_send_branch_creation(pusher_name, url, repository_name, repository_url, branch, project);
+        base->url = git_eventc_get_url(g_strdup_printf("%s/tree/%s", web_url, branch));
+        git_eventc_send_branch_creation(base, pusher_name, branch);
     }
     else if ( g_strcmp0(after, "0000000000000000000000000000000000000000") == 0 )
     {
-        git_eventc_send_branch_deletion(pusher_name, repository_name, repository_url, branch, project);
+        git_eventc_send_branch_deletion(base, pusher_name, branch);
         goto send_push;
     }
 
     if ( git_eventc_is_above_threshold(size) )
     {
-        git_eventc_send_commit_group(
+        base->url = g_strdup(diff_url);
+        git_eventc_send_commit_group(base,
             pusher_name,
             size,
-            g_strdup(diff_url),
-            repository_name, repository_url, branch, project);
+            branch);
     }
     else
     {
@@ -185,21 +184,19 @@ git_eventc_webhook_payload_parse_gitlab_branch(const gchar **project, JsonObject
             JsonObject *commit = json_node_get_object(commit_->data);
             JsonObject *author = json_object_get_object_member(commit, "author");
 
-            gchar *url, *files;
-            url = git_eventc_get_url_const(json_object_get_string_member(commit, "url"));
+            gchar *files;
+            base->url = git_eventc_get_url_const(json_object_get_string_member(commit, "url"));
             files = _git_eventc_webhook_payload_get_files_gitlab(commit);
 
-            git_eventc_send_commit(
+            git_eventc_send_commit(base,
                 json_object_get_string_member(commit, "id"),
                 json_object_get_string_member(commit, "message"),
-                url,
                 pusher_name,
                 json_object_get_string_member(author, "name"),
                 NULL,
                 json_object_get_string_member(author, "email"),
-                repository_name, repository_url, branch,
-                files,
-                project);
+                branch,
+                files);
 
             g_free(files);
         }
@@ -207,20 +204,21 @@ git_eventc_webhook_payload_parse_gitlab_branch(const gchar **project, JsonObject
     }
 
 send_push:
-    git_eventc_send_push(diff_url, pusher_name, repository_name, repository_url, branch, project);
+    base->url = diff_url;
+    git_eventc_send_push(base, pusher_name, branch);
 
     g_free(pusher_name);
 }
 
 void
-git_eventc_webhook_payload_parse_gitlab_tag(const gchar **project, JsonObject *root)
+git_eventc_webhook_payload_parse_gitlab_tag(GitEventcEventBase *base, JsonObject *root)
 {
     const gchar *tag = json_object_get_string_member(root, "ref") + strlen("refs/tags/");
 
     JsonObject *repository = json_object_get_object_member(root, "project");
 
-    const gchar *repository_name = json_object_get_string_member(repository, "name");
-    const gchar *repository_url = json_object_get_string_member(repository, "git_http_url");
+    base->repository_name = json_object_get_string_member(repository, "name");
+    base->repository_url = json_object_get_string_member(repository, "git_http_url");
     gchar *pusher_name = _git_eventc_webhook_payload_pusher_name_gitlab(root);
 
     const gchar *web_url = json_object_get_string_member(repository, "web_url");
@@ -231,7 +229,7 @@ git_eventc_webhook_payload_parse_gitlab_tag(const gchar **project, JsonObject *r
     url = git_eventc_get_url(g_strdup_printf("%s/tags/%s", web_url, tag));
 
     if ( g_strcmp0(before, "0000000000000000000000000000000000000000") != 0 )
-            git_eventc_send_tag_deletion(pusher_name, repository_name, repository_url, tag, project);
+            git_eventc_send_tag_deletion(base, pusher_name, tag);
 
     if ( g_strcmp0(after, "0000000000000000000000000000000000000000") != 0 )
     {
@@ -242,12 +240,14 @@ git_eventc_webhook_payload_parse_gitlab_tag(const gchar **project, JsonObject *r
         if ( length > 1 )
             previous_tag = json_object_get_string_member(json_array_get_object_element(tags, 1), "name");
 
-        git_eventc_send_tag_creation(pusher_name, g_strdup(url), repository_name, repository_url, tag, NULL, NULL, NULL, previous_tag, project);
+        base->url = g_strdup(url);
+        git_eventc_send_tag_creation(base, pusher_name, tag, NULL, NULL, NULL, previous_tag);
 
         json_array_unref(tags);
     }
 
-    git_eventc_send_push(url, pusher_name, repository_name, repository_url, NULL, project);
+    base->url = url;
+    git_eventc_send_push(base, pusher_name, NULL);
 
     g_free(pusher_name);
 }
@@ -259,7 +259,7 @@ static const gchar * const _git_eventc_webhook_gitlab_issue_action_name[] = {
 };
 
 void
-git_eventc_webhook_payload_parse_gitlab_issue(const gchar **project, JsonObject *root)
+git_eventc_webhook_payload_parse_gitlab_issue(GitEventcEventBase *base, JsonObject *root)
 {
     JsonObject *issue = json_object_get_object_member(root, "object_attributes");
 
@@ -273,8 +273,8 @@ git_eventc_webhook_payload_parse_gitlab_issue(const gchar **project, JsonObject 
         return;
 
     JsonObject *repository = json_object_get_object_member(root, "project");
-    const gchar *repository_name = json_object_get_string_member(repository, "name");
-    const gchar *repository_url = json_object_get_string_member(repository, "git_http_url");
+    base->repository_name = json_object_get_string_member(repository, "name");
+    base->repository_url = json_object_get_string_member(repository, "git_http_url");
 
     JsonObject *author = _git_eventc_webhook_gitlab_get_user(repository, json_object_get_int_member(issue, "author_id"));
 
@@ -292,18 +292,16 @@ git_eventc_webhook_payload_parse_gitlab_issue(const gchar **project, JsonObject 
         g_variant_builder_unref(builder);
     }
 
-    gchar *url;
-    url = git_eventc_get_url_const(json_object_get_string_member(issue, "url"));
+    base->url = git_eventc_get_url_const(json_object_get_string_member(issue, "url"));
 
-    git_eventc_send_bugreport(git_eventc_bug_report_actions[action],
+    git_eventc_send_bugreport(base,
+        git_eventc_bug_report_actions[action],
         json_object_get_int_member(issue, "iid"),
         json_object_get_string_member(issue, "title"),
-        url,
         json_object_get_string_member(author, "name"),
         json_object_get_string_member(author, "username"),
         NULL,
-        tags,
-        repository_name, repository_url, project);
+        tags);
 }
 
 static const gchar * const _git_eventc_webhook_gitlab_merge_request_action_name[] = {
@@ -314,7 +312,7 @@ static const gchar * const _git_eventc_webhook_gitlab_merge_request_action_name[
 };
 
 void
-git_eventc_webhook_payload_parse_gitlab_merge_request(const gchar **project, JsonObject *root)
+git_eventc_webhook_payload_parse_gitlab_merge_request(GitEventcEventBase *base, JsonObject *root)
 {
     JsonObject *mr = json_object_get_object_member(root, "object_attributes");
     const gchar *action_str = json_object_get_string_member(mr, "action");
@@ -324,8 +322,8 @@ git_eventc_webhook_payload_parse_gitlab_merge_request(const gchar **project, Jso
         return;
 
     JsonObject *repository = json_object_get_object_member(root, "project");
-    const gchar *repository_name = json_object_get_string_member(repository, "name");
-    const gchar *repository_url = json_object_get_string_member(repository, "git_http_url");
+    base->repository_name = json_object_get_string_member(repository, "name");
+    base->repository_url = json_object_get_string_member(repository, "git_http_url");
     const gchar *branch = json_object_get_string_member(mr, "target_branch");
 
     JsonObject *author = _git_eventc_webhook_gitlab_get_user(repository, json_object_get_int_member(mr, "author_id"));
@@ -344,18 +342,17 @@ git_eventc_webhook_payload_parse_gitlab_merge_request(const gchar **project, Jso
         g_variant_builder_unref(builder);
     }
 
-    gchar *url;
-    url = git_eventc_get_url_const(json_object_get_string_member(mr, "url"));
+    base->url = git_eventc_get_url_const(json_object_get_string_member(mr, "url"));
 
-    git_eventc_send_merge_request(git_eventc_merge_request_actions[action],
+    git_eventc_send_merge_request(base,
+        git_eventc_merge_request_actions[action],
         json_object_get_int_member(mr, "iid"),
         json_object_get_string_member(mr, "title"),
-        url,
         json_object_get_string_member(author, "name"),
         json_object_get_string_member(author, "username"),
         NULL,
         tags,
-        repository_name, repository_url, branch, project);
+        branch);
 }
 
 static const gchar * const _git_eventc_webhook_gitlab_pipeline_state_name[] = {
@@ -365,7 +362,7 @@ static const gchar * const _git_eventc_webhook_gitlab_pipeline_state_name[] = {
 };
 
 void
-git_eventc_webhook_payload_parse_gitlab_pipeline(const gchar **project, JsonObject *root)
+git_eventc_webhook_payload_parse_gitlab_pipeline(GitEventcEventBase *base, JsonObject *root)
 {
     JsonObject *pipeline = json_object_get_object_member(root, "object_attributes");
     const gchar *state = json_object_get_string_member(pipeline, "status");
@@ -375,16 +372,15 @@ git_eventc_webhook_payload_parse_gitlab_pipeline(const gchar **project, JsonObje
         return;
 
     JsonObject *repository = json_object_get_object_member(root, "project");
-    const gchar *repository_name = json_object_get_string_member(repository, "name");
-    const gchar *repository_url = json_object_get_string_member(repository, "git_http_url");
+    base->repository_name = json_object_get_string_member(repository, "name");
+    base->repository_url = json_object_get_string_member(repository, "git_http_url");
 
     guint64 number = json_object_get_int_member(pipeline, "id");
     const gchar *branch = json_object_get_string_member(pipeline, "ref");
     guint64 duration = json_object_get_int_member(pipeline, "duration");
 
-    gchar *url;
-    url = g_strdup_printf("%s/pipelines/%"G_GINT64_FORMAT, json_object_get_string_member(repository, "web_url"), number);
-    url = git_eventc_get_url(url);
+    base->url = g_strdup_printf("%s/pipelines/%"G_GINT64_FORMAT, json_object_get_string_member(repository, "web_url"), number);
+    base->url = git_eventc_get_url(base->url);
 
-    git_eventc_send_ci_build(git_eventc_ci_build_actions[action], number, branch, duration, url, repository_name, repository_url, project);
+    git_eventc_send_ci_build(base, git_eventc_ci_build_actions[action], number, branch, duration);
 }

@@ -23,8 +23,8 @@
 #ifndef __GIT_EVENTC_WEBHOOK_GITHUB_H__
 #define __GIT_EVENTC_WEBHOOK_GITHUB_H__
 
-void git_eventc_webhook_payload_parse_github_push(const gchar **project, JsonObject *root);
-void git_eventc_webhook_payload_parse_github_issues(const gchar **project, JsonObject *root);
-void git_eventc_webhook_payload_parse_github_pull_request(const gchar **project, JsonObject *root);
+void git_eventc_webhook_payload_parse_github_push(GitEventcEventBase *base, JsonObject *root);
+void git_eventc_webhook_payload_parse_github_issues(GitEventcEventBase *base, JsonObject *root);
+void git_eventc_webhook_payload_parse_github_pull_request(GitEventcEventBase *base, JsonObject *root);
 
 #endif /* __GIT_EVENTC_WEBHOOK_GITHUB_H__ */

@@ -349,32 +349,43 @@ _git_eventc_post_receive_clean(GitEventcPostReceiveContext *context)
     g_free(context->project_group);
 }
 
+static GitEventcEventBase
+_git_eventc_post_receive_context_to_event_base(GitEventcPostReceiveContext *context)
+{
+    GitEventcEventBase base = {
+        .project = context->project,
+        .repository_name = context->repository_name,
+        .repository_url = context->repository_url,
+    };
+    return base;
+}
+
 static void
 _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gchar *ref_name, const gchar *branch, const gchar *before, const git_oid *from, const gchar *after, const git_oid *to)
 {
+    GitEventcEventBase base = _git_eventc_post_receive_context_to_event_base(context);
     int error;
     git_revwalk *walker = NULL;
     gchar *diff_url = NULL;
 
     if ( git_oid_iszero(from) )
     {
-        gchar *branch_url = NULL;
         if ( context->branch_url != NULL )
         {
             GitEventcPostReceiveFormatData data = {
                 .context = context,
                 .branch = branch,
             };
-            branch_url = git_eventc_get_url(nk_token_list_replace(context->branch_url, _git_eventc_post_receive_url_format_replace, &data));
+            base.url = git_eventc_get_url(nk_token_list_replace(context->branch_url, _git_eventc_post_receive_url_format_replace, &data));
         }
-        git_eventc_send_branch_creation(context->pusher, branch_url, context->repository_name, context->repository_url, branch, context->project);
+        git_eventc_send_branch_creation(&base, context->pusher, branch);
 
         if ( ! context->branch_creation_commits )
             goto send_push;
     }
     else if ( git_oid_iszero(to) )
     {
-        git_eventc_send_branch_deletion(context->pusher, context->repository_name, context->repository_url, branch, context->project);
+        git_eventc_send_branch_deletion(&base, context->pusher, branch);
         goto send_push;
     }
 
@@ -410,6 +421,7 @@ _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gcha
         goto send_push;
     }
 
+
     if ( context->diff_url != NULL )
     {
         GitEventcPostReceiveFormatData data = {
@@ -421,7 +433,10 @@ _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gcha
     }
 
     if ( git_eventc_is_above_threshold(size) )
-        git_eventc_send_commit_group(context->pusher, size, g_strdup(diff_url), context->repository_name, context->repository_url, branch, context->project);
+    {
+        base.url = g_strdup(diff_url);
+        git_eventc_send_commit_group(&base, context->pusher, size, branch);
+    }
     else
     {
         git_revwalk_sorting(walker, GIT_SORT_TOPOLOGICAL | GIT_SORT_REVERSE);
@@ -447,21 +462,21 @@ _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gcha
             git_commit_lookup(&commit, context->repository, &id);
 
             const git_signature *author = git_commit_author(commit);
-            gchar *commit_url = NULL;
 
             git_oid_tostr(idstr, sizeof(idstr), git_commit_id(commit));
+            base.url = NULL;
             if ( context->commit_url != NULL )
             {
                 GitEventcPostReceiveFormatData data = {
                     .context = context,
                     .commit = idstr,
                 };
-                commit_url = git_eventc_get_url(nk_token_list_replace(context->commit_url, _git_eventc_post_receive_url_format_replace, &data));
+                base.url = git_eventc_get_url(nk_token_list_replace(context->commit_url, _git_eventc_post_receive_url_format_replace, &data));
             }
             gchar *files;
             files = _git_eventc_commit_get_files(context->repository, commit);
 
-            git_eventc_send_commit(idstr, git_commit_message(commit), commit_url, context->pusher, author->name, NULL, author->email, context->repository_name, context->repository_url, branch, files, context->project);
+            git_eventc_send_commit(&base, idstr, git_commit_message(commit), context->pusher, author->name, NULL, author->email, branch, files);
 
             g_free(files);
             git_commit_free(commit);
@@ -471,7 +486,8 @@ _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gcha
     }
 
 send_push:
-    git_eventc_send_push(diff_url, context->pusher, context->repository_name, context->repository_url, branch, context->project);
+    base.url = diff_url;
+    git_eventc_send_push(&base, context->pusher, branch);
     diff_url = NULL;
 
 cleanup:
@@ -513,11 +529,12 @@ _git_eventc_post_receive_is_tag(const char *name, git_oid *tag_id, void *payload
 static void
 _git_eventc_post_receive_tag(GitEventcPostReceiveContext *context, const gchar *ref_name, const gchar *tag_name, const gchar *before, const git_oid *from, const gchar *after, const git_oid *to)
 {
+    GitEventcEventBase base = _git_eventc_post_receive_context_to_event_base(context);
     int error;
     gchar *url = NULL;
 
     if ( ! git_oid_iszero(from) )
-        git_eventc_send_tag_deletion(context->pusher, context->repository_name, context->repository_url, tag_name, context->project);
+        git_eventc_send_tag_deletion(&base, context->pusher, tag_name);
 
     if ( ! git_oid_iszero(to) )
     {
@@ -601,14 +618,16 @@ _git_eventc_post_receive_tag(GitEventcPostReceiveContext *context, const gchar *
             git_commit_free(commit);
         }
 
-        git_eventc_send_tag_creation(context->pusher, g_strdup(url), context->repository_name, context->repository_url, tag_name, author->name, author->email, message, previous_tag_name, context->project);
+        base.url = g_strdup(url);
+        git_eventc_send_tag_creation(&base, context->pusher, tag_name, author->name, author->email, message, previous_tag_name);
 
     cleanup:
         if ( tag != NULL )
             git_tag_free(tag);
     }
 
-    git_eventc_send_push(url, context->pusher, context->repository_name, context->repository_url, NULL, context->project);
+    base.url = url;
+    git_eventc_send_push(&base, context->pusher, NULL);
 }
 
 static void

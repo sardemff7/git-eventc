@@ -23,6 +23,6 @@
 #ifndef __GIT_EVENTC_WEBHOOK_TRAVIS_H__
 #define __GIT_EVENTC_WEBHOOK_TRAVIS_H__
 
-void git_eventc_webhook_payload_parse_travis(const gchar **project, JsonObject *root);
+void git_eventc_webhook_payload_parse_travis(GitEventcEventBase *base, JsonObject *root);
 
 #endif /* __GIT_EVENTC_WEBHOOK_GITHUB_H__ */
