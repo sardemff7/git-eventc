@@ -772,6 +772,9 @@ _git_eventc_send_event(EventdEvent *event, const GitEventcEventBase *base)
     _git_eventc_event_add_data_string_null(event, "project-group", base->project[0]);
     _git_eventc_event_add_data_string_fallback(event, "project", base->project[1], base->repository_name);
 
+    if ( base->extra_data != NULL )
+        eventd_event_add_data(event, g_strdup("extra-data"), g_variant_ref(base->extra_data));
+
     eventc_connection_send_event(client, event, NULL);
     eventd_event_unref(event);
 }

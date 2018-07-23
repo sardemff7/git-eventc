@@ -17,6 +17,7 @@ All events from git-eventc have the following common data:
 * `project-group`: The project group name (if set)
 * `project`: The project name, defaults to `repository-name`
 * `url`: An URL to see the change online (not for `-deletion` events)
+* `extra-data`: An hash table of extra data, see below for details
 
 
 ### `scm` event category

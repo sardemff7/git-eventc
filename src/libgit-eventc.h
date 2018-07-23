@@ -68,6 +68,7 @@ typedef struct {
     const gchar *repository_name;
     const gchar *repository_url;
     gchar *url;
+    GVariant *extra_data;
 } GitEventcEventBase;
 
 void git_eventc_send_branch_creation(const GitEventcEventBase *base, const gchar *pusher_name, const gchar *branch);
