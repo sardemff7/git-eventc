@@ -258,7 +258,9 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
             {
                 /* We do not have nice TLS Signature support in GLib/GIO
                  * so we just use URL query "secret" */
-                const gchar *query_secret = g_hash_table_lookup(query, "secret");
+                const gchar *query_secret = NULL;
+                if ( query != NULL )
+                    g_hash_table_lookup(query, "secret");
                 if ( query_secret == NULL )
                 {
                     g_warning("No secret in query (%s)", user_agent);
