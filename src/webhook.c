@@ -127,7 +127,7 @@ static GVariant *
 _git_eventc_webhook_extra_data_parsing(GHashTable *query)
 {
     if ( query == NULL )
-        return;
+        return NULL;
 
     GVariantBuilder builder;
     gboolean has_data = FALSE;
