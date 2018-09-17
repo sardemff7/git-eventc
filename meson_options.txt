@@ -1,6 +1,6 @@
 option('webhook', type: 'combo', choices: [ 'auto', 'true', 'false' ], description: 'Webhook handler')
 option('hook', type: 'combo', choices: [ 'auto', 'true', 'false' ], description: 'Git post-receive hook')
 option('systemd', type: 'boolean', value: false, description: 'systemd activation support')
-option('debug', type: 'boolean', value: true, description: 'debug output')
+option('debug-output', type: 'boolean', value: true, description: 'debug output')
 
 option('systemdsystemunitdir', type: 'string', description: 'Directory for systemd system unit files')

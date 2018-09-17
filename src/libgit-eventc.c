@@ -510,9 +510,9 @@ _git_eventc_stop(gpointer user_data)
 gboolean
 git_eventc_init(GMainLoop *loop, gint *retval)
 {
-#ifdef GIT_EVENTC_DEBUG
+#ifdef GIT_EVENTC_DEBUG_OUTPUT
     g_setenv("G_MESSAGES_DEBUG", "all", FALSE);
-#endif /* GIT_EVENTC_DEBUG */
+#endif /* GIT_EVENTC_DEBUG_OUTPUT */
 
 #ifdef G_OS_UNIX
     g_unix_signal_add(SIGTERM, _git_eventc_stop, loop);
@@ -540,7 +540,7 @@ git_eventc_init(GMainLoop *loop, gint *retval)
     }
     g_signal_connect(client, "disconnected", G_CALLBACK(_git_eventc_disconnected), loop);
 
-#ifdef GIT_EVENTC_DEBUG
+#ifdef GIT_EVENTC_DEBUG_OUTPUT
 #define bstring(b) ((b) ? "true" : "false")
     g_debug("Configuration:"
         "\n    Merge threshold: %d"
@@ -549,7 +549,7 @@ git_eventc_init(GMainLoop *loop, gint *retval)
         merge_threshold,
         bstring(shortener)
     );
-#endif /* GIT_EVENTC_DEBUG */
+#endif /* GIT_EVENTC_DEBUG_OUTPUT */
 
     return TRUE;
 }
@@ -858,7 +858,7 @@ git_eventc_send_commit_group(const GitEventcEventBase *base, const gchar *pusher
 void
 git_eventc_send_commit(const GitEventcEventBase *base, const gchar *id, const gchar *base_message, const gchar *pusher_name, const gchar *author_name, const gchar *author_username, const gchar *author_email, const gchar *branch, const gchar *files)
 {
-#ifdef GIT_EVENTC_DEBUG
+#ifdef GIT_EVENTC_DEBUG_OUTPUT
     g_debug("Send commit:"
         "\nID: %s"
         "\nMessage: %s"
@@ -884,7 +884,7 @@ git_eventc_send_commit(const GitEventcEventBase *base, const gchar *id, const gc
         branch,
         files,
         base->project[0], base->project[1]);
-#endif /* GIT_EVENTC_DEBUG */
+#endif /* GIT_EVENTC_DEBUG_OUTPUT */
 
     gchar *subject, *message;
     _git_eventc_parse_message(base_message, &subject, &message);

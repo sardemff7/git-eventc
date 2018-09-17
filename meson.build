@@ -51,7 +51,7 @@ header_conf.set_quoted('SYSCONFDIR', join_paths(get_option('prefix'), get_option
 other_conf.set('bindir', join_paths(get_option('prefix'), get_option('bindir')))
 
 header_conf.set('ENABLE_SYSTEMD', get_option('systemd'))
-header_conf.set('GIT_EVENTC_DEBUG', get_option('debug'))
+header_conf.set('GIT_EVENTC_DEBUG_OUTPUT', get_option('debug-output'))
 
 config_h = configure_file(output: 'config.h', configuration: header_conf)
 
