@@ -154,7 +154,7 @@ git_eventc_webhook_payload_parse_gitlab_branch(GitEventcEventBase *base, JsonObj
     const gchar *after = json_object_get_string_member(root, "after");
 
     gchar *diff_url;
-    diff_url = git_eventc_get_url(g_strdup_printf("%s/compare/%s...%s", web_url, after, before));
+    diff_url = git_eventc_get_url(g_strdup_printf("%s/compare/%s...%s", web_url, before, after));
 
     if ( g_strcmp0(before, "0000000000000000000000000000000000000000") == 0 )
     {
