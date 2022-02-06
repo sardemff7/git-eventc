@@ -61,7 +61,7 @@ _git_eventc_webhook_gitlab_api_get_project(JsonObject *repository, const gchar *
     gsize l;
     gchar *url;
 
-    l = strlen("projects/") + 20 /* max int64 */ + length + 1;
+    l = strlen("/projects/") + 20 /* max int64 */ + length + 1;
     url = g_alloca(sizeof(gchar) * l);
     g_snprintf(url, l, "/projects/%" G_GINT64_FORMAT"%s", id, suffix);
 
@@ -73,7 +73,7 @@ _git_eventc_webhook_gitlab_get_user(JsonObject *repository, gint64 id)
 {
     gsize l;
     gchar *url;
-    l = strlen("users/") + 20 /* max int64 */ + 1;
+    l = strlen("/users/") + 20 /* max int64 */ + 1;
     url = g_alloca(sizeof(gchar) * l);
     g_snprintf(url, l, "/users/%" G_GINT64_FORMAT, id);
 
