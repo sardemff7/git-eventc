@@ -27,5 +27,6 @@ JsonNode *git_eventc_webhook_api_get(const GitEventcEventBase *base, const gchar
 GList *git_eventc_webhook_node_list_to_string_list(GList *list);
 
 #define json_get_string_safe(object, member) (( ( object != NULL ) && json_object_has_member(object, member) ) ? json_object_get_string_member(object, member) : NULL)
+#define json_get_string_gvariant_safe(object, member) (( ( object != NULL ) && json_object_has_member(object, member) ) ? g_variant_new_string(json_object_get_string_member(object, member)) : NULL)
 
 #endif /* __GIT_EVENTC_WEBHOOK_GITHUB_H__ */

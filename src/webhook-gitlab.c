@@ -280,6 +280,7 @@ git_eventc_webhook_payload_parse_gitlab_issue(GitEventcEventBase *base, JsonObje
     base->repository_name = json_object_get_string_member(repository, "name");
     base->repository_url = json_object_get_string_member(repository, "git_http_url");
 
+    JsonObject *user = json_object_get_object_member(root, "user");
     JsonObject *author = _git_eventc_webhook_gitlab_get_user(base, repository, json_object_get_int_member(issue, "author_id"));
 
     JsonArray *tags_array = json_object_get_array_member(root, "labels");
@@ -306,6 +307,9 @@ git_eventc_webhook_payload_parse_gitlab_issue(GitEventcEventBase *base, JsonObje
         json_get_string_safe(author, "username"),
         NULL,
         tags,
+        "user-name", json_get_string_gvariant_safe(user, "name"),
+        "user-username", json_get_string_gvariant_safe(user, "username"),
+        "user-email", json_get_string_gvariant_safe(user, "email"),
         NULL);
 }
 
@@ -331,6 +335,7 @@ git_eventc_webhook_payload_parse_gitlab_merge_request(GitEventcEventBase *base, 
     base->repository_url = json_object_get_string_member(repository, "git_http_url");
     const gchar *branch = json_object_get_string_member(mr, "target_branch");
 
+    JsonObject *user = json_object_get_object_member(root, "user");
     JsonObject *author = _git_eventc_webhook_gitlab_get_user(base, repository, json_object_get_int_member(mr, "author_id"));
 
     JsonArray *tags_array = json_object_get_array_member(root, "labels");
@@ -358,6 +363,9 @@ git_eventc_webhook_payload_parse_gitlab_merge_request(GitEventcEventBase *base, 
         NULL,
         tags,
         branch,
+        "user-name", json_get_string_gvariant_safe(user, "name"),
+        "user-username", json_get_string_gvariant_safe(user, "username"),
+        "user-email", json_get_string_gvariant_safe(user, "email"),
         NULL);
 }
 
