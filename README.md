@@ -94,10 +94,36 @@ Here is the list of common data provided by all `bug-report` events:
 
 * `id`: The id/number of the bug report
 * `title`: The title of the report
-* `author-name`: The name of the author
-* `author-email`: The email of the author (if available)
-* `author-username`: The username of the author (if available)
 * `tags`: A list of tags/labels associated with the bug report (if available)
+* When available:
+  * `author-name`: The name of the author
+  * `author-email`: The email of the author (if available)
+  * `author-username`: The username of the author (if available)
+* With some sources:
+  * `user-name`: The name of the user triggering the event
+  * `user-email`: The email of the user triggering the event (if available)
+  * `user-username`: The username of the user triggering the event (if available)
+
+
+### `mr` event category
+
+git-eventc will provide events in the `mr` event category: `opening`, `closing`, `reopening`, `merge`.
+<br />
+Here is the list of common data provided by all `mr` events:
+
+* `id`: The id/number of the MR
+* `title`: The title of the MR
+* `branch`: The branch the MR is against
+* `tags`: A list of tags/labels associated with the MR (if available)
+* When available:
+  * `author-name`: The name of the author
+  * `author-email`: The email of the author (if available)
+  * `author-username`: The username of the author (if available)
+* With some sources:
+  * `user-name`: The name of the user triggering the event
+  * `user-email`: The email of the user triggering the event (if available)
+  * `user-username`: The username of the user triggering the event (if available)
+
 
 
 ### `ci-build` event category
