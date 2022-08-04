@@ -121,11 +121,11 @@ _git_eventc_webhook_payload_parse_github_branch(GitEventcEventBase *base, JsonOb
     if ( json_object_get_boolean_member(root, "created") )
     {
         base->url = git_eventc_get_url(g_strdup_printf("%s/tree/%s", json_object_get_string_member(repository, "url"), branch));
-        git_eventc_send_branch_creation(base, pusher_name, branch);
+        git_eventc_send_branch_creation(base, pusher_name, branch, NULL);
     }
     else if ( json_object_get_boolean_member(root, "deleted") )
     {
-        git_eventc_send_branch_deletion(base, pusher_name, branch);
+        git_eventc_send_branch_deletion(base, pusher_name, branch, NULL);
         goto send_push;
     }
 
@@ -135,7 +135,8 @@ _git_eventc_webhook_payload_parse_github_branch(GitEventcEventBase *base, JsonOb
         git_eventc_send_commit_group(base,
             pusher_name,
             size,
-            branch);
+            branch,
+            NULL);
     }
     else
     {
@@ -158,7 +159,8 @@ _git_eventc_webhook_payload_parse_github_branch(GitEventcEventBase *base, JsonOb
                 json_object_get_string_member(author, "username"),
                 json_object_get_string_member(author, "email"),
                 branch,
-                files);
+                files,
+                NULL);
 
             g_free(files);
         }
@@ -167,7 +169,7 @@ _git_eventc_webhook_payload_parse_github_branch(GitEventcEventBase *base, JsonOb
 
 send_push:
     base->url = diff_url;
-    git_eventc_send_push(base, pusher_name, branch);
+    git_eventc_send_push(base, pusher_name, branch, NULL);
 
     g_free(pusher_name);
 }
@@ -182,7 +184,7 @@ _git_eventc_webhook_payload_parse_github_tag(GitEventcEventBase *base, JsonObjec
     gchar *pusher_name = _git_eventc_webhook_payload_pusher_name_github(root);
 
     if ( ! json_object_get_boolean_member(root, "created") )
-            git_eventc_send_tag_deletion(base, pusher_name, tag);
+            git_eventc_send_tag_deletion(base, pusher_name, tag, NULL);
 
     if ( ! json_object_get_boolean_member(root, "deleted") )
     {
@@ -194,14 +196,14 @@ _git_eventc_webhook_payload_parse_github_tag(GitEventcEventBase *base, JsonObjec
         if ( length > 1 )
             previous_tag = json_object_get_string_member(json_array_get_object_element(tags, 1), "name");
 
-        git_eventc_send_tag_creation(base, pusher_name, tag, NULL, NULL, NULL, previous_tag);
+        git_eventc_send_tag_creation(base, pusher_name, tag, NULL, NULL, NULL, previous_tag, NULL);
 
         json_array_unref(tags);
     }
 
     base->url = git_eventc_get_url_const(json_object_get_string_member(root, "compare"));
 
-    git_eventc_send_push(base, pusher_name, NULL);
+    git_eventc_send_push(base, pusher_name, NULL, NULL);
 
     g_free(pusher_name);
 }
@@ -262,7 +264,8 @@ git_eventc_webhook_payload_parse_github_issues(GitEventcEventBase *base, JsonObj
         json_object_get_string_member(author, "name"),
         json_object_get_string_member(author, "login"),
         json_object_get_string_member(author, "email"),
-        tags);
+        tags,
+        NULL);
 
     json_object_unref(author);
 }
@@ -317,7 +320,8 @@ git_eventc_webhook_payload_parse_github_pull_request(GitEventcEventBase *base, J
         json_object_get_string_member(author, "name"),
         json_object_get_string_member(author, "login"),
         json_object_get_string_member(author, "email"),
-        tags, branch);
+        tags, branch,
+        NULL);
 
     json_object_unref(author);
 }

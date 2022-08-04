@@ -71,7 +71,8 @@ git_eventc_webhook_payload_parse_travis(GitEventcEventBase *base, JsonObject *ro
             git_eventc_ci_build_actions[action], number, branch, duration,
             json_object_get_int_member(root, "pull_request_number"),
             json_object_get_string_member(root, "pull_request_title"),
-            git_eventc_get_url_const(json_object_get_string_member(root, "compare_url")));
+            git_eventc_get_url_const(json_object_get_string_member(root, "compare_url")),
+            NULL);
     else
-        git_eventc_send_ci_build(base, git_eventc_ci_build_actions[action], number, branch, duration);
+        git_eventc_send_ci_build(base, git_eventc_ci_build_actions[action], number, branch, duration, NULL);
 }

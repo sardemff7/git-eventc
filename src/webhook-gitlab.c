@@ -159,11 +159,11 @@ git_eventc_webhook_payload_parse_gitlab_branch(GitEventcEventBase *base, JsonObj
     if ( g_strcmp0(before, "0000000000000000000000000000000000000000") == 0 )
     {
         base->url = git_eventc_get_url(g_strdup_printf("%s/tree/%s", web_url, branch));
-        git_eventc_send_branch_creation(base, pusher_name, branch);
+        git_eventc_send_branch_creation(base, pusher_name, branch, NULL);
     }
     else if ( g_strcmp0(after, "0000000000000000000000000000000000000000") == 0 )
     {
-        git_eventc_send_branch_deletion(base, pusher_name, branch);
+        git_eventc_send_branch_deletion(base, pusher_name, branch, NULL);
         goto send_push;
     }
 
@@ -173,7 +173,8 @@ git_eventc_webhook_payload_parse_gitlab_branch(GitEventcEventBase *base, JsonObj
         git_eventc_send_commit_group(base,
             pusher_name,
             size,
-            branch);
+            branch,
+            NULL);
     }
     else
     {
@@ -196,7 +197,8 @@ git_eventc_webhook_payload_parse_gitlab_branch(GitEventcEventBase *base, JsonObj
                 NULL,
                 json_object_get_string_member(author, "email"),
                 branch,
-                files);
+                files,
+                NULL);
 
             g_free(files);
         }
@@ -205,7 +207,7 @@ git_eventc_webhook_payload_parse_gitlab_branch(GitEventcEventBase *base, JsonObj
 
 send_push:
     base->url = diff_url;
-    git_eventc_send_push(base, pusher_name, branch);
+    git_eventc_send_push(base, pusher_name, branch, NULL);
 
     g_free(pusher_name);
 }
@@ -229,7 +231,7 @@ git_eventc_webhook_payload_parse_gitlab_tag(GitEventcEventBase *base, JsonObject
     url = git_eventc_get_url(g_strdup_printf("%s/tags/%s", web_url, tag));
 
     if ( g_strcmp0(before, "0000000000000000000000000000000000000000") != 0 )
-            git_eventc_send_tag_deletion(base, pusher_name, tag);
+            git_eventc_send_tag_deletion(base, pusher_name, tag, NULL);
 
     if ( g_strcmp0(after, "0000000000000000000000000000000000000000") != 0 )
     {
@@ -241,13 +243,13 @@ git_eventc_webhook_payload_parse_gitlab_tag(GitEventcEventBase *base, JsonObject
             previous_tag = json_object_get_string_member(json_array_get_object_element(tags, 1), "name");
 
         base->url = g_strdup(url);
-        git_eventc_send_tag_creation(base, pusher_name, tag, NULL, NULL, NULL, previous_tag);
+        git_eventc_send_tag_creation(base, pusher_name, tag, NULL, NULL, NULL, previous_tag, NULL);
 
         json_array_unref(tags);
     }
 
     base->url = url;
-    git_eventc_send_push(base, pusher_name, NULL);
+    git_eventc_send_push(base, pusher_name, NULL, NULL);
 
     g_free(pusher_name);
 }
@@ -301,7 +303,8 @@ git_eventc_webhook_payload_parse_gitlab_issue(GitEventcEventBase *base, JsonObje
         json_object_get_string_member(author, "name"),
         json_object_get_string_member(author, "username"),
         NULL,
-        tags);
+        tags,
+        NULL);
 }
 
 static const gchar * const _git_eventc_webhook_gitlab_merge_request_action_name[] = {
@@ -352,7 +355,8 @@ git_eventc_webhook_payload_parse_gitlab_merge_request(GitEventcEventBase *base, 
         json_object_get_string_member(author, "username"),
         NULL,
         tags,
-        branch);
+        branch,
+        NULL);
 }
 
 static const gchar * const _git_eventc_webhook_gitlab_pipeline_state_name[] = {
@@ -382,5 +386,5 @@ git_eventc_webhook_payload_parse_gitlab_pipeline(GitEventcEventBase *base, JsonO
     base->url = g_strdup_printf("%s/pipelines/%"G_GINT64_FORMAT, json_object_get_string_member(repository, "web_url"), number);
     base->url = git_eventc_get_url(base->url);
 
-    git_eventc_send_ci_build(base, git_eventc_ci_build_actions[action], number, branch, duration);
+    git_eventc_send_ci_build(base, git_eventc_ci_build_actions[action], number, branch, duration, NULL);
 }

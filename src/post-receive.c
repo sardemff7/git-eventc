@@ -418,14 +418,14 @@ _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gcha
             };
             base.url = git_eventc_get_url(nk_token_list_replace(context->branch_url, _git_eventc_post_receive_url_format_replace, &data));
         }
-        git_eventc_send_branch_creation(&base, context->pusher, branch);
+        git_eventc_send_branch_creation(&base, context->pusher, branch, NULL);
 
         if ( ! context->branch_creation_commits )
             goto send_push;
     }
     else if ( git_oid_iszero(to) )
     {
-        git_eventc_send_branch_deletion(&base, context->pusher, branch);
+        git_eventc_send_branch_deletion(&base, context->pusher, branch, NULL);
         goto send_push;
     }
 
@@ -475,7 +475,7 @@ _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gcha
     if ( git_eventc_is_above_threshold(size) )
     {
         base.url = g_strdup(diff_url);
-        git_eventc_send_commit_group(&base, context->pusher, size, branch);
+        git_eventc_send_commit_group(&base, context->pusher, size, branch, NULL);
     }
     else
     {
@@ -516,7 +516,7 @@ _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gcha
             gchar *files;
             files = _git_eventc_commit_get_files(context->repository, commit);
 
-            git_eventc_send_commit(&base, idstr, git_commit_message(commit), context->pusher, author->name, NULL, author->email, branch, files);
+            git_eventc_send_commit(&base, idstr, git_commit_message(commit), context->pusher, author->name, NULL, author->email, branch, files, NULL);
 
             g_free(files);
             git_commit_free(commit);
@@ -527,7 +527,7 @@ _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gcha
 
 send_push:
     base.url = diff_url;
-    git_eventc_send_push(&base, context->pusher, branch);
+    git_eventc_send_push(&base, context->pusher, branch, NULL);
     diff_url = NULL;
 
 cleanup:
@@ -574,7 +574,7 @@ _git_eventc_post_receive_tag(GitEventcPostReceiveContext *context, const gchar *
     gchar *url = NULL;
 
     if ( ! git_oid_iszero(from) )
-        git_eventc_send_tag_deletion(&base, context->pusher, tag_name);
+        git_eventc_send_tag_deletion(&base, context->pusher, tag_name, NULL);
 
     if ( ! git_oid_iszero(to) )
     {
@@ -659,7 +659,7 @@ _git_eventc_post_receive_tag(GitEventcPostReceiveContext *context, const gchar *
         }
 
         base.url = g_strdup(url);
-        git_eventc_send_tag_creation(&base, context->pusher, tag_name, author->name, author->email, message, previous_tag_name);
+        git_eventc_send_tag_creation(&base, context->pusher, tag_name, author->name, author->email, message, previous_tag_name, NULL);
 
     cleanup:
         if ( tag != NULL )
@@ -667,7 +667,7 @@ _git_eventc_post_receive_tag(GitEventcPostReceiveContext *context, const gchar *
     }
 
     base.url = url;
-    git_eventc_send_push(&base, context->pusher, NULL);
+    git_eventc_send_push(&base, context->pusher, NULL, NULL);
 }
 
 static void
