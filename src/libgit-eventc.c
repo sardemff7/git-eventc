@@ -139,7 +139,7 @@ static GitEventcShortener _git_eventc_default_shorteners_low[] = {
     },
 };
 
-static GitEventcShortener *_git_eventc_shorteners;
+static GitEventcShortener *_git_eventc_shorteners = NULL;
 
 static gchar *host = NULL;
 static guint merge_threshold = 5;
@@ -568,6 +568,7 @@ git_eventc_uninit(void)
         g_object_unref(shortener_session);
 
     GitEventcShortener *shortener;
+    if ( _git_eventc_shorteners != NULL )
     for ( shortener = _git_eventc_shorteners ; shortener->name != NULL ; ++shortener )
     {
         g_free(shortener->name);
