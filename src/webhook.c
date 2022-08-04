@@ -61,10 +61,33 @@ typedef struct {
     void (*func)(GitEventcEventBase *base, JsonObject *root);
 } GitEventcWebhookParseData;
 
+typedef struct {
+    gchar *name;
+    gchar *value;
+} GitEventcWebhookHeader;
+
 static GHashTable *secrets = NULL;
+static GHashTable *extra_headers = NULL;
+
+static void
+_git_eventc_webhook_header_free(gpointer data)
+{
+    GitEventcWebhookHeader *header = data;
+
+    g_free(header->name);
+    g_free(header->value);
+
+    g_slice_free(GitEventcWebhookHeader, header);
+}
+
+static void
+_git_eventc_webhook_headers_free(gpointer data)
+{
+    g_list_free_full(data, _git_eventc_webhook_header_free);
+}
 
 JsonNode *
-git_eventc_webhook_api_get(const gchar *url)
+git_eventc_webhook_api_get(const GitEventcEventBase *base, const gchar *url)
 {
     g_return_val_if_fail(url != NULL, NULL);
 
@@ -84,9 +107,21 @@ git_eventc_webhook_api_get(const gchar *url)
     }
 
     SoupMessage *msg;
+    GList *header_ = NULL;
     guint code;
 
     msg = soup_request_http_get_message(req);
+
+    if ( base->project[1] != NULL )
+        header_ = g_hash_table_lookup(extra_headers, base->project[1]);
+    if ( header_ == NULL )
+        header_ = g_hash_table_lookup(extra_headers, base->project[0]);
+    for ( ; header_ != NULL ; header_ = g_list_next(header_) )
+    {
+        GitEventcWebhookHeader *header = header_->data;
+        soup_message_headers_append(msg->request_headers, header->name, header->value);
+    }
+
     code = soup_session_send_message(session, msg);
 
     if ( code != SOUP_STATUS_OK )
@@ -538,7 +573,7 @@ error:
 }
 
 static gboolean
-_git_eventc_webhook_extra_key_file_parsing(GKeyFile *key_file, GError **error)
+_git_eventc_webhook_extra_key_file_parsing_secrets(GKeyFile *key_file, GError **error)
 {
     const gchar *group = "webhook-secrets";
     if ( ! g_key_file_has_group(key_file, group) )
@@ -560,6 +595,61 @@ _git_eventc_webhook_extra_key_file_parsing(GKeyFile *key_file, GError **error)
         g_hash_table_insert(secrets, *project, secret);
     }
     g_free(projects);
+
+    return TRUE;
+}
+
+static gboolean
+_git_eventc_webhook_extra_key_file_parsing_extra_headers(GKeyFile *key_file, GError **error)
+{
+    gchar **sections, **section;
+
+    sections = g_key_file_get_groups(key_file, NULL);
+    if ( sections == NULL )
+        return TRUE;
+
+    extra_headers = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, _git_eventc_webhook_headers_free);
+
+    for ( section = sections ; *section != NULL ; ++section )
+    {
+        if ( ! g_str_has_prefix(*section, "webhook API headers ") )
+            continue;
+
+        const gchar *project = *section + strlen("webhook API headers ");
+        GList *headers = NULL;
+        gchar **keys, **key;
+        keys = g_key_file_get_keys(key_file, *section, NULL, error);
+        if ( keys == NULL )
+            return FALSE;
+        for ( key = keys ; *key != NULL ; ++key )
+        {
+            gchar *value;
+            value = g_key_file_get_string(key_file, *section, *key, error);
+            if ( value == NULL )
+                return FALSE;
+
+            GitEventcWebhookHeader *header = g_slice_new(GitEventcWebhookHeader);
+
+            header->name = *key;
+            header->value = value;
+            headers = g_list_prepend(headers, header);
+        }
+        g_free(keys);
+        g_hash_table_insert(extra_headers, g_strdup(project), g_list_reverse(headers));
+        g_free(*section);
+    }
+
+    g_free(sections);
+    return TRUE;
+}
+
+static gboolean
+_git_eventc_webhook_extra_key_file_parsing(GKeyFile *key_file, GError **error)
+{
+    if ( ! _git_eventc_webhook_extra_key_file_parsing_secrets(key_file, error) )
+        return FALSE;
+    if ( ! _git_eventc_webhook_extra_key_file_parsing_extra_headers(key_file, error) )
+        return FALSE;
 
     return TRUE;
 }

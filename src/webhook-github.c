@@ -39,11 +39,11 @@
 #include "webhook-github.h"
 
 static JsonObject *
-_git_eventc_webhook_github_get_user(JsonObject *user)
+_git_eventc_webhook_github_get_user(GitEventcEventBase *base, JsonObject *user)
 {
     JsonNode *node;
 
-    node = git_eventc_webhook_api_get(json_object_get_string_member(user, "url"));
+    node = git_eventc_webhook_api_get(base, json_object_get_string_member(user, "url"));
     if ( node == NULL )
         return json_object_ref(user);
 
@@ -54,12 +54,12 @@ _git_eventc_webhook_github_get_user(JsonObject *user)
 }
 
 static JsonArray *
-_git_eventc_webhook_github_get_tags(JsonObject *repository)
+_git_eventc_webhook_github_get_tags(GitEventcEventBase *base, JsonObject *repository)
 {
     JsonNode *node;
     JsonArray *tags;
 
-    node = git_eventc_webhook_api_get(json_object_get_string_member(repository, "tags_url"));
+    node = git_eventc_webhook_api_get(base, json_object_get_string_member(repository, "tags_url"));
 
     tags = json_array_ref(json_node_get_array(node));
     json_node_free(node);
@@ -68,10 +68,10 @@ _git_eventc_webhook_github_get_tags(JsonObject *repository)
 }
 
 static gchar *
-_git_eventc_webhook_payload_pusher_name_github(JsonObject *root)
+_git_eventc_webhook_payload_pusher_name_github(GitEventcEventBase *base, JsonObject *root)
 {
     JsonObject *sender = json_object_get_object_member(root, "sender");
-    JsonObject *sender_user = _git_eventc_webhook_github_get_user(sender);
+    JsonObject *sender_user = _git_eventc_webhook_github_get_user(base, sender);
     const gchar *name = json_object_get_string_member(sender_user, "name");
     const gchar *login = json_object_get_string_member(sender_user, "login");
 
@@ -113,7 +113,7 @@ _git_eventc_webhook_payload_parse_github_branch(GitEventcEventBase *base, JsonOb
 
     base->repository_name = json_object_get_string_member(repository, "name");
     base->repository_url = json_object_get_string_member(repository, "url");
-    gchar *pusher_name = _git_eventc_webhook_payload_pusher_name_github(root);
+    gchar *pusher_name = _git_eventc_webhook_payload_pusher_name_github(base, root);
 
     gchar *diff_url;
     diff_url = git_eventc_get_url_const(json_object_get_string_member(root, "compare"));
@@ -181,14 +181,14 @@ _git_eventc_webhook_payload_parse_github_tag(GitEventcEventBase *base, JsonObjec
 
     base->repository_name = json_object_get_string_member(repository, "name");
     base->repository_url = json_object_get_string_member(repository, "url");
-    gchar *pusher_name = _git_eventc_webhook_payload_pusher_name_github(root);
+    gchar *pusher_name = _git_eventc_webhook_payload_pusher_name_github(base, root);
 
     if ( ! json_object_get_boolean_member(root, "created") )
             git_eventc_send_tag_deletion(base, pusher_name, tag, NULL);
 
     if ( ! json_object_get_boolean_member(root, "deleted") )
     {
-        JsonArray *tags = _git_eventc_webhook_github_get_tags(repository);
+        JsonArray *tags = _git_eventc_webhook_github_get_tags(base, repository);
         guint length = json_array_get_length(tags);
         const gchar *previous_tag = NULL;
 
@@ -236,7 +236,7 @@ git_eventc_webhook_payload_parse_github_issues(GitEventcEventBase *base, JsonObj
 
     JsonObject *repository = json_object_get_object_member(root, "repository");
     JsonObject *issue = json_object_get_object_member(root, "issue");
-    JsonObject *author = _git_eventc_webhook_github_get_user(json_object_get_object_member(issue, "user"));
+    JsonObject *author = _git_eventc_webhook_github_get_user(base, json_object_get_object_member(issue, "user"));
 
     base->repository_name = json_object_get_string_member(repository, "name");
     base->repository_url = json_object_get_string_member(repository, "url");
@@ -288,7 +288,7 @@ git_eventc_webhook_payload_parse_github_pull_request(GitEventcEventBase *base, J
 
     JsonObject *repository = json_object_get_object_member(root, "repository");
     JsonObject *pr = json_object_get_object_member(root, "pull_request");
-    JsonObject *author = _git_eventc_webhook_github_get_user(json_object_get_object_member(pr, "user"));
+    JsonObject *author = _git_eventc_webhook_github_get_user(base, json_object_get_object_member(pr, "user"));
 
     base->repository_name = json_object_get_string_member(repository, "name");
     base->repository_url = json_object_get_string_member(repository, "url");

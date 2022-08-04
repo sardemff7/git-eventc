@@ -23,7 +23,7 @@
 #ifndef __GIT_EVENTC_WEBHOOK_H__
 #define __GIT_EVENTC_WEBHOOK_H__
 
-JsonNode *git_eventc_webhook_api_get(const gchar *url);
+JsonNode *git_eventc_webhook_api_get(const GitEventcEventBase *base, const gchar *url);
 GList *git_eventc_webhook_node_list_to_string_list(GList *list);
 
 #endif /* __GIT_EVENTC_WEBHOOK_GITHUB_H__ */

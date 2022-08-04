@@ -39,7 +39,7 @@
 #include "webhook-gitlab.h"
 
 static JsonNode *
-_git_eventc_webhook_gitlab_api_get(JsonObject *repository, const gchar *suffix, gsize length)
+_git_eventc_webhook_gitlab_api_get(GitEventcEventBase *base, JsonObject *repository, const gchar *suffix, gsize length)
 {
     const gchar *web_url = json_object_get_string_member(repository, "web_url");
     const gchar *path_with_namespace = json_object_get_string_member(repository, "path_with_namespace");
@@ -51,11 +51,11 @@ _git_eventc_webhook_gitlab_api_get(JsonObject *repository, const gchar *suffix, 
     url = g_alloca(sizeof(gchar) * l);
     g_snprintf(url, l, "%.*sapi/v4%s", (gint) pl, web_url, suffix);
 
-    return git_eventc_webhook_api_get(url);
+    return git_eventc_webhook_api_get(base, url);
 }
 
 static JsonNode *
-_git_eventc_webhook_gitlab_api_get_project(JsonObject *repository, const gchar *suffix, gsize length)
+_git_eventc_webhook_gitlab_api_get_project(GitEventcEventBase *base, JsonObject *repository, const gchar *suffix, gsize length)
 {
     gint64 id = json_object_get_int_member(repository, "id");
     gsize l;
@@ -65,11 +65,11 @@ _git_eventc_webhook_gitlab_api_get_project(JsonObject *repository, const gchar *
     url = g_alloca(sizeof(gchar) * l);
     g_snprintf(url, l, "/projects/%" G_GINT64_FORMAT"%s", id, suffix);
 
-    return _git_eventc_webhook_gitlab_api_get(repository, url, l - 1);
+    return _git_eventc_webhook_gitlab_api_get(base, repository, url, l - 1);
 }
 
 static JsonObject *
-_git_eventc_webhook_gitlab_get_user(JsonObject *repository, gint64 id)
+_git_eventc_webhook_gitlab_get_user(GitEventcEventBase *base, JsonObject *repository, gint64 id)
 {
     gsize l;
     gchar *url;
@@ -81,7 +81,9 @@ _git_eventc_webhook_gitlab_get_user(JsonObject *repository, gint64 id)
 
     JsonNode *node;
     JsonObject *user;
-    node = _git_eventc_webhook_gitlab_api_get(repository, url, l - 1);
+    node = _git_eventc_webhook_gitlab_api_get(base, repository, url, l - 1);
+    if ( node == NULL )
+        return NULL;
     user = json_object_ref(json_node_get_object(node));
     json_node_free(node);
 
@@ -89,12 +91,12 @@ _git_eventc_webhook_gitlab_get_user(JsonObject *repository, gint64 id)
 }
 
 static JsonArray *
-_git_eventc_webhook_gitlab_get_tags(JsonObject *repository)
+_git_eventc_webhook_gitlab_get_tags(GitEventcEventBase *base, JsonObject *repository)
 {
     JsonNode *node;
     JsonArray *tags;
 
-    node = _git_eventc_webhook_gitlab_api_get_project(repository, "/repository/tags", strlen("/repository/tags"));
+    node = _git_eventc_webhook_gitlab_api_get_project(base, repository, "/repository/tags", strlen("/repository/tags"));
 
     tags = json_array_ref(json_node_get_array(node));
     json_node_free(node);
@@ -235,7 +237,7 @@ git_eventc_webhook_payload_parse_gitlab_tag(GitEventcEventBase *base, JsonObject
 
     if ( g_strcmp0(after, "0000000000000000000000000000000000000000") != 0 )
     {
-        JsonArray *tags = _git_eventc_webhook_gitlab_get_tags(repository);
+        JsonArray *tags = _git_eventc_webhook_gitlab_get_tags(base, repository);
         guint length = json_array_get_length(tags);
         const gchar *previous_tag = NULL;
 
@@ -278,7 +280,7 @@ git_eventc_webhook_payload_parse_gitlab_issue(GitEventcEventBase *base, JsonObje
     base->repository_name = json_object_get_string_member(repository, "name");
     base->repository_url = json_object_get_string_member(repository, "git_http_url");
 
-    JsonObject *author = _git_eventc_webhook_gitlab_get_user(repository, json_object_get_int_member(issue, "author_id"));
+    JsonObject *author = _git_eventc_webhook_gitlab_get_user(base, repository, json_object_get_int_member(issue, "author_id"));
 
     JsonArray *tags_array = json_object_get_array_member(root, "labels");
     guint length = json_array_get_length(tags_array);
@@ -329,7 +331,7 @@ git_eventc_webhook_payload_parse_gitlab_merge_request(GitEventcEventBase *base, 
     base->repository_url = json_object_get_string_member(repository, "git_http_url");
     const gchar *branch = json_object_get_string_member(mr, "target_branch");
 
-    JsonObject *author = _git_eventc_webhook_gitlab_get_user(repository, json_object_get_int_member(mr, "author_id"));
+    JsonObject *author = _git_eventc_webhook_gitlab_get_user(base, repository, json_object_get_int_member(mr, "author_id"));
 
     JsonArray *tags_array = json_object_get_array_member(root, "labels");
     guint length = json_array_get_length(tags_array);
