@@ -27,6 +27,8 @@ git-eventc will provide events in the `scm` event category: `commit`, `commit-gr
 Here is the list of common data provided by all `scm` events:
 
 * `pusher-name`: The name of the pusher
+* `pusher-username`: The username of the pusher (if available)
+* `pusher-email`: The email of the pusher (if available)
 * `branch`: The updated branch name (not for `tag-` events, and the related `push` event)
 
 
@@ -76,6 +78,7 @@ Here is the list of additional data provided for `tag-creation`:
   * `full-message`: The full commit message (verbatim)
   * `author-name`: The name of the author
   * `author-email`: The email of the author
+  * `author-username`: The username of the author (if available)
 
 
 #### `push`

@@ -72,21 +72,21 @@ typedef struct {
 } GitEventcEventBase;
 
 G_GNUC_NULL_TERMINATED
-void git_eventc_send_branch_creation(const GitEventcEventBase *base, const gchar *pusher_name, const gchar *branch, ...);
+void git_eventc_send_branch_creation(const GitEventcEventBase *base, const gchar *pusher_name, const gchar *pusher_username, const gchar *pusher_email, const gchar *branch, ...);
 G_GNUC_NULL_TERMINATED
-void git_eventc_send_branch_deletion(const GitEventcEventBase *base, const gchar *pusher_name, const gchar *branch, ...);
+void git_eventc_send_branch_deletion(const GitEventcEventBase *base, const gchar *pusher_name, const gchar *pusher_username, const gchar *pusher_email, const gchar *branch, ...);
 
 G_GNUC_NULL_TERMINATED
-void git_eventc_send_tag_creation(const GitEventcEventBase *base, const gchar *pusher_name, const gchar *tag, const gchar *author_name, const gchar *author_email, const gchar *message, const gchar *previous_tag, ...);
+void git_eventc_send_tag_creation(const GitEventcEventBase *base, const gchar *pusher_name, const gchar *pusher_username, const gchar *pusher_email, const gchar *tag, const gchar *author_name, const gchar *author_email, const gchar *message, const gchar *previous_tag, ...);
 G_GNUC_NULL_TERMINATED
-void git_eventc_send_tag_deletion(const GitEventcEventBase *base, const gchar *pusher_name, const gchar *tag, ...);
+void git_eventc_send_tag_deletion(const GitEventcEventBase *base, const gchar *pusher_name, const gchar *pusher_username, const gchar *pusher_email, const gchar *tag, ...);
 
 G_GNUC_NULL_TERMINATED
-void git_eventc_send_commit_group(const GitEventcEventBase *base, const gchar *pusher_name, guint size, const gchar *branch, ...);
+void git_eventc_send_commit_group(const GitEventcEventBase *base, const gchar *pusher_name, const gchar *pusher_username, const gchar *pusher_email, guint size, const gchar *branch, ...);
 G_GNUC_NULL_TERMINATED
-void git_eventc_send_commit(const GitEventcEventBase *base, const gchar *id, const gchar *base_message, const gchar *pusher_name, const gchar *author_name, const gchar *author_username, const gchar *author_email, const gchar *branch, const gchar *files, ...);
+void git_eventc_send_commit(const GitEventcEventBase *base, const gchar *id, const gchar *base_message, const gchar *pusher_name, const gchar *pusher_username, const gchar *pusher_email, const gchar *author_name, const gchar *author_username, const gchar *author_email, const gchar *branch, const gchar *files, ...);
 G_GNUC_NULL_TERMINATED
-void git_eventc_send_push(const GitEventcEventBase *base, const gchar *pusher_name, const gchar *branch, ...);
+void git_eventc_send_push(const GitEventcEventBase *base, const gchar *pusher_name, const gchar *pusher_username, const gchar *pusher_email, const gchar *branch, ...);
 
 G_GNUC_NULL_TERMINATED
 void git_eventc_send_bugreport(const GitEventcEventBase *base, const gchar *action, guint64 id, const gchar *title, const gchar *author_name, const gchar *author_username, const gchar *author_email, GVariant *tags, ...);

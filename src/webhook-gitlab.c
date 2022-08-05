@@ -105,21 +105,6 @@ _git_eventc_webhook_gitlab_get_tags(GitEventcEventBase *base, JsonObject *reposi
 }
 
 static gchar *
-_git_eventc_webhook_payload_pusher_name_gitlab(JsonObject *root)
-{
-    const gchar *name = json_object_get_string_member(root, "user_name");
-    const gchar *login = json_object_get_string_member(root, "user_username");
-
-    gchar *pusher_name;
-    if ( name != NULL )
-        pusher_name = g_strdup_printf("%s (%s)", name, login);
-    else
-        pusher_name = g_strdup(login);
-
-    return pusher_name;
-}
-
-static gchar *
 _git_eventc_webhook_payload_get_files_gitlab(JsonObject *commit)
 {
     JsonArray *added_files, *modified_files, *removed_files;
@@ -149,7 +134,6 @@ git_eventc_webhook_payload_parse_gitlab_branch(GitEventcEventBase *base, JsonObj
 
     base->repository_name = json_object_get_string_member(repository, "name");
     base->repository_url = json_object_get_string_member(repository, "git_http_url");
-    gchar *pusher_name = _git_eventc_webhook_payload_pusher_name_gitlab(root);
 
     const gchar *web_url = json_object_get_string_member(repository, "web_url");
     const gchar *before = json_object_get_string_member(root, "before");
@@ -161,11 +145,21 @@ git_eventc_webhook_payload_parse_gitlab_branch(GitEventcEventBase *base, JsonObj
     if ( g_strcmp0(before, "0000000000000000000000000000000000000000") == 0 )
     {
         base->url = git_eventc_get_url(g_strdup_printf("%s/tree/%s", web_url, branch));
-        git_eventc_send_branch_creation(base, pusher_name, branch, NULL);
+        git_eventc_send_branch_creation(base,
+            json_object_get_string_member(root, "user_name"),
+            json_object_get_string_member(root, "user_username"),
+            json_object_get_string_member(root, "user_email"),
+            branch,
+            NULL);
     }
     else if ( g_strcmp0(after, "0000000000000000000000000000000000000000") == 0 )
     {
-        git_eventc_send_branch_deletion(base, pusher_name, branch, NULL);
+        git_eventc_send_branch_deletion(base,
+            json_object_get_string_member(root, "user_name"),
+            json_object_get_string_member(root, "user_username"),
+            json_object_get_string_member(root, "user_email"),
+            branch,
+            NULL);
         goto send_push;
     }
 
@@ -173,7 +167,9 @@ git_eventc_webhook_payload_parse_gitlab_branch(GitEventcEventBase *base, JsonObj
     {
         base->url = g_strdup(diff_url);
         git_eventc_send_commit_group(base,
-            pusher_name,
+            json_object_get_string_member(root, "user_name"),
+            json_object_get_string_member(root, "user_username"),
+            json_object_get_string_member(root, "user_email"),
             size,
             branch,
             NULL);
@@ -194,7 +190,9 @@ git_eventc_webhook_payload_parse_gitlab_branch(GitEventcEventBase *base, JsonObj
             git_eventc_send_commit(base,
                 json_object_get_string_member(commit, "id"),
                 json_object_get_string_member(commit, "message"),
-                pusher_name,
+                json_object_get_string_member(root, "user_name"),
+                json_object_get_string_member(root, "user_username"),
+                json_object_get_string_member(root, "user_email"),
                 json_object_get_string_member(author, "name"),
                 NULL,
                 json_object_get_string_member(author, "email"),
@@ -209,9 +207,12 @@ git_eventc_webhook_payload_parse_gitlab_branch(GitEventcEventBase *base, JsonObj
 
 send_push:
     base->url = diff_url;
-    git_eventc_send_push(base, pusher_name, branch, NULL);
-
-    g_free(pusher_name);
+    git_eventc_send_push(base,
+        json_object_get_string_member(root, "user_name"),
+        json_object_get_string_member(root, "user_username"),
+        json_object_get_string_member(root, "user_email"),
+        branch,
+        NULL);
 }
 
 void
@@ -223,7 +224,6 @@ git_eventc_webhook_payload_parse_gitlab_tag(GitEventcEventBase *base, JsonObject
 
     base->repository_name = json_object_get_string_member(repository, "name");
     base->repository_url = json_object_get_string_member(repository, "git_http_url");
-    gchar *pusher_name = _git_eventc_webhook_payload_pusher_name_gitlab(root);
 
     const gchar *web_url = json_object_get_string_member(repository, "web_url");
     const gchar *before = json_object_get_string_member(root, "before");
@@ -233,7 +233,12 @@ git_eventc_webhook_payload_parse_gitlab_tag(GitEventcEventBase *base, JsonObject
     url = git_eventc_get_url(g_strdup_printf("%s/tags/%s", web_url, tag));
 
     if ( g_strcmp0(before, "0000000000000000000000000000000000000000") != 0 )
-            git_eventc_send_tag_deletion(base, pusher_name, tag, NULL);
+            git_eventc_send_tag_deletion(base,
+            json_object_get_string_member(root, "user_name"),
+            json_object_get_string_member(root, "user_username"),
+            json_object_get_string_member(root, "user_email"),
+            tag,
+            NULL);
 
     if ( g_strcmp0(after, "0000000000000000000000000000000000000000") != 0 )
     {
@@ -245,15 +250,23 @@ git_eventc_webhook_payload_parse_gitlab_tag(GitEventcEventBase *base, JsonObject
             previous_tag = json_object_get_string_member(json_array_get_object_element(tags, 1), "name");
 
         base->url = g_strdup(url);
-        git_eventc_send_tag_creation(base, pusher_name, tag, NULL, NULL, NULL, previous_tag, NULL);
+        git_eventc_send_tag_creation(base,
+            json_object_get_string_member(root, "user_name"),
+            json_object_get_string_member(root, "user_username"),
+            json_object_get_string_member(root, "user_email"),
+            tag, NULL, NULL, NULL, previous_tag,
+            NULL);
 
         json_array_unref(tags);
     }
 
     base->url = url;
-    git_eventc_send_push(base, pusher_name, NULL, NULL);
-
-    g_free(pusher_name);
+    git_eventc_send_push(base,
+        json_object_get_string_member(root, "user_name"),
+        json_object_get_string_member(root, "user_username"),
+        json_object_get_string_member(root, "user_email"),
+        NULL,
+        NULL);
 }
 
 static const gchar * const _git_eventc_webhook_gitlab_issue_action_name[] = {
@@ -305,7 +318,7 @@ git_eventc_webhook_payload_parse_gitlab_issue(GitEventcEventBase *base, JsonObje
         json_object_get_string_member(issue, "title"),
         json_get_string_safe(author, "name"),
         json_get_string_safe(author, "username"),
-        NULL,
+        json_get_string_safe(author, "email"),
         tags,
         "user-name", json_get_string_gvariant_safe(user, "name"),
         "user-username", json_get_string_gvariant_safe(user, "username"),
@@ -360,7 +373,7 @@ git_eventc_webhook_payload_parse_gitlab_merge_request(GitEventcEventBase *base, 
         json_object_get_string_member(mr, "title"),
         json_get_string_safe(author, "name"),
         json_get_string_safe(author, "username"),
-        NULL,
+        json_get_string_safe(author, "email"),
         tags,
         branch,
         "user-name", json_get_string_gvariant_safe(user, "name"),

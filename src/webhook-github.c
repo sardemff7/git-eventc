@@ -68,24 +68,6 @@ _git_eventc_webhook_github_get_tags(GitEventcEventBase *base, JsonObject *reposi
 }
 
 static gchar *
-_git_eventc_webhook_payload_pusher_name_github(GitEventcEventBase *base, JsonObject *root)
-{
-    JsonObject *sender = json_object_get_object_member(root, "sender");
-    JsonObject *sender_user = _git_eventc_webhook_github_get_user(base, sender);
-    const gchar *name = json_object_get_string_member(sender_user, "name");
-    const gchar *login = json_object_get_string_member(sender_user, "login");
-
-    gchar *pusher_name;
-    if ( name != NULL )
-        pusher_name = g_strdup_printf("%s (%s)", name, login);
-    else
-        pusher_name = g_strdup(login);
-    json_object_unref(sender_user);
-
-    return pusher_name;
-}
-
-static gchar *
 _git_eventc_webhook_payload_get_files_github(JsonObject *commit)
 {
     JsonArray *added_files, *modified_files, *removed_files;
@@ -113,7 +95,8 @@ _git_eventc_webhook_payload_parse_github_branch(GitEventcEventBase *base, JsonOb
 
     base->repository_name = json_object_get_string_member(repository, "name");
     base->repository_url = json_object_get_string_member(repository, "url");
-    gchar *pusher_name = _git_eventc_webhook_payload_pusher_name_github(base, root);
+
+    JsonObject *sender = _git_eventc_webhook_github_get_user(base, json_object_get_object_member(root, "sender"));
 
     gchar *diff_url;
     diff_url = git_eventc_get_url_const(json_object_get_string_member(root, "compare"));
@@ -121,11 +104,21 @@ _git_eventc_webhook_payload_parse_github_branch(GitEventcEventBase *base, JsonOb
     if ( json_object_get_boolean_member(root, "created") )
     {
         base->url = git_eventc_get_url(g_strdup_printf("%s/tree/%s", json_object_get_string_member(repository, "url"), branch));
-        git_eventc_send_branch_creation(base, pusher_name, branch, NULL);
+        git_eventc_send_branch_creation(base,
+            json_object_get_string_member(sender, "name"),
+            json_object_get_string_member(sender, "login"),
+            json_object_get_string_member(sender, "email"),
+            branch,
+            NULL);
     }
     else if ( json_object_get_boolean_member(root, "deleted") )
     {
-        git_eventc_send_branch_deletion(base, pusher_name, branch, NULL);
+        git_eventc_send_branch_deletion(base,
+            json_object_get_string_member(sender, "name"),
+            json_object_get_string_member(sender, "login"),
+            json_object_get_string_member(sender, "email"),
+            branch,
+            NULL);
         goto send_push;
     }
 
@@ -133,7 +126,9 @@ _git_eventc_webhook_payload_parse_github_branch(GitEventcEventBase *base, JsonOb
     {
         base->url = g_strdup(diff_url);
         git_eventc_send_commit_group(base,
-            pusher_name,
+            json_object_get_string_member(sender, "name"),
+            json_object_get_string_member(sender, "login"),
+            json_object_get_string_member(sender, "email"),
             size,
             branch,
             NULL);
@@ -154,7 +149,9 @@ _git_eventc_webhook_payload_parse_github_branch(GitEventcEventBase *base, JsonOb
             git_eventc_send_commit(base,
                 json_object_get_string_member(commit, "id"),
                 json_object_get_string_member(commit, "message"),
-                pusher_name,
+                json_object_get_string_member(sender, "name"),
+                json_object_get_string_member(sender, "login"),
+                json_object_get_string_member(sender, "email"),
                 json_object_get_string_member(author, "name"),
                 json_object_get_string_member(author, "username"),
                 json_object_get_string_member(author, "email"),
@@ -169,9 +166,14 @@ _git_eventc_webhook_payload_parse_github_branch(GitEventcEventBase *base, JsonOb
 
 send_push:
     base->url = diff_url;
-    git_eventc_send_push(base, pusher_name, branch, NULL);
+    git_eventc_send_push(base,
+        json_object_get_string_member(sender, "name"),
+        json_object_get_string_member(sender, "login"),
+        json_object_get_string_member(sender, "email"),
+        branch,
+        NULL);
 
-    g_free(pusher_name);
+    json_object_unref(sender);
 }
 
 static void
@@ -181,10 +183,15 @@ _git_eventc_webhook_payload_parse_github_tag(GitEventcEventBase *base, JsonObjec
 
     base->repository_name = json_object_get_string_member(repository, "name");
     base->repository_url = json_object_get_string_member(repository, "url");
-    gchar *pusher_name = _git_eventc_webhook_payload_pusher_name_github(base, root);
+    JsonObject *sender = _git_eventc_webhook_github_get_user(base, json_object_get_object_member(root, "sender"));
 
     if ( ! json_object_get_boolean_member(root, "created") )
-            git_eventc_send_tag_deletion(base, pusher_name, tag, NULL);
+            git_eventc_send_tag_deletion(base,
+            json_object_get_string_member(sender, "name"),
+            json_object_get_string_member(sender, "login"),
+            json_object_get_string_member(sender, "email"),
+            tag,
+            NULL);
 
     if ( ! json_object_get_boolean_member(root, "deleted") )
     {
@@ -196,16 +203,26 @@ _git_eventc_webhook_payload_parse_github_tag(GitEventcEventBase *base, JsonObjec
         if ( length > 1 )
             previous_tag = json_object_get_string_member(json_array_get_object_element(tags, 1), "name");
 
-        git_eventc_send_tag_creation(base, pusher_name, tag, NULL, NULL, NULL, previous_tag, NULL);
+        git_eventc_send_tag_creation(base,
+            json_object_get_string_member(sender, "name"),
+            json_object_get_string_member(sender, "login"),
+            json_object_get_string_member(sender, "email"),
+            tag, NULL, NULL, NULL, previous_tag,
+            NULL);
 
         json_array_unref(tags);
     }
 
     base->url = git_eventc_get_url_const(json_object_get_string_member(root, "compare"));
 
-    git_eventc_send_push(base, pusher_name, NULL, NULL);
+    git_eventc_send_push(base,
+        json_object_get_string_member(sender, "name"),
+        json_object_get_string_member(sender, "login"),
+        json_object_get_string_member(sender, "email"),
+        NULL,
+        NULL);
 
-    g_free(pusher_name);
+    json_object_unref(sender);
 }
 
 void

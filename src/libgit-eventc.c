@@ -789,38 +789,40 @@ _git_eventc_send_event(EventdEvent *event, const GitEventcEventBase *base, va_li
 }
 
 static void
-_git_eventc_send_branch(const GitEventcEventBase *base, gboolean created, const gchar *pusher_name, const gchar *branch, va_list extra)
+_git_eventc_send_branch(const GitEventcEventBase *base, gboolean created, const gchar *pusher_name, const gchar *pusher_username, const gchar *pusher_email, const gchar *branch, va_list extra)
 {
     EventdEvent *event;
 
     event = eventd_event_new("scm", created ? "branch-creation" : "branch-deletion");
 
     _git_eventc_event_add_data_string(event, "pusher-name", pusher_name);
+    _git_eventc_event_add_data_string_null(event, "pusher-email", pusher_email);
+    _git_eventc_event_add_data_string_null(event, "pusher-username", pusher_username);
     _git_eventc_event_add_data_string(event, "branch", branch);
 
     _git_eventc_send_event(event, base, extra);
 }
 
 void
-git_eventc_send_branch_creation(const GitEventcEventBase *base, const gchar *pusher_name, const gchar *branch, ...)
+git_eventc_send_branch_creation(const GitEventcEventBase *base, const gchar *pusher_name, const gchar *pusher_username, const gchar *pusher_email, const gchar *branch, ...)
 {
     va_list extra;
     va_start(extra, branch);
-    _git_eventc_send_branch(base, TRUE, pusher_name, branch, extra);
+    _git_eventc_send_branch(base, TRUE, pusher_name, pusher_username, pusher_email, branch, extra);
     va_end(extra);
 }
 
 void
-git_eventc_send_branch_deletion(const GitEventcEventBase *base, const gchar *pusher_name, const gchar *branch, ...)
+git_eventc_send_branch_deletion(const GitEventcEventBase *base, const gchar *pusher_name, const gchar *pusher_username, const gchar *pusher_email, const gchar *branch, ...)
 {
     va_list extra;
     va_start(extra, branch);
-    _git_eventc_send_branch(base, FALSE, pusher_name, branch, extra);
+    _git_eventc_send_branch(base, FALSE, pusher_name, pusher_username, pusher_email, branch, extra);
     va_end(extra);
 }
 
 static void
-_git_eventc_send_tag(const GitEventcEventBase *base, gboolean created, const gchar *pusher_name, const gchar *tag, const gchar *author_name, const gchar *author_email, const gchar *base_message, const gchar *previous_tag, va_list extra)
+_git_eventc_send_tag(const GitEventcEventBase *base, gboolean created, const gchar *pusher_name, const gchar *pusher_username, const gchar *pusher_email, const gchar *tag, const gchar *author_name, const gchar *author_email, const gchar *base_message, const gchar *previous_tag, va_list extra)
 {
     EventdEvent *event;
 
@@ -834,6 +836,8 @@ _git_eventc_send_tag(const GitEventcEventBase *base, gboolean created, const gch
     _git_eventc_event_add_data_string_null(event, "full-message", base_message);
 
     _git_eventc_event_add_data_string(event, "pusher-name", pusher_name);
+    _git_eventc_event_add_data_string_null(event, "pusher-email", pusher_email);
+    _git_eventc_event_add_data_string_null(event, "pusher-username", pusher_username);
     _git_eventc_event_add_data_string_null(event, "author-name", author_name);
     _git_eventc_event_add_data_string_null(event, "author-email", author_email);
 
@@ -844,31 +848,33 @@ _git_eventc_send_tag(const GitEventcEventBase *base, gboolean created, const gch
 }
 
 void
-git_eventc_send_tag_creation(const GitEventcEventBase *base, const gchar *pusher_name, const gchar *tag, const gchar *author_name, const gchar *author_email, const gchar *message, const gchar *previous_tag, ...)
+git_eventc_send_tag_creation(const GitEventcEventBase *base, const gchar *pusher_name, const gchar *pusher_username, const gchar *pusher_email, const gchar *tag, const gchar *author_name, const gchar *author_email, const gchar *message, const gchar *previous_tag, ...)
 {
     va_list extra;
     va_start(extra, previous_tag);
-    _git_eventc_send_tag(base, TRUE, pusher_name, tag, author_name, author_email, message, previous_tag, extra);
+    _git_eventc_send_tag(base, TRUE, pusher_name, pusher_username, pusher_email, tag, author_name, author_email, message, previous_tag, extra);
     va_end(extra);
 }
 
 void
-git_eventc_send_tag_deletion(const GitEventcEventBase *base, const gchar *pusher_name, const gchar *tag, ...)
+git_eventc_send_tag_deletion(const GitEventcEventBase *base, const gchar *pusher_name, const gchar *pusher_username, const gchar *pusher_email, const gchar *tag, ...)
 {
     va_list extra;
     va_start(extra, tag);
-    _git_eventc_send_tag(base, FALSE, pusher_name, tag, NULL, NULL, NULL, NULL, extra);
+    _git_eventc_send_tag(base, FALSE, pusher_name, pusher_username, pusher_email, tag, NULL, NULL, NULL, NULL, extra);
     va_end(extra);
 }
 
 void
-git_eventc_send_commit_group(const GitEventcEventBase *base, const gchar *pusher_name, guint size, const gchar *branch, ...)
+git_eventc_send_commit_group(const GitEventcEventBase *base, const gchar *pusher_name, const gchar *pusher_username, const gchar *pusher_email, guint size, const gchar *branch, ...)
 {
     EventdEvent *event;
 
     event = eventd_event_new("scm", "commit-group");
 
     _git_eventc_event_add_data_string(event, "pusher-name", pusher_name);
+    _git_eventc_event_add_data_string_null(event, "pusher-email", pusher_email);
+    _git_eventc_event_add_data_string_null(event, "pusher-username", pusher_username);
     eventd_event_add_data(event, g_strdup("size"), g_variant_new_uint64(size));
 
     _git_eventc_event_add_data_string(event, "branch", branch);
@@ -880,7 +886,7 @@ git_eventc_send_commit_group(const GitEventcEventBase *base, const gchar *pusher
 }
 
 void
-git_eventc_send_commit(const GitEventcEventBase *base, const gchar *id, const gchar *base_message, const gchar *pusher_name, const gchar *author_name, const gchar *author_username, const gchar *author_email, const gchar *branch, const gchar *files, ...)
+git_eventc_send_commit(const GitEventcEventBase *base, const gchar *id, const gchar *base_message, const gchar *pusher_name, const gchar *pusher_username, const gchar *pusher_email, const gchar *author_name, const gchar *author_username, const gchar *author_email, const gchar *branch, const gchar *files, ...)
 {
 #ifdef GIT_EVENTC_DEBUG_OUTPUT
     g_debug("Send commit:"
@@ -888,6 +894,8 @@ git_eventc_send_commit(const GitEventcEventBase *base, const gchar *id, const gc
         "\nMessage: %s"
         "\nURL: %s"
         "\nPusher name: %s"
+        "\nPusher username: %s"
+        "\nPusher email: %s"
         "\nAuthor name: %s"
         "\nAuthor username: %s"
         "\nAuthor email: %s"
@@ -900,6 +908,8 @@ git_eventc_send_commit(const GitEventcEventBase *base, const gchar *id, const gc
         base_message,
         base->url,
         pusher_name,
+        pusher_username,
+        pusher_email,
         author_name,
         author_username,
         author_email,
@@ -923,6 +933,8 @@ git_eventc_send_commit(const GitEventcEventBase *base, const gchar *id, const gc
     _git_eventc_event_add_data_string(event, "full-message", base_message);
 
     _git_eventc_event_add_data_string(event, "pusher-name", pusher_name);
+    _git_eventc_event_add_data_string_null(event, "pusher-email", pusher_email);
+    _git_eventc_event_add_data_string_null(event, "pusher-username", pusher_username);
     _git_eventc_event_add_data_string(event, "author-name", author_name);
     _git_eventc_event_add_data_string(event, "author-email", author_email);
     _git_eventc_event_add_data_string_null(event, "author-username", author_username);
@@ -938,13 +950,15 @@ git_eventc_send_commit(const GitEventcEventBase *base, const gchar *id, const gc
 }
 
 void
-git_eventc_send_push(const GitEventcEventBase *base, const gchar *pusher_name, const gchar *branch, ...)
+git_eventc_send_push(const GitEventcEventBase *base, const gchar *pusher_name, const gchar *pusher_username, const gchar *pusher_email, const gchar *branch, ...)
 {
     EventdEvent *event;
 
     event = eventd_event_new("scm", "push");
 
     _git_eventc_event_add_data_string(event, "pusher-name", pusher_name);
+    _git_eventc_event_add_data_string_null(event, "pusher-email", pusher_email);
+    _git_eventc_event_add_data_string_null(event, "pusher-username", pusher_username);
     _git_eventc_event_add_data_string_null(event, "branch", branch);
 
     va_list extra;
