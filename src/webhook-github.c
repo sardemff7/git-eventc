@@ -109,6 +109,7 @@ _git_eventc_webhook_payload_parse_github_branch(GitEventcEventBase *base, JsonOb
             json_object_get_string_member(sender, "login"),
             json_object_get_string_member(sender, "email"),
             branch,
+            "pusher-avatar-url", json_get_string_gvariant_safe(sender, "avatar_url"),
             NULL);
     }
     else if ( json_object_get_boolean_member(root, "deleted") )
@@ -118,6 +119,7 @@ _git_eventc_webhook_payload_parse_github_branch(GitEventcEventBase *base, JsonOb
             json_object_get_string_member(sender, "login"),
             json_object_get_string_member(sender, "email"),
             branch,
+            "pusher-avatar-url", json_get_string_gvariant_safe(sender, "avatar_url"),
             NULL);
         goto send_push;
     }
@@ -131,6 +133,7 @@ _git_eventc_webhook_payload_parse_github_branch(GitEventcEventBase *base, JsonOb
             json_object_get_string_member(sender, "email"),
             size,
             branch,
+            "pusher-avatar-url", json_get_string_gvariant_safe(sender, "avatar_url"),
             NULL);
     }
     else
@@ -157,6 +160,8 @@ _git_eventc_webhook_payload_parse_github_branch(GitEventcEventBase *base, JsonOb
                 json_object_get_string_member(author, "email"),
                 branch,
                 files,
+                "pusher-avatar-url", json_get_string_gvariant_safe(sender, "avatar_url"),
+                "author-avatar-url", json_get_string_gvariant_safe(author, "avatar_url"),
                 NULL);
 
             g_free(files);
@@ -171,6 +176,7 @@ send_push:
         json_object_get_string_member(sender, "login"),
         json_object_get_string_member(sender, "email"),
         branch,
+        "pusher-avatar-url", json_get_string_gvariant_safe(sender, "avatar_url"),
         NULL);
 
     json_object_unref(sender);
@@ -191,6 +197,7 @@ _git_eventc_webhook_payload_parse_github_tag(GitEventcEventBase *base, JsonObjec
             json_object_get_string_member(sender, "login"),
             json_object_get_string_member(sender, "email"),
             tag,
+            "pusher-avatar-url", json_get_string_gvariant_safe(sender, "avatar_url"),
             NULL);
 
     if ( ! json_object_get_boolean_member(root, "deleted") )
@@ -208,6 +215,7 @@ _git_eventc_webhook_payload_parse_github_tag(GitEventcEventBase *base, JsonObjec
             json_object_get_string_member(sender, "login"),
             json_object_get_string_member(sender, "email"),
             tag, NULL, NULL, NULL, previous_tag,
+            "pusher-avatar-url", json_get_string_gvariant_safe(sender, "avatar_url"),
             NULL);
 
         json_array_unref(tags);
@@ -220,6 +228,7 @@ _git_eventc_webhook_payload_parse_github_tag(GitEventcEventBase *base, JsonObjec
         json_object_get_string_member(sender, "login"),
         json_object_get_string_member(sender, "email"),
         NULL,
+        "pusher-avatar-url", json_get_string_gvariant_safe(sender, "avatar_url"),
         NULL);
 
     json_object_unref(sender);
@@ -282,6 +291,7 @@ git_eventc_webhook_payload_parse_github_issues(GitEventcEventBase *base, JsonObj
         json_object_get_string_member(author, "login"),
         json_object_get_string_member(author, "email"),
         tags,
+        "author-avatar-url", json_get_string_gvariant_safe(author, "avatar_url"),
         NULL);
 
     json_object_unref(author);
@@ -338,6 +348,7 @@ git_eventc_webhook_payload_parse_github_pull_request(GitEventcEventBase *base, J
         json_object_get_string_member(author, "login"),
         json_object_get_string_member(author, "email"),
         tags, branch,
+        "author-avatar-url", json_get_string_gvariant_safe(author, "avatar_url"),
         NULL);
 
     json_object_unref(author);

@@ -150,6 +150,7 @@ git_eventc_webhook_payload_parse_gitlab_branch(GitEventcEventBase *base, JsonObj
             json_object_get_string_member(root, "user_username"),
             json_object_get_string_member(root, "user_email"),
             branch,
+            "pusher-avatar-url", json_get_string_gvariant_safe(root, "user_avatar"),
             NULL);
     }
     else if ( g_strcmp0(after, "0000000000000000000000000000000000000000") == 0 )
@@ -159,6 +160,7 @@ git_eventc_webhook_payload_parse_gitlab_branch(GitEventcEventBase *base, JsonObj
             json_object_get_string_member(root, "user_username"),
             json_object_get_string_member(root, "user_email"),
             branch,
+            "pusher-avatar-url", json_get_string_gvariant_safe(root, "user_avatar"),
             NULL);
         goto send_push;
     }
@@ -172,6 +174,7 @@ git_eventc_webhook_payload_parse_gitlab_branch(GitEventcEventBase *base, JsonObj
             json_object_get_string_member(root, "user_email"),
             size,
             branch,
+            "pusher-avatar-url", json_get_string_gvariant_safe(root, "user_avatar"),
             NULL);
     }
     else
@@ -198,6 +201,8 @@ git_eventc_webhook_payload_parse_gitlab_branch(GitEventcEventBase *base, JsonObj
                 json_object_get_string_member(author, "email"),
                 branch,
                 files,
+                "author-avatar-url", json_get_string_gvariant_safe(author, "avatar_url"),
+                "pusher-avatar-url", json_get_string_gvariant_safe(root, "user_avatar"),
                 NULL);
 
             g_free(files);
@@ -212,6 +217,7 @@ send_push:
         json_object_get_string_member(root, "user_username"),
         json_object_get_string_member(root, "user_email"),
         branch,
+        "pusher-avatar-url", json_get_string_gvariant_safe(root, "user_avatar"),
         NULL);
 }
 
@@ -238,6 +244,7 @@ git_eventc_webhook_payload_parse_gitlab_tag(GitEventcEventBase *base, JsonObject
             json_object_get_string_member(root, "user_username"),
             json_object_get_string_member(root, "user_email"),
             tag,
+            "pusher-avatar-url", json_get_string_gvariant_safe(root, "user_avatar"),
             NULL);
 
     if ( g_strcmp0(after, "0000000000000000000000000000000000000000") != 0 )
@@ -255,6 +262,7 @@ git_eventc_webhook_payload_parse_gitlab_tag(GitEventcEventBase *base, JsonObject
             json_object_get_string_member(root, "user_username"),
             json_object_get_string_member(root, "user_email"),
             tag, NULL, NULL, NULL, previous_tag,
+            "pusher-avatar-url", json_get_string_gvariant_safe(root, "user_avatar"),
             NULL);
 
         json_array_unref(tags);
@@ -266,6 +274,7 @@ git_eventc_webhook_payload_parse_gitlab_tag(GitEventcEventBase *base, JsonObject
         json_object_get_string_member(root, "user_username"),
         json_object_get_string_member(root, "user_email"),
         NULL,
+        "pusher-avatar-url", json_get_string_gvariant_safe(root, "user_avatar"),
         NULL);
 }
 
@@ -320,9 +329,11 @@ git_eventc_webhook_payload_parse_gitlab_issue(GitEventcEventBase *base, JsonObje
         json_get_string_safe(author, "username"),
         json_get_string_safe(author, "email"),
         tags,
+        "author-avatar-url", json_get_string_gvariant_safe(author, "avatar_url"),
         "user-name", json_get_string_gvariant_safe(user, "name"),
         "user-username", json_get_string_gvariant_safe(user, "username"),
         "user-email", json_get_string_gvariant_safe(user, "email"),
+        "user-avatar-url", json_get_string_gvariant_safe(user, "avatar_url"),
         NULL);
 }
 
@@ -376,9 +387,11 @@ git_eventc_webhook_payload_parse_gitlab_merge_request(GitEventcEventBase *base, 
         json_get_string_safe(author, "email"),
         tags,
         branch,
+        "author-avatar-url", json_get_string_gvariant_safe(author, "avatar_url"),
         "user-name", json_get_string_gvariant_safe(user, "name"),
         "user-username", json_get_string_gvariant_safe(user, "username"),
         "user-email", json_get_string_gvariant_safe(user, "email"),
+        "user-avatar-url", json_get_string_gvariant_safe(user, "avatar_url"),
         NULL);
 }
 

@@ -29,6 +29,7 @@ Here is the list of common data provided by all `scm` events:
 * `pusher-name`: The name of the pusher
 * `pusher-username`: The username of the pusher (if available)
 * `pusher-email`: The email of the pusher (if available)
+* `pusher-avatar-url`: The avatar URL of the pusher (if available)
 * `branch`: The updated branch name (not for `tag-` events, and the related `push` event)
 
 
@@ -45,6 +46,7 @@ Here is the list of provided data:
 * `author-name`: The name of the author
 * `author-email`: The email of the author
 * `author-username`: The username of the author (if available)
+* `author-avatar-url`: The avatar URL of the author (if available)
 * `files`: The list (as a string) of modified files, with some basic prefix detection
     <br />
     The `post-receive` hook also detects file renames and copies if asked so.
@@ -79,6 +81,7 @@ Here is the list of additional data provided for `tag-creation`:
   * `author-name`: The name of the author
   * `author-email`: The email of the author
   * `author-username`: The username of the author (if available)
+  * `author-avatar-url`: The avatar URL of the author (if available)
 
 
 #### `push`
