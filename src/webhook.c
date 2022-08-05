@@ -613,7 +613,7 @@ _git_eventc_webhook_extra_key_file_parsing_extra_headers(GKeyFile *key_file, GEr
     for ( section = sections ; *section != NULL ; ++section )
     {
         if ( ! g_str_has_prefix(*section, "webhook API headers ") )
-            continue;
+            goto next;
 
         const gchar *project = *section + strlen("webhook API headers ");
         GList *headers = NULL;
@@ -636,6 +636,8 @@ _git_eventc_webhook_extra_key_file_parsing_extra_headers(GKeyFile *key_file, GEr
         }
         g_free(keys);
         g_hash_table_insert(extra_headers, g_strdup(project), g_list_reverse(headers));
+
+    next:
         g_free(*section);
     }
 
