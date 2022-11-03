@@ -44,6 +44,13 @@ const gchar * const git_eventc_webhook_gitlab_parsers_events[] = {
     [GIT_EVENTC_WEBHOOK_GITLAB_PARSER_ISSUE]         = "Issue Hook",
     [GIT_EVENTC_WEBHOOK_GITLAB_PARSER_MERGE_REQUEST] = "Merge Request Hook",
     [GIT_EVENTC_WEBHOOK_GITLAB_PARSER_PIPELINE]      = "Pipeline Hook",
+    [GIT_EVENTC_WEBHOOK_GITLAB_PARSER_SYSTEM]        = "System Hook",
+};
+
+static const gchar * const git_eventc_webhook_gitlab_parsers_system_events[] = {
+    [GIT_EVENTC_WEBHOOK_GITLAB_PARSER_PUSH]          = "push",
+    [GIT_EVENTC_WEBHOOK_GITLAB_PARSER_TAG]           = "tag_push",
+    [GIT_EVENTC_WEBHOOK_GITLAB_PARSER_MERGE_REQUEST] = "merge_request",
 };
 
 void git_eventc_webhook_payload_parse_gitlab_branch(GitEventcEventBase *base, JsonObject *root);
@@ -51,6 +58,7 @@ void git_eventc_webhook_payload_parse_gitlab_tag(GitEventcEventBase *base, JsonO
 void git_eventc_webhook_payload_parse_gitlab_issue(GitEventcEventBase *base, JsonObject *root);
 void git_eventc_webhook_payload_parse_gitlab_merge_request(GitEventcEventBase *base, JsonObject *root);
 void git_eventc_webhook_payload_parse_gitlab_pipeline(GitEventcEventBase *base, JsonObject *root);
+void git_eventc_webhook_payload_parse_gitlab_system(GitEventcEventBase *base, JsonObject *root);
 
 const GitEventcWebhookParseFunc git_eventc_webhook_gitlab_parsers[] = {
     [GIT_EVENTC_WEBHOOK_GITLAB_PARSER_PUSH]          = git_eventc_webhook_payload_parse_gitlab_branch,
@@ -58,6 +66,7 @@ const GitEventcWebhookParseFunc git_eventc_webhook_gitlab_parsers[] = {
     [GIT_EVENTC_WEBHOOK_GITLAB_PARSER_ISSUE]         = git_eventc_webhook_payload_parse_gitlab_issue,
     [GIT_EVENTC_WEBHOOK_GITLAB_PARSER_MERGE_REQUEST] = git_eventc_webhook_payload_parse_gitlab_merge_request,
     [GIT_EVENTC_WEBHOOK_GITLAB_PARSER_PIPELINE]      = git_eventc_webhook_payload_parse_gitlab_pipeline,
+    [GIT_EVENTC_WEBHOOK_GITLAB_PARSER_SYSTEM]        = git_eventc_webhook_payload_parse_gitlab_system,
 };
 
 static JsonNode *
@@ -445,4 +454,21 @@ git_eventc_webhook_payload_parse_gitlab_pipeline(GitEventcEventBase *base, JsonO
     base->url = git_eventc_get_url(base->url);
 
     git_eventc_send_ci_build(base, git_eventc_ci_build_actions[action], number, branch, duration, NULL);
+}
+
+void
+git_eventc_webhook_payload_parse_gitlab_system(GitEventcEventBase *base, JsonObject *root)
+{
+    const gchar *event_name = json_get_string_safe(root, "event_name");
+    if ( event_name == NULL )
+        event_name = json_get_string_safe(root, "event_type");
+
+    if ( event_name == NULL )
+        return;
+
+    guint64 event_type;
+    if ( ! nk_enum_parse(event_name, git_eventc_webhook_gitlab_parsers_system_events, G_N_ELEMENTS(git_eventc_webhook_gitlab_parsers_system_events), NK_ENUM_MATCH_FLAGS_NONE, &event_type) )
+        return;
+
+    git_eventc_webhook_gitlab_parsers[event_type](base, root);
 }
