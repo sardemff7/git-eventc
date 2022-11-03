@@ -46,7 +46,7 @@ git_eventc_webhook_payload_parse_travis(GitEventcEventBase *base, JsonObject *ro
     const gchar *state = json_object_get_string_member(root, "state");
     guint64 action;
 
-    if ( ! nk_enum_parse(state, _git_eventc_webhook_travis_state_name, GIT_EVENTC_CI_BUILD_NUM_ACTION, TRUE, FALSE, &action) )
+    if ( ! nk_enum_parse(state, _git_eventc_webhook_travis_state_name, GIT_EVENTC_CI_BUILD_NUM_ACTION, NK_ENUM_MATCH_FLAGS_IGNORE_CASE, &action) )
         return;
 
     const gchar *number_str = json_object_get_string_member(root, "number");

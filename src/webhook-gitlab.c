@@ -295,7 +295,7 @@ git_eventc_webhook_payload_parse_gitlab_issue(GitEventcEventBase *base, JsonObje
     const gchar *action_str = json_object_get_string_member(issue, "action");
     guint64 action;
 
-    if ( ! nk_enum_parse(action_str, _git_eventc_webhook_gitlab_issue_action_name, GIT_EVENTC_BUG_REPORT_NUM_ACTION, TRUE, FALSE, &action) )
+    if ( ! nk_enum_parse(action_str, _git_eventc_webhook_gitlab_issue_action_name, GIT_EVENTC_BUG_REPORT_NUM_ACTION, NK_ENUM_MATCH_FLAGS_IGNORE_CASE, &action) )
         return;
 
     JsonObject *repository = json_object_get_object_member(root, "project");
@@ -351,7 +351,7 @@ git_eventc_webhook_payload_parse_gitlab_merge_request(GitEventcEventBase *base, 
     const gchar *action_str = json_object_get_string_member(mr, "action");
     guint64 action;
 
-    if ( ! nk_enum_parse(action_str, _git_eventc_webhook_gitlab_merge_request_action_name, GIT_EVENTC_MERGE_REQUEST_NUM_ACTION, TRUE, FALSE, &action) )
+    if ( ! nk_enum_parse(action_str, _git_eventc_webhook_gitlab_merge_request_action_name, GIT_EVENTC_MERGE_REQUEST_NUM_ACTION, NK_ENUM_MATCH_FLAGS_IGNORE_CASE, &action) )
         return;
 
     JsonObject *repository = json_object_get_object_member(root, "project");
@@ -408,7 +408,7 @@ git_eventc_webhook_payload_parse_gitlab_pipeline(GitEventcEventBase *base, JsonO
     const gchar *state = json_object_get_string_member(pipeline, "status");
     guint64 action;
 
-    if ( ! nk_enum_parse(state, _git_eventc_webhook_gitlab_pipeline_state_name, GIT_EVENTC_CI_BUILD_NUM_ACTION, TRUE, FALSE, &action) )
+    if ( ! nk_enum_parse(state, _git_eventc_webhook_gitlab_pipeline_state_name, GIT_EVENTC_CI_BUILD_NUM_ACTION, NK_ENUM_MATCH_FLAGS_IGNORE_CASE, &action) )
         return;
 
     JsonObject *repository = json_object_get_object_member(root, "project");

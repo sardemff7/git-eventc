@@ -31,7 +31,7 @@
 #include <glib-object.h>
 #include <gio/gio.h>
 
-#include "nkutils-token.h"
+#include <nkutils-format-string.h>
 
 #include <git2.h>
 
@@ -46,10 +46,10 @@ typedef struct {
     const gchar *project[2];
     gchar *project_group;
     gchar *project_name;
-    NkTokenList *branch_url;
-    NkTokenList *commit_url;
-    NkTokenList *tag_url;
-    NkTokenList *diff_url;
+    NkFormatString *branch_url;
+    NkFormatString *commit_url;
+    NkFormatString *tag_url;
+    NkFormatString *diff_url;
     gboolean branch_creation_commits;
     GVariant *extra_data;
 } GitEventcPostReceiveContext;
@@ -207,7 +207,7 @@ _git_eventc_post_receive_get_config_string(git_config *config, const gchar *name
     return value;
 }
 
-static NkTokenList *
+static NkFormatString *
 _git_eventc_post_receive_get_config_url_format(git_config *config, const gchar *name, GitEventcPostReceiveFormatFlags tokens)
 {
     gchar *string;
@@ -216,10 +216,10 @@ _git_eventc_post_receive_get_config_url_format(git_config *config, const gchar *
     if ( string == NULL )
         return NULL;
 
-    NkTokenList *value;
+    NkFormatString *value;
     guint64 used_tokens;
     GError *error = NULL;
-    value = nk_token_list_parse_enum(string, _git_eventc_post_receive_format_tokens, G_N_ELEMENTS(_git_eventc_post_receive_format_tokens), &used_tokens, &error);
+    value = nk_format_string_parse_enum(string, '$', _git_eventc_post_receive_format_tokens, G_N_ELEMENTS(_git_eventc_post_receive_format_tokens), &used_tokens, &error);
     if ( value == NULL )
     {
         g_warning("Could not parse URL template: %s", error->message);
@@ -231,7 +231,7 @@ _git_eventc_post_receive_get_config_url_format(git_config *config, const gchar *
         return value;
 
     g_warning("Found unexpected tokens in URL template %s", name);
-    nk_token_list_unref(value);
+    nk_format_string_unref(value);
     return NULL;
 }
 
@@ -283,36 +283,44 @@ typedef struct {
     const gchar *new_commit;
 } GitEventcPostReceiveFormatData;
 
-static const gchar *
-_git_eventc_post_receive_url_format_replace(const gchar *token, guint64 value, const gchar *key, gint64 index, gpointer user_data)
+static GVariant *
+_git_eventc_post_receive_url_format_replace(const gchar *token, guint64 value, gpointer user_data)
 {
     GitEventcPostReceiveFormatData *data = user_data;
+    const gchar *str = NULL;
     switch ( value )
     {
     case GIT_EVENTC_POST_RECEIVE_TOKEN_PROJECT_GROUP:
-        return data->context->project_group;
+        str = data->context->project_group;
+    break;
     case GIT_EVENTC_POST_RECEIVE_TOKEN_REPOSITORY_NAME:
-        return data->context->repository_name;
+        str = data->context->repository_name;
+    break;
     case GIT_EVENTC_POST_RECEIVE_TOKEN_BRANCH:
-        return data->branch;
+        str = data->branch;
+    break;
     case GIT_EVENTC_POST_RECEIVE_TOKEN_TAG:
-        return data->tag;
+        str = data->tag;
+    break;
     case GIT_EVENTC_POST_RECEIVE_TOKEN_COMMIT:
-        return data->commit;
+        str = data->commit;
+    break;
     case GIT_EVENTC_POST_RECEIVE_TOKEN_OLD_COMMIT:
-        return data->old_commit;
+        str = data->old_commit;
+    break;
     case GIT_EVENTC_POST_RECEIVE_TOKEN_NEW_COMMIT:
-        return data->new_commit;
+        str = data->new_commit;
+    break;
     }
 
-    return NULL;
+    return ( str == NULL ) ? NULL : g_variant_new_string(str);
 }
 
 static void
 _git_eventc_post_receive_init(GitEventcPostReceiveContext *context, gboolean branch_creation_commits)
 {
     int error;
-    NkTokenList *repository_url = NULL;
+    NkFormatString *repository_url = NULL;
 
 
     git_config *config;
@@ -363,8 +371,8 @@ _git_eventc_post_receive_init(GitEventcPostReceiveContext *context, gboolean bra
         GitEventcPostReceiveFormatData data = {
             .context = context,
         };
-        context->repository_url = nk_token_list_replace(repository_url, _git_eventc_post_receive_url_format_replace, &data);
-        nk_token_list_unref(repository_url);
+        context->repository_url = nk_format_string_replace(repository_url, _git_eventc_post_receive_url_format_replace, &data);
+        nk_format_string_unref(repository_url);
     }
 
     context->branch_creation_commits = branch_creation_commits;
@@ -377,13 +385,13 @@ _git_eventc_post_receive_clean(GitEventcPostReceiveContext *context)
         g_variant_unref(context->extra_data);
     g_free(context->repository_guessed_name);
     if ( context->diff_url != NULL )
-        nk_token_list_unref(context->diff_url);
+        nk_format_string_unref(context->diff_url);
     if ( context->tag_url != NULL )
-        nk_token_list_unref(context->tag_url);
+        nk_format_string_unref(context->tag_url);
     if ( context->commit_url != NULL )
-        nk_token_list_unref(context->commit_url);
+        nk_format_string_unref(context->commit_url);
     if ( context->branch_url != NULL )
-        nk_token_list_unref(context->branch_url);
+        nk_format_string_unref(context->branch_url);
     g_free(context->project_name);
     g_free(context->project_group);
 }
@@ -416,7 +424,7 @@ _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gcha
                 .context = context,
                 .branch = branch,
             };
-            base.url = git_eventc_get_url(nk_token_list_replace(context->branch_url, _git_eventc_post_receive_url_format_replace, &data));
+            base.url = git_eventc_get_url(nk_format_string_replace(context->branch_url, _git_eventc_post_receive_url_format_replace, &data));
         }
         git_eventc_send_branch_creation(&base, context->pusher, NULL, NULL, branch, NULL);
 
@@ -469,7 +477,7 @@ _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gcha
             .old_commit = before,
             .new_commit = after,
         };
-        diff_url = git_eventc_get_url(nk_token_list_replace(context->diff_url, _git_eventc_post_receive_url_format_replace, &data));
+        diff_url = git_eventc_get_url(nk_format_string_replace(context->diff_url, _git_eventc_post_receive_url_format_replace, &data));
     }
 
     if ( git_eventc_is_above_threshold(size) )
@@ -511,7 +519,7 @@ _git_eventc_post_receive_branch(GitEventcPostReceiveContext *context, const gcha
                     .context = context,
                     .commit = idstr,
                 };
-                base.url = git_eventc_get_url(nk_token_list_replace(context->commit_url, _git_eventc_post_receive_url_format_replace, &data));
+                base.url = git_eventc_get_url(nk_format_string_replace(context->commit_url, _git_eventc_post_receive_url_format_replace, &data));
             }
             gchar *files;
             files = _git_eventc_commit_get_files(context->repository, commit);
@@ -591,7 +599,7 @@ _git_eventc_post_receive_tag(GitEventcPostReceiveContext *context, const gchar *
                 .context = context,
                 .tag = tag_name,
             };
-            url = git_eventc_get_url(nk_token_list_replace(context->tag_url, _git_eventc_post_receive_url_format_replace, &data));
+            url = git_eventc_get_url(nk_format_string_replace(context->tag_url, _git_eventc_post_receive_url_format_replace, &data));
         }
 
         error = git_tag_lookup(&tag, context->repository, to);
