@@ -23,10 +23,16 @@
 #ifndef __GIT_EVENTC_WEBHOOK_GITLAB_H__
 #define __GIT_EVENTC_WEBHOOK_GITLAB_H__
 
-void git_eventc_webhook_payload_parse_gitlab_branch(GitEventcEventBase *base, JsonObject *root);
-void git_eventc_webhook_payload_parse_gitlab_tag(GitEventcEventBase *base, JsonObject *root);
-void git_eventc_webhook_payload_parse_gitlab_issue(GitEventcEventBase *base, JsonObject *root);
-void git_eventc_webhook_payload_parse_gitlab_merge_request(GitEventcEventBase *base, JsonObject *root);
-void git_eventc_webhook_payload_parse_gitlab_pipeline(GitEventcEventBase *base, JsonObject *root);
+typedef enum {
+    GIT_EVENTC_WEBHOOK_GITLAB_PARSER_PUSH,
+    GIT_EVENTC_WEBHOOK_GITLAB_PARSER_TAG,
+    GIT_EVENTC_WEBHOOK_GITLAB_PARSER_ISSUE,
+    GIT_EVENTC_WEBHOOK_GITLAB_PARSER_MERGE_REQUEST,
+    GIT_EVENTC_WEBHOOK_GITLAB_PARSER_PIPELINE,
+    _GIT_EVENTC_WEBHOOK_GITLAB_PARSER_SIZE,
+} GitEventcWebhookGitlabParser;
+
+extern const gchar * const git_eventc_webhook_gitlab_parsers_events[_GIT_EVENTC_WEBHOOK_GITLAB_PARSER_SIZE];
+extern const GitEventcWebhookParseFunc git_eventc_webhook_gitlab_parsers[_GIT_EVENTC_WEBHOOK_GITLAB_PARSER_SIZE];
 
 #endif /* __GIT_EVENTC_WEBHOOK_GITLAB_H__ */

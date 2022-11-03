@@ -23,8 +23,15 @@
 #ifndef __GIT_EVENTC_WEBHOOK_GITHUB_H__
 #define __GIT_EVENTC_WEBHOOK_GITHUB_H__
 
-void git_eventc_webhook_payload_parse_github_push(GitEventcEventBase *base, JsonObject *root);
-void git_eventc_webhook_payload_parse_github_issues(GitEventcEventBase *base, JsonObject *root);
-void git_eventc_webhook_payload_parse_github_pull_request(GitEventcEventBase *base, JsonObject *root);
+typedef enum {
+    GIT_EVENTC_WEBHOOK_GITHUB_PARSER_PUSH,
+    GIT_EVENTC_WEBHOOK_GITHUB_PARSER_ISSUES,
+    GIT_EVENTC_WEBHOOK_GITHUB_PARSER_PULL_REQUEST,
+    GIT_EVENTC_WEBHOOK_GITHUB_PARSER_PING,
+    _GIT_EVENTC_WEBHOOK_GITHUB_PARSER_SIZE,
+} GitEventcWebhookGITHUBParser;
+
+extern const gchar * const git_eventc_webhook_github_parsers_events[_GIT_EVENTC_WEBHOOK_GITHUB_PARSER_SIZE];
+extern const GitEventcWebhookParseFunc git_eventc_webhook_github_parsers[_GIT_EVENTC_WEBHOOK_GITHUB_PARSER_SIZE];
 
 #endif /* __GIT_EVENTC_WEBHOOK_GITHUB_H__ */

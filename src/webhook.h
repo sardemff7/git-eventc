@@ -23,6 +23,8 @@
 #ifndef __GIT_EVENTC_WEBHOOK_H__
 #define __GIT_EVENTC_WEBHOOK_H__
 
+typedef void (*GitEventcWebhookParseFunc)(GitEventcEventBase *base, JsonObject *root);
+
 JsonNode *git_eventc_webhook_api_get(const GitEventcEventBase *base, const gchar *url);
 GList *git_eventc_webhook_node_list_to_string_list(GList *list);
 

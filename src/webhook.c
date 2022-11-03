@@ -42,7 +42,9 @@
 #include <libsoup/soup.h>
 #include <json-glib/json-glib.h>
 
+#include <nkutils-enum.h>
 #include "libgit-eventc.h"
+#include "webhook.h"
 #include "webhook-github.h"
 #include "webhook-gitlab.h"
 #include "webhook-travis.h"
@@ -58,7 +60,7 @@ typedef struct {
     gchar **project;
     GVariant *extra_data;
     JsonParser *parser;
-    void (*func)(GitEventcEventBase *base, JsonObject *root);
+    GitEventcWebhookParseFunc func;
 } GitEventcWebhookParseData;
 
 typedef struct {
@@ -414,51 +416,22 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
     case GIT_EVENTC_WEBHOOK_SERVICE_GITHUB:
     {
         const gchar *event = soup_message_headers_get_one(msg->request_headers, "X-GitHub-Event");
-        if ( g_strcmp0(event, "push") == 0 )
+        guint64 webhook_type;
+        if ( nk_enum_parse(event, git_eventc_webhook_github_parsers_events, _GIT_EVENTC_WEBHOOK_GITHUB_PARSER_SIZE, NK_ENUM_MATCH_FLAGS_NONE, &webhook_type) )
         {
-            parse_data.func = git_eventc_webhook_payload_parse_github_push;
+            parse_data.func = git_eventc_webhook_github_parsers[webhook_type];
             status_code = SOUP_STATUS_OK;
         }
-        else if ( g_strcmp0(event, "issues") == 0 )
-        {
-            parse_data.func = git_eventc_webhook_payload_parse_github_issues;
-            status_code = SOUP_STATUS_OK;
-        }
-        else if ( g_strcmp0(event, "pull_request") == 0 )
-        {
-            parse_data.func = git_eventc_webhook_payload_parse_github_pull_request;
-            status_code = SOUP_STATUS_OK;
-        }
-        else if ( g_strcmp0(event, "ping") == 0 )
-            status_code = SOUP_STATUS_OK;
+
     }
     break;
     case GIT_EVENTC_WEBHOOK_SERVICE_GITLAB:
     {
         const gchar *event = soup_message_headers_get_one(msg->request_headers, "X-Gitlab-Event");
-        if ( g_strcmp0(event, "Push Hook") == 0 )
+        guint64 webhook_type;
+        if ( nk_enum_parse(event, git_eventc_webhook_gitlab_parsers_events, _GIT_EVENTC_WEBHOOK_GITLAB_PARSER_SIZE, NK_ENUM_MATCH_FLAGS_NONE, &webhook_type) )
         {
-            parse_data.func = git_eventc_webhook_payload_parse_gitlab_branch;
-            status_code = SOUP_STATUS_OK;
-        }
-        else if ( g_strcmp0(event, "Tag Push Hook") == 0 )
-        {
-            parse_data.func = git_eventc_webhook_payload_parse_gitlab_tag;
-            status_code = SOUP_STATUS_OK;
-        }
-        else if ( g_strcmp0(event, "Issue Hook") == 0 )
-        {
-            parse_data.func = git_eventc_webhook_payload_parse_gitlab_issue;
-            status_code = SOUP_STATUS_OK;
-        }
-        else if ( g_strcmp0(event, "Merge Request Hook") == 0 )
-        {
-            parse_data.func = git_eventc_webhook_payload_parse_gitlab_merge_request;
-            status_code = SOUP_STATUS_OK;
-        }
-        else if ( g_strcmp0(event, "Pipeline Hook") == 0 )
-        {
-            parse_data.func = git_eventc_webhook_payload_parse_gitlab_pipeline;
+            parse_data.func = git_eventc_webhook_gitlab_parsers[webhook_type];
             status_code = SOUP_STATUS_OK;
         }
     }

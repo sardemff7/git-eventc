@@ -38,6 +38,28 @@
 #include "webhook.h"
 #include "webhook-gitlab.h"
 
+const gchar * const git_eventc_webhook_gitlab_parsers_events[] = {
+    [GIT_EVENTC_WEBHOOK_GITLAB_PARSER_PUSH]          = "Push Hook",
+    [GIT_EVENTC_WEBHOOK_GITLAB_PARSER_TAG]           = "Tag Push Hook",
+    [GIT_EVENTC_WEBHOOK_GITLAB_PARSER_ISSUE]         = "Issue Hook",
+    [GIT_EVENTC_WEBHOOK_GITLAB_PARSER_MERGE_REQUEST] = "Merge Request Hook",
+    [GIT_EVENTC_WEBHOOK_GITLAB_PARSER_PIPELINE]      = "Pipeline Hook",
+};
+
+void git_eventc_webhook_payload_parse_gitlab_branch(GitEventcEventBase *base, JsonObject *root);
+void git_eventc_webhook_payload_parse_gitlab_tag(GitEventcEventBase *base, JsonObject *root);
+void git_eventc_webhook_payload_parse_gitlab_issue(GitEventcEventBase *base, JsonObject *root);
+void git_eventc_webhook_payload_parse_gitlab_merge_request(GitEventcEventBase *base, JsonObject *root);
+void git_eventc_webhook_payload_parse_gitlab_pipeline(GitEventcEventBase *base, JsonObject *root);
+
+const GitEventcWebhookParseFunc git_eventc_webhook_gitlab_parsers[] = {
+    [GIT_EVENTC_WEBHOOK_GITLAB_PARSER_PUSH]          = git_eventc_webhook_payload_parse_gitlab_branch,
+    [GIT_EVENTC_WEBHOOK_GITLAB_PARSER_TAG]           = git_eventc_webhook_payload_parse_gitlab_tag,
+    [GIT_EVENTC_WEBHOOK_GITLAB_PARSER_ISSUE]         = git_eventc_webhook_payload_parse_gitlab_issue,
+    [GIT_EVENTC_WEBHOOK_GITLAB_PARSER_MERGE_REQUEST] = git_eventc_webhook_payload_parse_gitlab_merge_request,
+    [GIT_EVENTC_WEBHOOK_GITLAB_PARSER_PIPELINE]      = git_eventc_webhook_payload_parse_gitlab_pipeline,
+};
+
 static JsonNode *
 _git_eventc_webhook_gitlab_api_get(GitEventcEventBase *base, JsonObject *repository, const gchar *suffix, gsize length)
 {

@@ -38,6 +38,24 @@
 #include "webhook.h"
 #include "webhook-github.h"
 
+const gchar * const git_eventc_webhook_github_parsers_events[] = {
+    [GIT_EVENTC_WEBHOOK_GITHUB_PARSER_PUSH]         = "push",
+    [GIT_EVENTC_WEBHOOK_GITHUB_PARSER_ISSUES]       = "issues",
+    [GIT_EVENTC_WEBHOOK_GITHUB_PARSER_PULL_REQUEST] = "pull_request",
+    [GIT_EVENTC_WEBHOOK_GITHUB_PARSER_PING]         = "ping",
+};
+
+void git_eventc_webhook_payload_parse_github_push(GitEventcEventBase *base, JsonObject *root);
+void git_eventc_webhook_payload_parse_github_issues(GitEventcEventBase *base, JsonObject *root);
+void git_eventc_webhook_payload_parse_github_pull_request(GitEventcEventBase *base, JsonObject *root);
+
+const GitEventcWebhookParseFunc git_eventc_webhook_github_parsers[] = {
+    [GIT_EVENTC_WEBHOOK_GITHUB_PARSER_PUSH]         = git_eventc_webhook_payload_parse_github_push,
+    [GIT_EVENTC_WEBHOOK_GITHUB_PARSER_ISSUES]       = git_eventc_webhook_payload_parse_github_issues,
+    [GIT_EVENTC_WEBHOOK_GITHUB_PARSER_PULL_REQUEST] = git_eventc_webhook_payload_parse_github_pull_request,
+    [GIT_EVENTC_WEBHOOK_GITHUB_PARSER_PING]         = NULL,
+};
+
 static JsonObject *
 _git_eventc_webhook_github_get_user(GitEventcEventBase *base, JsonObject *user)
 {
