@@ -121,6 +121,24 @@ _git_eventc_webhook_gitlab_get_user(GitEventcEventBase *base, JsonObject *reposi
     return user;
 }
 
+static const gchar *
+_git_eventc_webhook_gitlab_get_email(JsonObject *object, const gchar *member)
+{
+    const gchar *email = json_get_string_safe(object, member);
+    if ( email == NULL )
+        return NULL;
+    if ( g_strcmp0(email, "[REDACTED]") == 0 )
+        return NULL;
+    return email;
+}
+
+static GVariant *
+_git_eventc_webhook_gitlab_get_email_gvariant(JsonObject *object, const gchar *member)
+{
+    const gchar *email = _git_eventc_webhook_gitlab_get_email(object, member);
+    return ( email == NULL ) ? NULL : g_variant_new_string(email);
+}
+
 static JsonArray *
 _git_eventc_webhook_gitlab_get_tags(GitEventcEventBase *base, JsonObject *repository)
 {
@@ -179,7 +197,7 @@ git_eventc_webhook_payload_parse_gitlab_branch(GitEventcEventBase *base, JsonObj
         git_eventc_send_branch_creation(base,
             json_object_get_string_member(root, "user_name"),
             json_object_get_string_member(root, "user_username"),
-            json_object_get_string_member(root, "user_email"),
+            _git_eventc_webhook_gitlab_get_email(root, "user_email"),
             branch,
             "pusher-avatar-url", json_get_string_gvariant_safe(root, "user_avatar"),
             NULL);
@@ -189,7 +207,7 @@ git_eventc_webhook_payload_parse_gitlab_branch(GitEventcEventBase *base, JsonObj
         git_eventc_send_branch_deletion(base,
             json_object_get_string_member(root, "user_name"),
             json_object_get_string_member(root, "user_username"),
-            json_object_get_string_member(root, "user_email"),
+            _git_eventc_webhook_gitlab_get_email(root, "user_email"),
             branch,
             "pusher-avatar-url", json_get_string_gvariant_safe(root, "user_avatar"),
             NULL);
@@ -202,7 +220,7 @@ git_eventc_webhook_payload_parse_gitlab_branch(GitEventcEventBase *base, JsonObj
         git_eventc_send_commit_group(base,
             json_object_get_string_member(root, "user_name"),
             json_object_get_string_member(root, "user_username"),
-            json_object_get_string_member(root, "user_email"),
+            _git_eventc_webhook_gitlab_get_email(root, "user_email"),
             size,
             branch,
             "pusher-avatar-url", json_get_string_gvariant_safe(root, "user_avatar"),
@@ -226,7 +244,7 @@ git_eventc_webhook_payload_parse_gitlab_branch(GitEventcEventBase *base, JsonObj
                 json_object_get_string_member(commit, "message"),
                 json_object_get_string_member(root, "user_name"),
                 json_object_get_string_member(root, "user_username"),
-                json_object_get_string_member(root, "user_email"),
+                _git_eventc_webhook_gitlab_get_email(root, "user_email"),
                 json_object_get_string_member(author, "name"),
                 NULL,
                 json_object_get_string_member(author, "email"),
@@ -246,7 +264,7 @@ send_push:
     git_eventc_send_push(base,
         json_object_get_string_member(root, "user_name"),
         json_object_get_string_member(root, "user_username"),
-        json_object_get_string_member(root, "user_email"),
+        _git_eventc_webhook_gitlab_get_email(root, "user_email"),
         branch,
         "pusher-avatar-url", json_get_string_gvariant_safe(root, "user_avatar"),
         NULL);
@@ -273,7 +291,7 @@ git_eventc_webhook_payload_parse_gitlab_tag(GitEventcEventBase *base, JsonObject
             git_eventc_send_tag_deletion(base,
             json_object_get_string_member(root, "user_name"),
             json_object_get_string_member(root, "user_username"),
-            json_object_get_string_member(root, "user_email"),
+            _git_eventc_webhook_gitlab_get_email(root, "user_email"),
             tag,
             "pusher-avatar-url", json_get_string_gvariant_safe(root, "user_avatar"),
             NULL);
@@ -291,7 +309,7 @@ git_eventc_webhook_payload_parse_gitlab_tag(GitEventcEventBase *base, JsonObject
         git_eventc_send_tag_creation(base,
             json_object_get_string_member(root, "user_name"),
             json_object_get_string_member(root, "user_username"),
-            json_object_get_string_member(root, "user_email"),
+            _git_eventc_webhook_gitlab_get_email(root, "user_email"),
             tag, NULL, NULL, NULL, previous_tag,
             "pusher-avatar-url", json_get_string_gvariant_safe(root, "user_avatar"),
             NULL);
@@ -303,7 +321,7 @@ git_eventc_webhook_payload_parse_gitlab_tag(GitEventcEventBase *base, JsonObject
     git_eventc_send_push(base,
         json_object_get_string_member(root, "user_name"),
         json_object_get_string_member(root, "user_username"),
-        json_object_get_string_member(root, "user_email"),
+        _git_eventc_webhook_gitlab_get_email(root, "user_email"),
         NULL,
         "pusher-avatar-url", json_get_string_gvariant_safe(root, "user_avatar"),
         NULL);
@@ -358,12 +376,12 @@ git_eventc_webhook_payload_parse_gitlab_issue(GitEventcEventBase *base, JsonObje
         json_object_get_string_member(issue, "title"),
         json_get_string_safe(author, "name"),
         json_get_string_safe(author, "username"),
-        json_get_string_safe(author, "email"),
+        _git_eventc_webhook_gitlab_get_email(author, "email"),
         tags,
         "author-avatar-url", json_get_string_gvariant_safe(author, "avatar_url"),
         "user-name", json_get_string_gvariant_safe(user, "name"),
         "user-username", json_get_string_gvariant_safe(user, "username"),
-        "user-email", json_get_string_gvariant_safe(user, "email"),
+        "user-email", _git_eventc_webhook_gitlab_get_email_gvariant(user, "email"),
         "user-avatar-url", json_get_string_gvariant_safe(user, "avatar_url"),
         NULL);
 }
@@ -415,13 +433,13 @@ git_eventc_webhook_payload_parse_gitlab_merge_request(GitEventcEventBase *base, 
         json_object_get_string_member(mr, "title"),
         json_get_string_safe(author, "name"),
         json_get_string_safe(author, "username"),
-        json_get_string_safe(author, "email"),
+        _git_eventc_webhook_gitlab_get_email(author, "email"),
         tags,
         branch,
         "author-avatar-url", json_get_string_gvariant_safe(author, "avatar_url"),
         "user-name", json_get_string_gvariant_safe(user, "name"),
         "user-username", json_get_string_gvariant_safe(user, "username"),
-        "user-email", json_get_string_gvariant_safe(user, "email"),
+        "user-email", _git_eventc_webhook_gitlab_get_email_gvariant(user, "email"),
         "user-avatar-url", json_get_string_gvariant_safe(user, "avatar_url"),
         NULL);
 }
