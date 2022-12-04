@@ -13,16 +13,15 @@ pkgconfig = import('pkgconfig')
 gnome = import('gnome')
 
 glib_min_major='2'
-glib_min_minor='40'
+glib_min_minor='66'
 glib_min_version='.'.join([glib_min_major, glib_min_minor])
 eventd_min_version='0.23.90'
-libsoup_min_version='2.48'
 libgit2_min_version='0.23.0'
 
 glib = dependency('glib-2.0', version: '>= @0@'.format(glib_min_version))
 libeventd = dependency('libeventd', version: '>=@0@'.format(eventd_min_version))
 libeventc = dependency('libeventc', version: '>=@0@'.format(eventd_min_version))
-libsoup = dependency('libsoup-2.4', version: '>=@0@'.format(libsoup_min_version))
+libsoup = dependency('libsoup-3.0')
 
 libgit2 = dependency('libgit2', version: '>=@0@'.format(libgit2_min_version), required: get_option('hook') != 'false')
 json_glib = dependency('json-glib-1.0', required: get_option('webhook') != 'false')

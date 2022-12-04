@@ -111,14 +111,24 @@ git_eventc_get_files(GList *paths)
 typedef struct {
     gchar       *name;
     const gchar *method;
-    gchar       *url;
+    GUri        *url;
     gchar       *field_name;
     gchar       *prefix;
     SoupStatus   status_code;
     gchar       *header;
 } GitEventcShortener;
 
-static GitEventcShortener _git_eventc_default_shorteners_high[] = {
+typedef struct {
+    const gchar *name;
+    const gchar *method;
+    const gchar *url;
+    const gchar *field_name;
+    const gchar *prefix;
+    SoupStatus   status_code;
+    const gchar *header;
+} GitEventcDefaultShortener;
+
+static const GitEventcDefaultShortener _git_eventc_default_shorteners_high[] = {
     {
         .name        = "git.io",
         .method      = "POST",
@@ -130,7 +140,7 @@ static GitEventcShortener _git_eventc_default_shorteners_high[] = {
     },
 };
 
-static GitEventcShortener _git_eventc_default_shorteners_low[] = {
+static const GitEventcDefaultShortener _git_eventc_default_shorteners_low[] = {
     {
         .name        = "is.gd",
         .method      = "POST",
@@ -228,7 +238,7 @@ _git_eventc_shorteners_method_parse(const gchar *method)
 }
 
 static void
-_git_eventc_shorteners_add_defaults(GitEventcShortener list[], gsize offset, gsize length)
+_git_eventc_shorteners_add_defaults(const GitEventcDefaultShortener list[], gsize offset, gsize length)
 {
     gsize i;
     for ( i = 0 ; i < length ; ++i )
@@ -236,7 +246,7 @@ _git_eventc_shorteners_add_defaults(GitEventcShortener list[], gsize offset, gsi
 #define dup_field(n) _git_eventc_shorteners[offset + i].n = g_strdup(list[i].n)
         dup_field(name);
         _git_eventc_shorteners[offset + i].method = _git_eventc_shorteners_method_parse(list[i].method);
-        dup_field(url);
+        _git_eventc_shorteners[offset + i].url = g_uri_parse(list[i].url, G_URI_FLAGS_HAS_PASSWORD, NULL);
         dup_field(field_name);
         dup_field(prefix);
         _git_eventc_shorteners[offset + i].status_code = list[i].status_code;
@@ -308,9 +318,18 @@ _git_eventc_shorteners_parse_key_status_code(GitEventcShortener *shortener, GKey
 static gboolean
 _git_eventc_shorteners_parse_section(GitEventcShortener *shortener, GKeyFile *key_file, const gchar *section, GError **error)
 {
+    gchar *url = NULL;
     if ( ! _git_eventc_shorteners_parse_key_method(shortener, key_file, section, error) )
         return FALSE;
-    get_str_field(url);
+    if ( ! _git_eventc_shorteners_parse_key_string(&url, key_file, section, "url", error) )
+        return FALSE;
+    if ( url != NULL )
+    {
+        shortener->url = g_uri_parse(url, G_URI_FLAGS_HAS_PASSWORD, error);
+        g_free(url);
+        if ( shortener->url == NULL )
+            return FALSE;
+    }
     get_str_field_with_name(field_name, "field-name");
     get_str_field(prefix);
     if ( ! _git_eventc_shorteners_parse_key_status_code(shortener, key_file, section, error) )
@@ -572,7 +591,8 @@ git_eventc_uninit(void)
     for ( shortener = _git_eventc_shorteners ; shortener->name != NULL ; ++shortener )
     {
         g_free(shortener->name);
-        g_free(shortener->url);
+        if ( shortener->url != NULL )
+            g_uri_unref(shortener->url);
         g_free(shortener->field_name);
         g_free(shortener->prefix);
         g_free(shortener->header);
@@ -598,13 +618,17 @@ _git_eventc_get_url(gchar *url, gboolean copy)
         return copy ? g_strdup(url) : url;
 
     if ( shortener_session == NULL )
-        shortener_session = g_object_new(SOUP_TYPE_SESSION, SOUP_SESSION_ADD_FEATURE_BY_TYPE, SOUP_TYPE_CONTENT_DECODER, SOUP_SESSION_USER_AGENT, PACKAGE_NAME " ", NULL);
+    {
+        shortener_session = soup_session_new();
+        soup_session_set_user_agent(shortener_session, PACKAGE_NAME " ");
+        soup_session_add_feature_by_type(shortener_session, SOUP_TYPE_CONTENT_DECODER);
+    }
 
-    SoupURI *uri;
     SoupMessage *msg;
     gchar *escaped_url = NULL;
     gchar *data;
     gchar *short_url = NULL;
+    GError *error = NULL;
 
     GitEventcShortener *shortener;
     for ( shortener = _git_eventc_shorteners ; ( shortener->name != NULL ) && ( short_url == NULL ) ; ++shortener )
@@ -615,24 +639,32 @@ _git_eventc_get_url(gchar *url, gboolean copy)
         if ( shortener->url == NULL )
             return copy ? g_strdup(url) : url;
 
-        uri = soup_uri_new(shortener->url);
-        msg = soup_message_new_from_uri(shortener->method, uri);
+        msg = soup_message_new_from_uri(shortener->method, shortener->url);
         if ( escaped_url == NULL )
-            escaped_url = soup_uri_encode(url, NULL);
+            escaped_url = g_uri_escape_string(url, NULL, TRUE);
         data = g_strdup_printf("%s=%s", shortener->field_name, escaped_url);
-        soup_message_set_request(msg, "application/x-www-form-urlencoded", SOUP_MEMORY_TAKE, data, strlen(data));
-        soup_session_send_message(shortener_session, msg);
+        gsize length = strlen(data);
+        GInputStream *stream = g_memory_input_stream_new_from_data(data, length, g_free);
+        soup_message_set_request_body(msg, "application/x-www-form-urlencoded", stream, length);
+        GBytes *bytes;
 
-        if ( ( ( shortener->status_code != SOUP_STATUS_NONE ) && ( shortener->status_code == msg->status_code ) )
-             || ( ( shortener->status_code == SOUP_STATUS_NONE ) && SOUP_STATUS_IS_SUCCESSFUL(msg->status_code) ) )
+        bytes = soup_session_send_and_read(shortener_session, msg, NULL, &error);
+        if ( bytes == NULL )
         {
-            if ( shortener->header != NULL )
-                short_url = g_strdup(soup_message_headers_get_one(msg->response_headers, shortener->header));
-            else
-                short_url = g_strndup(msg->response_body->data, msg->response_body->length);
+            g_warning("Shortener %s request failed: %s", shortener->name, error->message);
+            g_clear_error(&error);
+
         }
 
-        soup_uri_free(uri);
+        if ( ( ( shortener->status_code != SOUP_STATUS_NONE ) && ( shortener->status_code == soup_message_get_status(msg) ) )
+             || ( ( shortener->status_code == SOUP_STATUS_NONE ) && SOUP_STATUS_IS_SUCCESSFUL(soup_message_get_status(msg)) ) )
+        {
+            if ( shortener->header != NULL )
+                short_url = g_strdup(soup_message_headers_get_one(soup_message_get_response_headers(msg), shortener->header));
+            else
+                short_url = g_bytes_unref_to_data(bytes, &length);
+        }
+
         g_object_unref(msg);
     }
     g_free(escaped_url);

@@ -97,22 +97,26 @@ git_eventc_webhook_api_get(const GitEventcEventBase *base, const gchar *url)
     GError *error = NULL;
 
     if ( session == NULL )
-        session = soup_session_new_with_options(SOUP_SESSION_USER_AGENT, PACKAGE_NAME " " PACKAGE_VERSION, NULL);
-
-    SoupRequestHTTP *req;
-    req = soup_session_request_http(session, "GET", url, &error);
-    if ( req == NULL )
     {
-        g_warning("Couldn't get %s: %s", url, error->message);
+        session = soup_session_new();
+        soup_session_set_user_agent(session, PACKAGE_NAME " " PACKAGE_VERSION);
+    }
+
+    GUri *uri;
+    uri = g_uri_parse(url, G_URI_FLAGS_HAS_PASSWORD, &error);
+    if ( uri == NULL )
+    {
+        g_warning("Couldn't parse URI %s: %s", url, error->message);
         g_clear_error(&error);
         return NULL;
     }
 
     SoupMessage *msg;
+    SoupMessageHeaders *headers;
     GList *header_ = NULL;
-    guint code;
 
-    msg = soup_request_http_get_message(req);
+    msg = soup_message_new_from_uri(SOUP_METHOD_GET, uri);
+    headers = soup_message_get_request_headers(msg);
 
     if ( base->project[1] != NULL )
         header_ = g_hash_table_lookup(extra_headers, base->project[1]);
@@ -121,11 +125,19 @@ git_eventc_webhook_api_get(const GitEventcEventBase *base, const gchar *url)
     for ( ; header_ != NULL ; header_ = g_list_next(header_) )
     {
         GitEventcWebhookHeader *header = header_->data;
-        soup_message_headers_append(msg->request_headers, header->name, header->value);
+        soup_message_headers_append(headers, header->name, header->value);
     }
 
-    code = soup_session_send_message(session, msg);
+    GBytes *bytes;
+    bytes = soup_session_send_and_read(session, msg, NULL, &error);
+    if ( bytes == NULL )
+    {
+        g_warning("Error sending request to %s: %s", url, error->message);
+        g_clear_error(&error);
+        return NULL;
+    }
 
+    SoupStatus code = soup_message_get_status(msg);
     if ( code != SOUP_STATUS_OK )
     {
         g_warning("Couldn't get %s: %s", url, soup_status_get_phrase(code));
@@ -133,8 +145,11 @@ git_eventc_webhook_api_get(const GitEventcEventBase *base, const gchar *url)
     }
 
     JsonParser *parser;
+    gpointer data;
+    gsize length;
+    data = g_bytes_unref_to_data(bytes, &length);
     parser = json_parser_new();
-    if ( ! json_parser_load_from_data(parser, msg->response_body->data, msg->response_body->length, &error) )
+    if ( ! json_parser_load_from_data(parser, data, length, &error) )
     {
         g_warning("Couldn't parse answer to %s: %s", url, error->message);
         g_clear_error(&error);
@@ -232,9 +247,10 @@ _git_eventc_webhook_parse_callback(gpointer user_data)
 }
 
 static void
-_git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg, const char *path, GHashTable *query, SoupClientContext *client, gpointer user_data)
+_git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupServerMessage *msg, const char *path, GHashTable *query, gpointer user_data)
 {
-    const gchar *user_agent = soup_message_headers_get_one(msg->request_headers, "User-Agent");
+    SoupMessageHeaders *headers = soup_server_message_get_request_headers(msg);
+    const gchar *user_agent = soup_message_headers_get_one(headers, "User-Agent");
     if ( user_agent == NULL )
         user_agent = "";
 
@@ -244,7 +260,7 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
 
     guint status_code = SOUP_STATUS_NOT_IMPLEMENTED;
 
-    if ( msg->method != SOUP_METHOD_POST )
+    if ( soup_server_message_get_method(msg) != SOUP_METHOD_POST )
     {
         g_warning("Non-POST request from %s", user_agent);
         goto cleanup;
@@ -252,7 +268,7 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
 
     status_code = SOUP_STATUS_BAD_REQUEST;
 
-    const gchar *content_type = soup_message_headers_get_one(msg->request_headers, "Content-Type");
+    const gchar *content_type = soup_message_headers_get_one(headers, "Content-Type");
     if ( content_type == NULL )
     {
         g_warning("Bad request from %s: no Content-Type header", user_agent);
@@ -271,13 +287,15 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
         service = GIT_EVENTC_WEBHOOK_SERVICE_GITHUB;
     else if ( g_str_has_prefix(user_agent, "Travis CI ") )
         service = GIT_EVENTC_WEBHOOK_SERVICE_TRAVIS;
-    else if ( soup_message_headers_get_one(msg->request_headers, "X-Gitlab-Event") != NULL )
+    else if ( soup_message_headers_get_one(headers, "X-Gitlab-Event") != NULL )
         service = GIT_EVENTC_WEBHOOK_SERVICE_GITLAB;
     else
     {
         g_warning("Unknown WebHook service: %s", user_agent);
         goto cleanup;
     }
+
+    SoupMessageBody *body = soup_server_message_get_request_body(msg);
 
     if ( secrets != NULL )
     {
@@ -303,7 +321,7 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
             case GIT_EVENTC_WEBHOOK_SERVICE_GITHUB:
             {
                 const gchar *signature;
-                signature = soup_message_headers_get_one(msg->request_headers, "X-Hub-Signature");
+                signature = soup_message_headers_get_one(headers, "X-Hub-Signature");
                 if ( signature == NULL )
                 {
                     g_warning("Signature mandatory but not found %s", user_agent);
@@ -318,7 +336,7 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
                 signature += strlen("sha1=");
 
                 hmac = g_hmac_new(G_CHECKSUM_SHA1, (const guchar *) secret, strlen(secret));
-                g_hmac_update(hmac, (const guchar *) msg->request_body->data, msg->request_body->length);
+                g_hmac_update(hmac, (const guchar *) body->data, body->length);
 
                 if ( g_ascii_strcasecmp(signature, g_hmac_get_string(hmac)) != 0 )
                 {
@@ -329,7 +347,7 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
             break;
             case GIT_EVENTC_WEBHOOK_SERVICE_GITLAB:
             {
-                const gchar *query_secret = soup_message_headers_get_one(msg->request_headers, "X-Gitlab-Token");
+                const gchar *query_secret = soup_message_headers_get_one(headers, "X-Gitlab-Token");
                 if ( query_secret == NULL )
                 {
                     g_warning("No secret in query (%s)", user_agent);
@@ -370,10 +388,10 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
     status_code = SOUP_STATUS_BAD_REQUEST;
     const gchar *payload = NULL;
     if ( g_strcmp0(content_type, "application/json") == 0 )
-        payload = msg->request_body->data;
+        payload = body->data;
     else if ( g_strcmp0(content_type, "application/x-www-form-urlencoded") == 0 )
     {
-        data = soup_form_decode(msg->request_body->data);
+        data = soup_form_decode(body->data);
 
         if ( data == NULL )
         {
@@ -415,7 +433,7 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
     {
     case GIT_EVENTC_WEBHOOK_SERVICE_GITHUB:
     {
-        const gchar *event = soup_message_headers_get_one(msg->request_headers, "X-GitHub-Event");
+        const gchar *event = soup_message_headers_get_one(headers, "X-GitHub-Event");
         guint64 webhook_type;
         if ( nk_enum_parse(event, git_eventc_webhook_github_parsers_events, _GIT_EVENTC_WEBHOOK_GITHUB_PARSER_SIZE, NK_ENUM_MATCH_FLAGS_NONE, &webhook_type) )
         {
@@ -427,7 +445,7 @@ _git_eventc_webhook_gateway_server_callback(SoupServer *server, SoupMessage *msg
     break;
     case GIT_EVENTC_WEBHOOK_SERVICE_GITLAB:
     {
-        const gchar *event = soup_message_headers_get_one(msg->request_headers, "X-Gitlab-Event");
+        const gchar *event = soup_message_headers_get_one(headers, "X-Gitlab-Event");
         guint64 webhook_type;
         if ( nk_enum_parse(event, git_eventc_webhook_gitlab_parsers_events, _GIT_EVENTC_WEBHOOK_GITLAB_PARSER_SIZE, NK_ENUM_MATCH_FLAGS_NONE, &webhook_type) )
         {
@@ -459,7 +477,7 @@ cleanup:
     if ( hmac != NULL )
         g_hmac_unref(hmac);
     g_strfreev(project);
-    soup_message_set_status(msg, status_code);
+    soup_server_message_set_status(msg, status_code, soup_status_get_phrase(status_code));
 }
 
 SoupServer *
@@ -468,20 +486,18 @@ _git_eventc_webhook_soup_server_init(gint port, const gchar *cert_file, const gc
     GError *error = NULL;
     SoupServer *server;
 
-    server = soup_server_new(SOUP_SERVER_SSL_CERT_FILE, cert_file, SOUP_SERVER_SSL_KEY_FILE, ( ( key_file == NULL ) ? cert_file : key_file ), NULL);
-    if ( server == NULL )
-        goto error;
-
-    /* FIXME: We should be using soup_server_set_ssl_cert_file instead of the constructor property
-     * but the symbol was forgotten in the 2.48 release */
-#if 0
+    server = soup_server_new(NULL, NULL);
     if ( cert_file != NULL )
     {
-        soup_server_set_ssl_cert_file(server, cert_file, ( ( key_file == NULL ) ? cert_file : key_file ), &error);
-        g_warning("Couldn't set SSL/TLS certificate: %s", error->message);
-        goto error;
+        GTlsCertificate *cert;
+        cert = g_tls_certificate_new_from_files(cert_file, ( key_file == NULL ) ? cert_file : key_file, &error);
+        if ( cert == NULL )
+        {
+            g_warning("Couldn't set SSL/TLS certificate: %s", error->message);
+            goto error;
+        }
+        soup_server_set_tls_certificate(server, cert);
     }
-#endif /* 0: see FIXME */
 
 
     soup_server_add_handler(server, NULL, _git_eventc_webhook_gateway_server_callback, NULL, NULL);
@@ -515,9 +531,18 @@ _git_eventc_webhook_soup_server_init(gint port, const gchar *cert_file, const gc
         if ( r == 0 )
             continue;
 
-        if ( ! soup_server_listen_fd(server, fd, options, &error) )
+        GSocket *socket;
+
+        if ( ( socket = g_socket_new_from_fd(fd, &error) ) == NULL )
         {
             g_warning("Failed to take a socket from systemd: %s", error->message);
+            g_clear_error(&error);
+            goto error;
+        }
+
+        if ( ! soup_server_listen_socket(server, socket, options, &error) )
+        {
+            g_warning("Failed to listen on a socket from systemd: %s", error->message);
             goto error;
         }
     }
