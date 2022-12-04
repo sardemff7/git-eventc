@@ -1,6 +1,6 @@
 project('git-eventc', 'c',
     version: '10',
-    meson_version: '>=0.39.1',
+    meson_version: '>=0.56.0',
     license: [ 'GPL3+' ],
     default_options: [
         'c_std=gnu11',
@@ -56,7 +56,7 @@ header_conf.set('GIT_EVENTC_DEBUG_OUTPUT', get_option('debug-output'))
 config_h = configure_file(output: 'config.h', configuration: header_conf)
 
 add_project_arguments(
-    '-I@0@'.format(meson.build_root()),
+    '-I@0@'.format(meson.project_build_root()),
     language: 'c'
 )
 flags = [
@@ -113,7 +113,7 @@ if get_option('webhook') != 'false' and json_glib.found()
         libsystemd = dependency('libsystemd', version: '>= 209')
         systemdsystemunit_install_dir = get_option('systemdsystemunitdir')
         if systemdsystemunit_install_dir == ''
-            systemdsystemunit_install_dir = systemd.get_pkgconfig_variable('systemdsystemunitdir')
+            systemdsystemunit_install_dir = systemd.get_variable(pkgconfig: 'systemdsystemunitdir')
         endif
 
         configure_file(
