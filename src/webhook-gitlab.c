@@ -397,7 +397,7 @@ void
 git_eventc_webhook_payload_parse_gitlab_merge_request(GitEventcEventBase *base, JsonObject *root)
 {
     JsonObject *mr = json_object_get_object_member(root, "object_attributes");
-    const gchar *action_str = json_object_get_string_member(mr, "action");
+    const gchar *action_str = json_get_string_default(mr, "action", _git_eventc_webhook_gitlab_merge_request_action_name[GIT_EVENTC_MERGE_REQUEST_ACTION_OPENING]);
     guint64 action;
 
     if ( ! nk_enum_parse(action_str, _git_eventc_webhook_gitlab_merge_request_action_name, GIT_EVENTC_MERGE_REQUEST_NUM_ACTION, NK_ENUM_MATCH_FLAGS_IGNORE_CASE, &action) )
