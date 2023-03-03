@@ -113,6 +113,9 @@ _git_eventc_webhook_payload_parse_github_branch(GitEventcEventBase *base, JsonOb
 
     base->repository_name = json_object_get_string_member(repository, "name");
     base->repository_url = json_object_get_string_member(repository, "url");
+    const gchar *full_name = json_object_get_string_member(repository, "full_name");
+    gchar *namespace = g_strndup(full_name, g_utf8_strrchr(full_name, -1, '/') - full_name);
+    base->repository_namespace = namespace;
 
     JsonObject *sender = _git_eventc_webhook_github_get_user(base, json_object_get_object_member(root, "sender"));
 
@@ -198,6 +201,7 @@ send_push:
         NULL);
 
     json_object_unref(sender);
+    g_free(namespace);
 }
 
 static void
@@ -207,6 +211,9 @@ _git_eventc_webhook_payload_parse_github_tag(GitEventcEventBase *base, JsonObjec
 
     base->repository_name = json_object_get_string_member(repository, "name");
     base->repository_url = json_object_get_string_member(repository, "url");
+    const gchar *full_name = json_object_get_string_member(repository, "full_name");
+    gchar *namespace = g_strndup(full_name, g_utf8_strrchr(full_name, -1, '/') - full_name);
+    base->repository_namespace = namespace;
     JsonObject *sender = _git_eventc_webhook_github_get_user(base, json_object_get_object_member(root, "sender"));
 
     if ( ! json_object_get_boolean_member(root, "created") )
@@ -250,6 +257,7 @@ _git_eventc_webhook_payload_parse_github_tag(GitEventcEventBase *base, JsonObjec
         NULL);
 
     json_object_unref(sender);
+    g_free(namespace);
 }
 
 void
@@ -284,6 +292,9 @@ git_eventc_webhook_payload_parse_github_issues(GitEventcEventBase *base, JsonObj
 
     base->repository_name = json_object_get_string_member(repository, "name");
     base->repository_url = json_object_get_string_member(repository, "url");
+    const gchar *full_name = json_object_get_string_member(repository, "full_name");
+    gchar *namespace = g_strndup(full_name, g_utf8_strrchr(full_name, -1, '/') - full_name);
+    base->repository_namespace = namespace;
 
     JsonArray *tags_array = json_object_get_array_member(issue, "labels");
     guint length = json_array_get_length(tags_array);
@@ -313,6 +324,7 @@ git_eventc_webhook_payload_parse_github_issues(GitEventcEventBase *base, JsonObj
         NULL);
 
     json_object_unref(author);
+    g_free(namespace);
 }
 
 static const gchar * const _git_eventc_webhook_github_pull_request_action_name[] = {
@@ -337,6 +349,9 @@ git_eventc_webhook_payload_parse_github_pull_request(GitEventcEventBase *base, J
 
     base->repository_name = json_object_get_string_member(repository, "name");
     base->repository_url = json_object_get_string_member(repository, "url");
+    const gchar *full_name = json_object_get_string_member(repository, "full_name");
+    gchar *namespace = g_strndup(full_name, g_utf8_strrchr(full_name, -1, '/') - full_name);
+    base->repository_namespace = namespace;
     const gchar *branch = json_object_get_string_member(json_object_get_object_member(pr, "base"), "ref");
 
     JsonArray *tags_array = json_object_get_array_member(pr, "labels");
@@ -370,4 +385,5 @@ git_eventc_webhook_payload_parse_github_pull_request(GitEventcEventBase *base, J
         NULL);
 
     json_object_unref(author);
+    g_free(namespace);
 }
