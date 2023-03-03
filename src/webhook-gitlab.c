@@ -183,7 +183,9 @@ git_eventc_webhook_payload_parse_gitlab_branch(GitEventcEventBase *base, JsonObj
 
     base->repository_name = json_object_get_string_member(repository, "name");
     base->repository_url = json_object_get_string_member(repository, "git_http_url");
-    base->repository_namespace = json_object_get_string_member(repository, "namespace");
+    const gchar *path_with_namespace = json_object_get_string_member(repository, "path_with_namespace");
+    gchar *namespace = g_strndup(path_with_namespace, g_utf8_strrchr(path_with_namespace, -1, '/') - path_with_namespace);
+    base->repository_namespace = namespace;
 
     const gchar *web_url = json_object_get_string_member(repository, "web_url");
     const gchar *before = json_object_get_string_member(root, "before");
@@ -269,6 +271,8 @@ send_push:
         branch,
         "pusher-avatar-url", json_get_string_gvariant_safe(root, "user_avatar"),
         NULL);
+
+    g_free(namespace);
 }
 
 void
@@ -280,7 +284,9 @@ git_eventc_webhook_payload_parse_gitlab_tag(GitEventcEventBase *base, JsonObject
 
     base->repository_name = json_object_get_string_member(repository, "name");
     base->repository_url = json_object_get_string_member(repository, "git_http_url");
-    base->repository_namespace = json_object_get_string_member(repository, "namespace");
+    const gchar *path_with_namespace = json_object_get_string_member(repository, "path_with_namespace");
+    gchar *namespace = g_strndup(path_with_namespace, g_utf8_strrchr(path_with_namespace, -1, '/') - path_with_namespace);
+    base->repository_namespace = namespace;
 
     const gchar *web_url = json_object_get_string_member(repository, "web_url");
     const gchar *before = json_object_get_string_member(root, "before");
@@ -327,6 +333,8 @@ git_eventc_webhook_payload_parse_gitlab_tag(GitEventcEventBase *base, JsonObject
         NULL,
         "pusher-avatar-url", json_get_string_gvariant_safe(root, "user_avatar"),
         NULL);
+
+    g_free(namespace);
 }
 
 static const gchar * const _git_eventc_webhook_gitlab_issue_action_name[] = {
@@ -352,7 +360,9 @@ git_eventc_webhook_payload_parse_gitlab_issue(GitEventcEventBase *base, JsonObje
     JsonObject *repository = json_object_get_object_member(root, "project");
     base->repository_name = json_object_get_string_member(repository, "name");
     base->repository_url = json_object_get_string_member(repository, "git_http_url");
-    base->repository_namespace = json_object_get_string_member(repository, "namespace");
+    const gchar *path_with_namespace = json_object_get_string_member(repository, "path_with_namespace");
+    gchar *namespace = g_strndup(path_with_namespace, g_utf8_strrchr(path_with_namespace, -1, '/') - path_with_namespace);
+    base->repository_namespace = namespace;
 
     JsonObject *user = json_object_get_object_member(root, "user");
     JsonObject *author = _git_eventc_webhook_gitlab_get_user(base, repository, json_object_get_int_member(issue, "author_id"));
@@ -387,6 +397,8 @@ git_eventc_webhook_payload_parse_gitlab_issue(GitEventcEventBase *base, JsonObje
         "user-email", _git_eventc_webhook_gitlab_get_email_gvariant(user, "email"),
         "user-avatar-url", json_get_string_gvariant_safe(user, "avatar_url"),
         NULL);
+
+    g_free(namespace);
 }
 
 static const gchar * const _git_eventc_webhook_gitlab_merge_request_action_name[] = {
@@ -409,7 +421,9 @@ git_eventc_webhook_payload_parse_gitlab_merge_request(GitEventcEventBase *base, 
     JsonObject *repository = json_object_get_object_member(root, "project");
     base->repository_name = json_object_get_string_member(repository, "name");
     base->repository_url = json_object_get_string_member(repository, "git_http_url");
-    base->repository_namespace = json_object_get_string_member(repository, "namespace");
+    const gchar *path_with_namespace = json_object_get_string_member(repository, "path_with_namespace");
+    gchar *namespace = g_strndup(path_with_namespace, g_utf8_strrchr(path_with_namespace, -1, '/') - path_with_namespace);
+    base->repository_namespace = namespace;
     const gchar *branch = json_object_get_string_member(mr, "target_branch");
 
     JsonObject *user = json_object_get_object_member(root, "user");
@@ -446,6 +460,8 @@ git_eventc_webhook_payload_parse_gitlab_merge_request(GitEventcEventBase *base, 
         "user-email", _git_eventc_webhook_gitlab_get_email_gvariant(user, "email"),
         "user-avatar-url", json_get_string_gvariant_safe(user, "avatar_url"),
         NULL);
+
+    g_free(namespace);
 }
 
 static const gchar * const _git_eventc_webhook_gitlab_pipeline_state_name[] = {
@@ -467,7 +483,9 @@ git_eventc_webhook_payload_parse_gitlab_pipeline(GitEventcEventBase *base, JsonO
     JsonObject *repository = json_object_get_object_member(root, "project");
     base->repository_name = json_object_get_string_member(repository, "name");
     base->repository_url = json_object_get_string_member(repository, "git_http_url");
-    base->repository_namespace = json_object_get_string_member(repository, "namespace");
+    const gchar *path_with_namespace = json_object_get_string_member(repository, "path_with_namespace");
+    gchar *namespace = g_strndup(path_with_namespace, g_utf8_strrchr(path_with_namespace, -1, '/') - path_with_namespace);
+    base->repository_namespace = namespace;
 
     guint64 number = json_object_get_int_member(pipeline, "id");
     const gchar *branch = json_object_get_string_member(pipeline, "ref");
@@ -477,6 +495,8 @@ git_eventc_webhook_payload_parse_gitlab_pipeline(GitEventcEventBase *base, JsonO
     base->url = git_eventc_get_url(base->url);
 
     git_eventc_send_ci_build(base, git_eventc_ci_build_actions[action], number, branch, duration, NULL);
+
+    g_free(namespace);
 }
 
 void
