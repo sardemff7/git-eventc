@@ -802,7 +802,7 @@ _git_eventc_send_event(EventdEvent *event, const GitEventcEventBase *base, va_li
     _git_eventc_event_add_data_string(event, "repository-name", base->repository_name);
     _git_eventc_event_add_data_string_null(event, "repository-url", base->repository_url);
 
-    _git_eventc_event_add_data_string_null(event, "project-group", base->project[0]);
+    _git_eventc_event_add_data_string_fallback(event, "project-group", base->repository_namespace, base->project[0]);
     _git_eventc_event_add_data_string_fallback(event, "project", base->project[1], base->repository_name);
 
     if ( base->extra_data != NULL )

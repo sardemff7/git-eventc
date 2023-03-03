@@ -67,6 +67,7 @@ typedef struct {
     const gchar **project;
     const gchar *repository_name;
     const gchar *repository_url;
+    const gchar *repository_namespace;
     gchar *url;
     GVariant *extra_data;
 } GitEventcEventBase;
