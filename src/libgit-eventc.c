@@ -713,17 +713,17 @@ _git_eventc_event_add_data_string(EventdEvent *event, const gchar *name, const g
 }
 
 static void
+_git_eventc_event_add_data_string_null(EventdEvent *event, const gchar *name, const gchar *value)
+{
+    _git_eventc_event_take_data_string_null(event, name, g_strdup(value));
+}
+
+static void
 _git_eventc_event_add_data_string_fallback(EventdEvent *event, const gchar *name, const gchar *value, const gchar *fallback)
 {
     if ( value == NULL )
         value = fallback;
-    _git_eventc_event_add_data_string(event, name, value);
-}
-
-static void
-_git_eventc_event_add_data_string_null(EventdEvent *event, const gchar *name, const gchar *value)
-{
-    _git_eventc_event_take_data_string_null(event, name, g_strdup(value));
+    _git_eventc_event_add_data_string_null(event, name, value);
 }
 
 static void
