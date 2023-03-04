@@ -14,6 +14,7 @@ All events from git-eventc have the following common data:
 
 * `repository-name`: The name of the repository
 * `repository-url`: The URL of the repository
+* `repository-namespace`: The namespace (Gitlab/GitHub user/group) of the repository (if set)
 * `project-group`: The project group name (if set)
 * `project`: The project name, defaults to `repository-name`
 * `url`: An URL to see the change online (not for `-deletion` events)
