@@ -161,7 +161,7 @@ For a `commit` event:
     # scm-commit.action
     [Action]
     Name = scm-commit
-    [IMAccount freenode]
+    [IMAccount irc-server]
     Message = ${project-group}/^B${project}^O/^C07${branch}^O: ^C03${author-name}^O * ${id}: ${message} ^C05${url}^O ^C14${files}^0
     Recipients = #test;
 
@@ -174,7 +174,7 @@ For a `commit-group` event:
     # scm-commit-group.action
     [Action]
     Name = scm-commit-group
-    [IMAccount freenode]
+    [IMAccount irc-server]
     Message = ${project-group}/^B${project}^O/^C07${branch}^O: ^C03${pusher-name}^O pushed ${size} commits ^C05${url}^O
     Recipients = #test;
 
@@ -187,7 +187,7 @@ For a `branch-creation` event:
     # scm-branch-creation.action
     [Action]
     Name = scm-branch-creation
-    [IMAccount freenode]
+    [IMAccount irc-server]
     Message = ${project-group}/^B${project}^O/^C07${branch}^O: ^C03${pusher-name}^O branch created ^C05${url}^O
     Recipients = #test;
 
@@ -200,7 +200,7 @@ For a `branch-deletion` event:
     # scm-branch-deletion.action
     [Action]
     Name = scm-branch-deletion
-    [IMAccount freenode]
+    [IMAccount irc-server]
     Message = ${project-group}/^B${project}^O/^C07${branch}^O: ^C03${pusher-name}^O branch deleted ^C05${url}^O
     Recipients = #test;
 
