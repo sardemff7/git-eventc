@@ -179,7 +179,7 @@ git_eventc_webhook_payload_parse_gitlab_branch(GitEventcEventBase *base, JsonObj
     JsonObject *repository = json_object_get_object_member(root, "project");
 
     JsonArray *commits = json_object_get_array_member(root, "commits");
-    guint size = json_array_get_length(commits);
+    guint size = json_object_get_int_member(root, "total_commits_count");
 
     base->repository_name = json_object_get_string_member(repository, "name");
     base->repository_url = json_object_get_string_member(repository, "git_http_url");
