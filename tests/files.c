@@ -81,7 +81,6 @@ _test_path_list(gconstpointer user_data)
     GList *list = _test_strv_to_glist(paths);
     gchar *files;
     files = git_eventc_get_files(list);
-    g_list_free(list);
     g_assert_cmpstr(files, ==, needle);
     g_free(files);
 }
