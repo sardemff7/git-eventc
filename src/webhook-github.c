@@ -312,7 +312,7 @@ git_eventc_webhook_payload_parse_github_issues(GitEventcEventBase *base, JsonObj
 
     base->url = git_eventc_get_url_const(json_object_get_string_member(issue, "html_url"));
 
-    git_eventc_send_bugreport(base,
+    git_eventc_send_issue(base,
         git_eventc_bug_report_actions[action],
         json_object_get_int_member(issue, "number"),
         json_object_get_string_member(issue, "title"),

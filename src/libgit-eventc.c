@@ -1001,11 +1001,11 @@ git_eventc_send_push(const GitEventcEventBase *base, const gchar *pusher_name, c
 }
 
 void
-git_eventc_send_bugreport(const GitEventcEventBase *base, const gchar *action, guint64 id, const gchar *title, const gchar *author_name, const gchar *author_username, const gchar *author_email, GVariant *tags, ...)
+git_eventc_send_issue(const GitEventcEventBase *base, const gchar *action, guint64 id, const gchar *title, const gchar *author_name, const gchar *author_username, const gchar *author_email, GVariant *tags, ...)
 {
     EventdEvent *event;
 
-    event = eventd_event_new("bug-report", action);
+    event = eventd_event_new("issue", action);
 
     eventd_event_add_data(event, g_strdup("id"), g_variant_new_uint64(id));
     _git_eventc_event_add_data_string(event, "title", title);

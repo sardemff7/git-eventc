@@ -90,7 +90,7 @@ G_GNUC_NULL_TERMINATED
 void git_eventc_send_push(const GitEventcEventBase *base, const gchar *pusher_name, const gchar *pusher_username, const gchar *pusher_email, const gchar *branch, ...);
 
 G_GNUC_NULL_TERMINATED
-void git_eventc_send_bugreport(const GitEventcEventBase *base, const gchar *action, guint64 id, const gchar *title, const gchar *author_name, const gchar *author_username, const gchar *author_email, GVariant *tags, ...);
+void git_eventc_send_issue(const GitEventcEventBase *base, const gchar *action, guint64 id, const gchar *title, const gchar *author_name, const gchar *author_username, const gchar *author_email, GVariant *tags, ...);
 G_GNUC_NULL_TERMINATED
 void git_eventc_send_merge_request(const GitEventcEventBase *base, const gchar *action, guint64 id, const gchar *title, const gchar *author_name, const gchar *author_username, const gchar *author_email, GVariant *tags, const gchar *branch, ...);
 

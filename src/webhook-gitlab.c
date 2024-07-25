@@ -383,7 +383,7 @@ git_eventc_webhook_payload_parse_gitlab_issue(GitEventcEventBase *base, JsonObje
 
     base->url = git_eventc_get_url_const(json_object_get_string_member(issue, "url"));
 
-    git_eventc_send_bugreport(base,
+    git_eventc_send_issue(base,
         git_eventc_bug_report_actions[action],
         json_object_get_int_member(issue, "iid"),
         json_object_get_string_member(issue, "title"),

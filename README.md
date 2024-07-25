@@ -93,11 +93,11 @@ It will be generated after a set of `commit` events, or any of other events even
 This event is useful for mirroring purpose.
 
 
-### `bug-report` event category
+### `issue` event category
 
-git-eventc will provide events in the `bug-report` event category: `opening`, `closing`, `reopening`.
+git-eventc will provide events in the `issue` event category: `opening`, `closing`, `reopening`.
 <br />
-Here is the list of common data provided by all `bug-report` events:
+Here is the list of common data provided by all `issue` events:
 
 * `id`: The id/number of the bug report
 * `title`: The title of the report
