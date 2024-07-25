@@ -112,11 +112,11 @@ Here is the list of common data provided by all `issue` events:
   * `user-username`: The username of the user triggering the event (if available)
 
 
-### `mr` event category
+### `merge-request` event category
 
-git-eventc will provide events in the `mr` event category: `opening`, `closing`, `reopening`, `merge`.
+git-eventc will provide events in the `merge-request` event category: `opening`, `closing`, `reopening`, `merge`.
 <br />
-Here is the list of common data provided by all `mr` events:
+Here is the list of common data provided by all `merge-request` events:
 
 * `id`: The id/number of the MR
 * `title`: The title of the MR
