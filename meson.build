@@ -1,5 +1,5 @@
 project('git-eventc', 'c',
-    version: '12',
+    version: '13',
     meson_version: '>=0.56.0',
     license: [ 'GPL3+' ],
     default_options: [
